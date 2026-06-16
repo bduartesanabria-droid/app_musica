@@ -8,7 +8,7 @@ services:
       POSTGRES_USER:     ${POSTGRES_USER:-semimus}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-semimus_secret}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data_semimus:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-semimus}"]
       interval: 10s
@@ -21,22 +21,22 @@ services:
     expose:
       - "6000"
     environment:
-      FLASK_APP:          run.py
-      FLASK_ENV:          ${FLASK_ENV:-production}
-      SECRET_KEY:         ${SECRET_KEY:-change-me-in-prod-32chars}
-      DATABASE_URL:       postgresql://${POSTGRES_USER:-semimus}:${POSTGRES_PASSWORD:-semimus_secret}@db:5432/${POSTGRES_DB:-semimus}
-      AUDIO_STORAGE_PATH: /app/audio_storage
+      FLASK_APP:             run.py
+      FLASK_ENV:             ${FLASK_ENV:-production}
+      SECRET_KEY:            ${SECRET_KEY:-change-me-in-prod-32chars}
+      DATABASE_URL:          postgresql://${POSTGRES_USER:-semimus}:${POSTGRES_PASSWORD:-semimus_secret}@db:5432/${POSTGRES_DB:-semimus}
+      AUDIO_STORAGE_PATH:    /app/audio_storage
       RATELIMIT_STORAGE_URI: memory://
-      MAIL_SERVER:        ${MAIL_SERVER:-}
-      MAIL_PORT:          ${MAIL_PORT:-587}
-      MAIL_USERNAME:      ${MAIL_USERNAME:-}
-      MAIL_PASSWORD:      ${MAIL_PASSWORD:-}
+      MAIL_SERVER:           ${MAIL_SERVER:-}
+      MAIL_PORT:             ${MAIL_PORT:-587}
+      MAIL_USERNAME:         ${MAIL_USERNAME:-}
+      MAIL_PASSWORD:         ${MAIL_PASSWORD:-}
     volumes:
-      - audio_data:/app/audio_storage
+      - audio_data_semimus:/app/audio_storage
     depends_on:
       db:
         condition: service_healthy
 
 volumes:
-  postgres_data:
-  audio_data:
+  postgres_data_semimus:
+  audio_data_semimus:
