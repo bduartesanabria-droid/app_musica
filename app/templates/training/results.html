@@ -1,0 +1,82 @@
+{% extends "layouts/app.html" %}
+{% block title %}Resultados{% endblock %}
+{% block page_title %}Resultados de Sesión{% endblock %}
+
+{% block content %}
+{% set pct = (session.correct_answers / session.total_questions * 100) | round | int if session.total_questions else 0 %}
+
+<div class="max-w-2xl mx-auto space-y-6">
+
+  <!-- Header resultado -->
+  <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-8 text-center">
+    <div class="text-6xl mb-4">
+      {% if pct >= 90 %}🏆{% elif pct >= 70 %}🎯{% elif pct >= 50 %}👍{% else %}💪{% endif %}
+    </div>
+    <h2 class="text-2xl font-black text-gray-900 dark:text-white mb-1">
+      {% if pct >= 90 %}¡Excelente!
+      {% elif pct >= 70 %}¡Muy bien!
+      {% elif pct >= 50 %}Buen intento
+      {% else %}¡Sigue practicando!
+      {% endif %}
+    </h2>
+    <p class="text-gray-500">{{ session.mode | mode_label }} · {{ session.instrument.name if session.instrument else 'Todos los instrumentos' }}</p>
+
+    <!-- Precisión grande -->
+    <div class="mt-6 inline-flex items-center justify-center w-32 h-32 rounded-full border-8 {{ pct | accuracy_color }} border-current">
+      <span class="text-3xl font-black {{ pct | accuracy_color }}">{{ pct }}%</span>
+    </div>
+  </div>
+
+  <!-- Métricas -->
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+    {% for item in [
+      {'label': 'Correctas',   'val': session.correct_answers, 'color': 'text-green-600', 'icon': '✓'},
+      {'label': 'Incorrectas', 'val': session.total_questions - session.correct_answers, 'color': 'text-red-500', 'icon': '✕'},
+      {'label': 'Duración',    'val': session.total_time_secs | duration, 'color': 'text-blue-600', 'icon': '⏱'},
+      {'label': 'XP ganados',  'val': '+' + session.xp_earned | string, 'color': 'text-amber-600', 'icon': '⭐'},
+    ] %}
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 text-center">
+      <span class="text-xl">{{ item.icon }}</span>
+      <p class="text-2xl font-black {{ item.color }} mt-1">{{ item.val }}</p>
+      <p class="text-xs text-gray-500 uppercase tracking-wide">{{ item.label }}</p>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Detalle respuestas -->
+  {% if answers %}
+  <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+    <h3 class="font-bold text-gray-900 dark:text-white mb-4">Detalle de Respuestas</h3>
+    <div class="space-y-2">
+      {% for ans in answers %}
+      <div class="flex items-center gap-3 p-3 rounded-xl {{ 'bg-green-50 dark:bg-green-900/10' if ans.is_correct else 'bg-red-50 dark:bg-red-900/10' }}">
+        <span class="text-lg flex-shrink-0">{{ '✓' if ans.is_correct else '✕' }}</span>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-medium text-gray-900 dark:text-white truncate">
+            Tu respuesta: <span class="font-bold">{{ ans.user_answer }}</span>
+          </p>
+          {% if not ans.is_correct and ans.question %}
+          <p class="text-xs text-red-600">Correcta: {{ ans.question.correct_answer }}</p>
+          {% endif %}
+        </div>
+        <span class="text-xs text-gray-400 flex-shrink-0">{{ ans.response_time | round(1) }}s</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Acciones -->
+  <div class="flex flex-col sm:flex-row gap-3">
+    <a href="{{ url_for('training.index') }}"
+       class="flex-1 btn-primary py-3 text-center font-bold text-base">
+      🎵 Nueva Sesión
+    </a>
+    <a href="{{ url_for('main.dashboard') }}"
+       class="flex-1 btn-secondary py-3 text-center font-bold">
+      Ir al Dashboard
+    </a>
+  </div>
+
+</div>
+{% endblock %}

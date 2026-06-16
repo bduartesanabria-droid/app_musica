@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}Crear Cuenta{% endblock %}
+
+{% block body %}
+<div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-900 via-blue-900 to-indigo-900 px-4 py-8">
+  <div class="w-full max-w-lg">
+
+    <div class="text-center mb-8">
+      <div class="inline-flex items-center justify-center w-16 h-16 bg-accent-500 rounded-2xl mb-4 shadow-xl">
+        <span class="text-3xl">♪</span>
+      </div>
+      <h1 class="text-3xl font-black text-white tracking-tight">SEMIMUS</h1>
+      <p class="text-blue-300 text-sm mt-1">Crea tu cuenta gratuita</p>
+    </div>
+
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8">
+      <form method="POST" class="space-y-4">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label for="first_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nombre</label>
+            <input type="text" id="first_name" name="first_name" required
+                   placeholder="Nombre"
+                   value="{{ request.form.first_name or '' }}"
+                   class="form-input">
+          </div>
+          <div>
+            <label for="last_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Apellido</label>
+            <input type="text" id="last_name" name="last_name" required
+                   placeholder="Apellido"
+                   value="{{ request.form.last_name or '' }}"
+                   class="form-input">
+          </div>
+        </div>
+
+        <div>
+          <label for="username" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nombre de usuario</label>
+          <input type="text" id="username" name="username" required autocomplete="username"
+                 placeholder="@usuario"
+                 value="{{ request.form.username or '' }}"
+                 class="form-input">
+        </div>
+
+        <div>
+          <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Correo electrónico</label>
+          <input type="email" id="email" name="email" required autocomplete="email"
+                 placeholder="tu@email.com"
+                 value="{{ request.form.email or '' }}"
+                 class="form-input">
+        </div>
+
+        <div x-data="{ show: false }">
+          <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Contraseña</label>
+          <div class="relative">
+            <input :type="show ? 'text' : 'password'" id="password" name="password" required
+                   placeholder="Mínimo 8 caracteres"
+                   class="form-input pr-10">
+            <button type="button" @click="show = !show" class="absolute inset-y-0 right-3 flex items-center text-gray-400">
+              <span x-show="!show">👁</span><span x-show="show" x-cloak>🙈</span>
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <label for="confirm_password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Confirmar contraseña</label>
+          <input type="password" id="confirm_password" name="confirm_password" required
+                 placeholder="Repite la contraseña"
+                 class="form-input">
+        </div>
+
+        <button type="submit" class="w-full btn-primary py-3 text-base font-bold shadow-lg mt-2">
+          Crear cuenta gratis
+        </button>
+      </form>
+
+      <p class="text-center text-sm text-gray-500 mt-5">
+        ¿Ya tienes cuenta?
+        <a href="{{ url_for('auth.login') }}" class="text-primary-600 hover:underline font-medium">Inicia sesión</a>
+      </p>
+    </div>
+  </div>
+</div>
+{% endblock %}

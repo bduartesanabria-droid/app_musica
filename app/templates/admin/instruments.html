@@ -1,0 +1,71 @@
+{% extends "layouts/app.html" %}
+{% block title %}Instrumentos{% endblock %}
+{% block page_title %}Instrumentos{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto space-y-6" x-data="{ showNew: false }">
+
+  <button @click="showNew = !showNew" class="btn-primary px-5 py-2.5 text-sm font-semibold">+ Nuevo instrumento</button>
+
+  <!-- Formulario nuevo -->
+  <div x-show="showNew" x-cloak
+       class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+    <h3 class="font-bold text-gray-900 dark:text-white mb-5">Crear instrumento</h3>
+    <form method="POST" action="{{ url_for('admin.create_instrument') }}" class="space-y-4">
+      {{ csrf_token() if csrf_token is defined else '' }}
+      <div class="grid sm:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nombre</label>
+          <input type="text" name="name" class="form-input" placeholder="Ej: Tiple" required>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Emoji</label>
+          <input type="text" name="emoji" class="form-input" placeholder="🎸" maxlength="4">
+        </div>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Descripción</label>
+        <textarea name="description" class="form-input resize-none" rows="2" placeholder="Breve descripción del instrumento…"></textarea>
+      </div>
+      <div class="flex justify-end gap-3">
+        <button type="button" @click="showNew = false" class="btn-secondary px-5 py-2.5 text-sm">Cancelar</button>
+        <button type="submit" class="btn-primary px-5 py-2.5 text-sm font-semibold">Crear</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Lista -->
+  <div class="space-y-3">
+    {% for instr in instruments %}
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 flex items-center gap-4">
+      <div class="w-12 h-12 rounded-xl bg-primary-50 dark:bg-primary-900/20 flex items-center justify-center text-2xl flex-shrink-0">
+        {{ instr.emoji or '🎸' }}
+      </div>
+      <div class="flex-1 min-w-0">
+        <h3 class="font-bold text-gray-900 dark:text-white">{{ instr.name }}</h3>
+        <p class="text-sm text-gray-500 truncate">{{ instr.description or 'Sin descripción' }}</p>
+        <p class="text-xs text-gray-400 mt-1">{{ instr.audios.count() }} audios registrados</p>
+      </div>
+      <div class="flex items-center gap-2 flex-shrink-0">
+        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
+                     {{ 'bg-green-100 text-green-700' if instr.is_active else 'bg-gray-100 text-gray-500' }}">
+          {{ 'Activo' if instr.is_active else 'Inactivo' }}
+        </span>
+        <form method="POST" action="{{ url_for('admin.toggle_instrument', instrument_id=instr.id) }}" class="inline">
+          {{ csrf_token() if csrf_token is defined else '' }}
+          <button type="submit" class="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors">
+            {{ 'Desactivar' if instr.is_active else 'Activar' }}
+          </button>
+        </form>
+      </div>
+    </div>
+    {% else %}
+    <div class="text-center py-10 text-gray-400">
+      <div class="text-4xl mb-2">🎸</div>
+      <p>No hay instrumentos registrados.</p>
+    </div>
+    {% endfor %}
+  </div>
+
+</div>
+{% endblock %}

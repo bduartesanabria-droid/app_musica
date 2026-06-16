@@ -1,0 +1,162 @@
+/* ====================================================
+   SEMIMUS — Custom styles (complement Tailwind CDN)
+   ==================================================== */
+
+/* Sidebar nav items */
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 0.75rem;
+  border-radius: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 150ms ease;
+  text-decoration: none;
+}
+
+/* Form inputs */
+.form-input {
+  display: block;
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  border: 1.5px solid #D1D5DB;
+  border-radius: 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  background: white;
+  color: #111827;
+  transition: border-color 150ms, box-shadow 150ms;
+  outline: none;
+}
+.form-input:focus {
+  border-color: #2563EB;
+  box-shadow: 0 0 0 3px #2563EB22;
+}
+.dark .form-input {
+  background: #1F2937;
+  border-color: #374151;
+  color: #F9FAFB;
+}
+.dark .form-input:focus {
+  border-color: #3B82F6;
+  box-shadow: 0 0 0 3px #3B82F622;
+}
+
+/* Textarea like input */
+textarea.form-input {
+  min-height: 80px;
+}
+
+/* Primary button */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.625rem 1.25rem;
+  background: #1E3A8A;
+  color: white;
+  border-radius: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: background 150ms, transform 100ms, box-shadow 150ms;
+  text-decoration: none;
+  user-select: none;
+}
+.btn-primary:hover  { background: #1D4ED8; }
+.btn-primary:active { transform: scale(0.98); }
+
+/* Secondary button */
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.625rem 1.25rem;
+  background: white;
+  color: #374151;
+  border-radius: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border: 1.5px solid #D1D5DB;
+  cursor: pointer;
+  transition: background 150ms, border-color 150ms;
+  text-decoration: none;
+}
+.btn-secondary:hover { background: #F9FAFB; border-color: #9CA3AF; }
+.dark .btn-secondary { background: #1F2937; color: #D1D5DB; border-color: #374151; }
+.dark .btn-secondary:hover { background: #374151; }
+
+/* Audio pulse animation */
+@keyframes audio-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.08); opacity: 0.85; }
+}
+.audio-playing { animation: audio-pulse 0.6s ease-in-out infinite; }
+
+/* Training option buttons (applied from Tailwind @apply in template) */
+.option-btn {
+  width: 100%;
+  text-align: left;
+  padding: 1rem 1.25rem;
+  border-radius: 0.75rem;
+  border: 2px solid #E5E7EB;
+  background: white;
+  font-weight: 500;
+  color: #1F2937;
+  transition: all 200ms;
+  cursor: pointer;
+}
+.option-btn:hover:not(:disabled) {
+  border-color: #93C5FD;
+  background: #EFF6FF;
+  box-shadow: 0 2px 8px #2563EB22;
+}
+.option-btn:disabled { cursor: not-allowed; opacity: 0.8; }
+.option-btn.correct { border-color: #22C55E !important; background: #F0FDF4 !important; color: #15803D !important; }
+.option-btn.wrong   { border-color: #F87171 !important; background: #FEF2F2 !important; color: #B91C1C !important; }
+
+.dark .option-btn { background: #1F2937; border-color: #374151; color: #F9FAFB; }
+.dark .option-btn:hover:not(:disabled) { border-color: #3B82F6; background: #1E3A8A22; }
+.dark .option-btn.correct { background: #14532D22 !important; border-color: #22C55E !important; color: #86EFAC !important; }
+.dark .option-btn.wrong   { background: #7F1D1D22 !important; border-color: #F87171 !important; color: #FCA5A5 !important; }
+
+/* [x-cloak] hide before Alpine init */
+[x-cloak] { display: none !important; }
+
+/* Smooth scroll */
+html { scroll-behavior: smooth; }
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #D1D5DB; border-radius: 9999px; }
+::-webkit-scrollbar-thumb:hover { background: #9CA3AF; }
+.dark ::-webkit-scrollbar-thumb { background: #4B5563; }
+
+/* Accent range slider */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 9999px;
+  background: #E5E7EB;
+  cursor: pointer;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #2563EB;
+  box-shadow: 0 2px 4px #2563EB44;
+  transition: transform 100ms;
+}
+input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+
+/* Print: hide sidebar */
+@media print {
+  aside, header { display: none !important; }
+  main { padding: 0 !important; }
+}

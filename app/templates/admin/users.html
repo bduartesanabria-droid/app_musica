@@ -1,0 +1,105 @@
+{% extends "layouts/app.html" %}
+{% block title %}Administrar Usuarios{% endblock %}
+{% block page_title %}Usuarios{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+  <!-- Búsqueda -->
+  <form method="GET" class="flex gap-3">
+    <input type="text" name="search" value="{{ search or '' }}" placeholder="Buscar por nombre, email o usuario…"
+           class="form-input flex-1 max-w-md">
+    <button type="submit" class="btn-primary px-5 py-2.5">Buscar</button>
+    {% if search %}<a href="{{ url_for('admin.users') }}" class="btn-secondary px-5 py-2.5">Limpiar</a>{% endif %}
+  </form>
+
+  <!-- Tabla -->
+  <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600">
+          <tr>
+            <th class="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Usuario</th>
+            <th class="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Email</th>
+            <th class="px-5 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide">Rol</th>
+            <th class="px-5 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide">Estado</th>
+            <th class="px-5 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide">Último acceso</th>
+            <th class="px-5 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide">Acciones</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+          {% for user in users.items %}
+          <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+            <td class="px-5 py-3">
+              <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-xs font-bold text-primary-700 flex-shrink-0">
+                  {{ user.initials }}
+                </div>
+                <div>
+                  <p class="font-medium text-gray-900 dark:text-white">{{ user.full_name }}</p>
+                  <p class="text-xs text-gray-400">@{{ user.username }}</p>
+                </div>
+              </div>
+            </td>
+            <td class="px-5 py-3 text-gray-500">{{ user.email }}</td>
+            <td class="px-5 py-3 text-center">
+              <form method="POST" action="{{ url_for('admin.change_role', user_id=user.id) }}" class="inline">
+                {{ csrf_token() if csrf_token is defined else '' }}
+                <select name="role" onchange="this.form.submit()"
+                        class="text-xs border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-1 bg-transparent text-gray-700 dark:text-gray-300">
+                  {% for r in ['aprendiz', 'instructor', 'admin'] %}
+                  <option value="{{ r }}" {{ 'selected' if user.role == r }}>{{ r | title }}</option>
+                  {% endfor %}
+                </select>
+              </form>
+            </td>
+            <td class="px-5 py-3 text-center">
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                           {{ 'bg-green-100 text-green-700' if user.is_active else 'bg-red-100 text-red-700' }}">
+                {{ '✓ Activo' if user.is_active else '✕ Inactivo' }}
+              </span>
+            </td>
+            <td class="px-5 py-3 text-center text-xs text-gray-400">
+              {{ user.last_login | timeago if user.last_login else '—' }}
+            </td>
+            <td class="px-5 py-3 text-center">
+              {% if user.id != current_user.id %}
+              <form method="POST" action="{{ url_for('admin.toggle_user', user_id=user.id) }}" class="inline">
+                {{ csrf_token() if csrf_token is defined else '' }}
+                <button type="submit"
+                        class="text-xs px-3 py-1.5 rounded-lg border transition-colors
+                               {{ 'border-red-300 text-red-600 hover:bg-red-50' if user.is_active else 'border-green-300 text-green-600 hover:bg-green-50' }}"
+                        onclick="return confirm('¿{{ 'Desactivar' if user.is_active else 'Activar' }} a {{ user.first_name }}?')">
+                  {{ 'Desactivar' if user.is_active else 'Activar' }}
+                </button>
+              </form>
+              {% else %}
+              <span class="text-xs text-gray-300">(tú)</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="6" class="text-center text-gray-400 py-10">Sin usuarios para mostrar.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Paginación -->
+    {% if users.pages > 1 %}
+    <div class="px-5 py-3 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between">
+      <p class="text-xs text-gray-500">{{ users.total }} usuarios · Página {{ users.page }}/{{ users.pages }}</p>
+      <div class="flex gap-2">
+        {% if users.has_prev %}
+        <a href="{{ url_for('admin.users', page=users.prev_num, search=search) }}" class="btn-secondary px-3 py-1.5 text-xs">← Anterior</a>
+        {% endif %}
+        {% if users.has_next %}
+        <a href="{{ url_for('admin.users', page=users.next_num, search=search) }}" class="btn-secondary px-3 py-1.5 text-xs">Siguiente →</a>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,172 @@
+{% extends "layouts/app.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+
+<!-- Saludo + nivel -->
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+  <div>
+    <h2 class="text-2xl font-bold text-gray-900 dark:text-white">
+      Hola, {{ current_user.first_name }} 👋
+    </h2>
+    <p class="text-gray-500 dark:text-gray-400 text-sm mt-1">
+      {% if progress and progress.last_activity_date %}
+        Última actividad {{ progress.last_activity_date | timeago }}
+      {% else %}
+        ¡Bienvenido! Comienza tu primer entrenamiento.
+      {% endif %}
+    </p>
+  </div>
+  {% if gamification %}
+  <div class="flex items-center gap-3 bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
+    <span class="text-3xl">{{ gamification.level_info.icon }}</span>
+    <div>
+      <p class="text-xs text-gray-500 font-medium uppercase tracking-wide">Nivel {{ gamification.current_level }}</p>
+      <p class="font-bold text-gray-900 dark:text-white">{{ gamification.level_info.name }}</p>
+      <div class="w-32 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full mt-1 overflow-hidden">
+        <div class="h-full bg-amber-500 rounded-full transition-all duration-500"
+             style="width: {{ gamification.level_info.progress }}%"></div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Métricas rápidas -->
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+  {% set metrics = [
+    {'label': 'Sesiones', 'value': progress.total_sessions if progress else 0, 'icon': '🎵', 'color': 'blue'},
+    {'label': 'Preguntas', 'value': progress.total_questions_answered if progress else 0, 'icon': '❓', 'color': 'purple'},
+    {'label': 'Precisión', 'value': ((progress.total_correct / progress.total_questions_answered * 100) | round(1) | string + '%') if (progress and progress.total_questions_answered) else '—', 'icon': '🎯', 'color': 'green'},
+    {'label': 'Racha', 'value': (progress.current_streak_days | string + ' días') if progress else '0 días', 'icon': '🔥', 'color': 'orange'},
+  ] %}
+  {% for m in metrics %}
+  <div class="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-gray-700">
+    <div class="flex items-start justify-between">
+      <div>
+        <p class="text-xs text-gray-500 uppercase tracking-wide font-medium">{{ m.label }}</p>
+        <p class="text-2xl font-black text-gray-900 dark:text-white mt-1">{{ m.value }}</p>
+      </div>
+      <span class="text-2xl">{{ m.icon }}</span>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- CTA entrenar + actividad reciente -->
+<div class="grid lg:grid-cols-3 gap-6 mb-8">
+
+  <!-- Tarjeta entrenar -->
+  <div class="lg:col-span-1 bg-gradient-to-br from-primary-900 to-blue-800 rounded-2xl p-6 text-white flex flex-col justify-between">
+    <div>
+      <div class="text-4xl mb-3">🎼</div>
+      <h3 class="text-xl font-black mb-2">¿Listo para entrenar?</h3>
+      <p class="text-blue-200 text-sm mb-6">Mejora tu oído musical con ejercicios de notas, intervalos y escalas en instrumentos andinos colombianos.</p>
+    </div>
+    <a href="{{ url_for('training.index') }}"
+       class="inline-flex items-center justify-center gap-2 bg-accent-500 hover:bg-accent-600 text-black font-bold py-3 px-6 rounded-xl transition-colors shadow-lg">
+      Comenzar Entrenamiento →
+    </a>
+  </div>
+
+  <!-- Sesiones recientes -->
+  <div class="lg:col-span-2 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+    <h3 class="font-bold text-gray-900 dark:text-white mb-4">Sesiones Recientes</h3>
+    {% if recent_sessions %}
+    <div class="space-y-3">
+      {% for session in recent_sessions %}
+      <div class="flex items-center gap-4 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
+        <div class="w-10 h-10 bg-primary-100 dark:bg-primary-900/30 rounded-xl flex items-center justify-center text-lg flex-shrink-0">
+          {% if session.mode == 'notas' %}🎵
+          {% elif session.mode == 'intervalos' %}🎹
+          {% elif session.mode == 'escalas' %}📏
+          {% else %}🎼{% endif %}
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-semibold text-gray-900 dark:text-white truncate">
+            {{ session.mode | mode_label }}
+          </p>
+          <p class="text-xs text-gray-500">
+            {{ session.correct_answers }}/{{ session.total_questions }} correctas · {{ session.total_time_secs | duration }}
+          </p>
+        </div>
+        <div class="text-right flex-shrink-0">
+          {% set pct = (session.correct_answers / session.total_questions * 100) | round | int if session.total_questions else 0 %}
+          <span class="text-sm font-bold {{ pct | accuracy_color }}">{{ pct }}%</span>
+          <p class="text-xs text-amber-600 font-medium">+{{ session.xp_earned }} XP</p>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-8 text-gray-400">
+      <div class="text-4xl mb-2">🎵</div>
+      <p class="text-sm">Aún no has completado sesiones.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Actividad semanal + badges -->
+<div class="grid lg:grid-cols-2 gap-6">
+
+  <!-- Gráfica semanal -->
+  <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+    <h3 class="font-bold text-gray-900 dark:text-white mb-4">Actividad esta semana</h3>
+    <canvas id="weeklyChart" class="max-h-48"></canvas>
+  </div>
+
+  <!-- Badges -->
+  <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+    <h3 class="font-bold text-gray-900 dark:text-white mb-4">Logros</h3>
+    {% if user_badges %}
+    <div class="grid grid-cols-4 gap-3">
+      {% for ub in user_badges %}
+      <div class="flex flex-col items-center text-center" title="{{ ub.badge.name }}">
+        <div class="w-12 h-12 bg-amber-50 dark:bg-amber-900/20 border-2 border-amber-300 dark:border-amber-700 rounded-xl flex items-center justify-center text-2xl">
+          {{ ub.badge.icon }}
+        </div>
+        <p class="text-xs text-gray-500 mt-1 truncate w-full">{{ ub.badge.name }}</p>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-8 text-gray-400">
+      <div class="text-4xl mb-2">🏅</div>
+      <p class="text-sm">¡Entrena para desbloquear logros!</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+const weeklyData = {{ weekly_stats | tojson }};
+const ctx = document.getElementById('weeklyChart');
+if (ctx && weeklyData) {
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: weeklyData.map(d => d.day),
+      datasets: [{
+        label: 'Sesiones',
+        data: weeklyData.map(d => d.sessions),
+        backgroundColor: '#2563EB',
+        borderRadius: 6,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, ticks: { stepSize: 1 } },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+}
+</script>
+{% endblock %}

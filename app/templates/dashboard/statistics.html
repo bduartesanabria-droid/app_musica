@@ -1,0 +1,137 @@
+{% extends "layouts/app.html" %}
+{% block title %}Estadísticas{% endblock %}
+{% block page_title %}Mis Estadísticas{% endblock %}
+
+{% block content %}
+
+<!-- Resumen global -->
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+  {% set total_pct = (progress.total_correct / progress.total_questions_answered * 100) | round(1) if (progress and progress.total_questions_answered) else 0 %}
+  {% for item in [
+    {'label': 'Sesiones totales',   'val': progress.total_sessions if progress else 0,             'icon': '🎵'},
+    {'label': 'Tiempo total',        'val': (progress.total_time_minutes | round | int | string + ' min') if progress else '0 min', 'icon': '⏱'},
+    {'label': 'Precisión global',    'val': total_pct | string + '%',                               'icon': '🎯'},
+    {'label': 'Racha más larga',     'val': (progress.longest_streak_days | string + ' días') if progress else '0 días', 'icon': '🔥'},
+  ] %}
+  <div class="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-gray-700">
+    <span class="text-2xl">{{ item.icon }}</span>
+    <p class="text-2xl font-black text-gray-900 dark:text-white mt-2">{{ item.val }}</p>
+    <p class="text-xs text-gray-500 mt-1 uppercase tracking-wide">{{ item.label }}</p>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="grid lg:grid-cols-2 gap-6 mb-6">
+  <!-- Por modo -->
+  <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+    <h3 class="font-bold text-gray-900 dark:text-white mb-4">Precisión por Modo</h3>
+    <canvas id="modeChart" class="max-h-64"></canvas>
+  </div>
+
+  <!-- Por instrumento -->
+  <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+    <h3 class="font-bold text-gray-900 dark:text-white mb-4">Precisión por Instrumento</h3>
+    <canvas id="instrChart" class="max-h-64"></canvas>
+  </div>
+</div>
+
+<!-- Actividad diaria (últimos 30 días) -->
+<div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 mb-6">
+  <h3 class="font-bold text-gray-900 dark:text-white mb-4">Actividad Diaria (últimos 30 días)</h3>
+  <canvas id="dailyChart" class="max-h-48"></canvas>
+</div>
+
+<!-- Tabla historial sesiones -->
+<div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+  <h3 class="font-bold text-gray-900 dark:text-white mb-4">Historial de Sesiones</h3>
+  {% if sessions %}
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="border-b border-gray-200 dark:border-gray-700 text-xs uppercase tracking-wide text-gray-500">
+          <th class="pb-3 text-left">Fecha</th>
+          <th class="pb-3 text-left">Modo</th>
+          <th class="pb-3 text-left">Instrumento</th>
+          <th class="pb-3 text-center">Correctas</th>
+          <th class="pb-3 text-center">Precisión</th>
+          <th class="pb-3 text-center">Duración</th>
+          <th class="pb-3 text-center">XP</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+        {% for s in sessions %}
+        {% set pct = (s.correct_answers / s.total_questions * 100) | round | int if s.total_questions else 0 %}
+        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+          <td class="py-3 text-gray-500">{{ s.created_at | timeago }}</td>
+          <td class="py-3 font-medium text-gray-900 dark:text-white">{{ s.mode | mode_label }}</td>
+          <td class="py-3 text-gray-500">{{ s.instrument.name if s.instrument else '—' }}</td>
+          <td class="py-3 text-center">{{ s.correct_answers }}/{{ s.total_questions }}</td>
+          <td class="py-3 text-center font-bold {{ pct | accuracy_color }}">{{ pct }}%</td>
+          <td class="py-3 text-center text-gray-500">{{ s.total_time_secs | duration }}</td>
+          <td class="py-3 text-center text-amber-600 font-bold">+{{ s.xp_earned }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="text-center text-gray-400 py-8">Sin sesiones registradas todavía.</p>
+  {% endif %}
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+const byMode  = {{ by_mode  | tojson }};
+const byInstr = {{ by_instrument | tojson }};
+const daily   = {{ daily | tojson }};
+
+const makeBar = (id, labels, data, color) => {
+  const ctx = document.getElementById(id);
+  if (!ctx) return;
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{ label: 'Precisión %', data, backgroundColor: color, borderRadius: 6 }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, max: 100, ticks: { callback: v => v + '%' } },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+};
+
+makeBar('modeChart',  Object.keys(byMode),  Object.values(byMode),  '#2563EB');
+makeBar('instrChart', Object.keys(byInstr), Object.values(byInstr), '#0EA5E9');
+
+const dCtx = document.getElementById('dailyChart');
+if (dCtx && daily) {
+  new Chart(dCtx, {
+    type: 'line',
+    data: {
+      labels: Object.keys(daily),
+      datasets: [{
+        label: 'Sesiones',
+        data: Object.values(daily),
+        borderColor: '#2563EB',
+        backgroundColor: '#2563EB22',
+        fill: true,
+        tension: 0.3,
+        pointRadius: 3,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } }, x: { grid: { display: false } } }
+    }
+  });
+}
+</script>
+{% endblock %}
