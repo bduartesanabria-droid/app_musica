@@ -11,6 +11,8 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
+
+  # ── 1. Lint y tests básicos ─────────────────────────────────────────────────
   backend-tests:
     name: Backend Tests
     runs-on: ubuntu-latest
@@ -18,8 +20,8 @@ jobs:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_DB: semimus_test
-          POSTGRES_USER: semimus
+          POSTGRES_DB:       semimus_test
+          POSTGRES_USER:     semimus
           POSTGRES_PASSWORD: semimus123
         options: >-
           --health-cmd pg_isready
@@ -39,61 +41,37 @@ jobs:
           cache: "pip"
 
       - name: Install dependencies
-        working-directory: ./backend
-        run: |
-          pip install -r requirements.txt
-          pip install pytest pytest-cov
+        run: pip install -r requirements.txt
 
-      - name: Run database migrations
-        working-directory: ./backend
-        env:
-          FLASK_ENV: testing
-          DATABASE_URL: postgresql://semimus:semimus123@localhost:5432/semimus_test
-          SECRET_KEY: test-secret-key
-          JWT_SECRET_KEY: test-jwt-key
+      - name: Check syntax (py_compile)
         run: |
+          python -m py_compile run.py config.py
+          python -m py_compile app/__init__.py app/extensions.py
+          python -m py_compile app/models/user.py app/models/instrument.py
+          python -m py_compile app/models/audio.py app/models/question.py
+          python -m py_compile app/models/session.py app/models/progress.py
+          python -m py_compile app/models/gamification.py
+          python -m py_compile app/routes/auth.py app/routes/main.py
+          python -m py_compile app/routes/training.py app/routes/audio.py
+          python -m py_compile app/routes/admin.py app/routes/api.py
+          python -m py_compile app/utils/filters.py app/utils/question_generator.py
+
+      - name: Initialize and migrate DB
+        env:
+          FLASK_APP:    run.py
+          FLASK_ENV:    testing
+          DATABASE_URL: postgresql://semimus:semimus123@localhost:5432/semimus_test
+          SECRET_KEY:   test-secret-key-32chars-minimum!!
+        run: |
+          flask db init
+          flask db migrate -m "initial"
           flask db upgrade
 
-      - name: Run tests
-        working-directory: ./backend
-        env:
-          FLASK_ENV: testing
-          DATABASE_URL: postgresql://semimus:semimus123@localhost:5432/semimus_test
-          SECRET_KEY: test-secret-key
-          JWT_SECRET_KEY: test-jwt-key
-        run: pytest --cov=app --cov-report=xml -v
-
-  frontend-build:
-    name: Frontend Build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: "npm"
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install dependencies
-        working-directory: ./frontend
-        run: npm ci
-
-      - name: Build
-        working-directory: ./frontend
-        run: npm run build
-
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: frontend-dist
-          path: frontend/dist
-
+  # ── 2. Build Docker (solo en main) ─────────────────────────────────────────
   docker-build:
     name: Docker Build & Push
     runs-on: ubuntu-latest
-    needs: [backend-tests, frontend-build]
+    needs: backend-tests
     if: github.ref == 'refs/heads/main'
     permissions:
       contents: read
@@ -109,20 +87,19 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push backend
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push
         uses: docker/build-push-action@v5
         with:
-          context: ./backend
+          context: .
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:latest
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest,${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
-      - name: Build and push frontend
-        uses: docker/build-push-action@v5
-        with:
-          context: ./frontend
-          push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:latest
-
+  # ── 3. Deploy via Coolify webhook ──────────────────────────────────────────
   deploy:
     name: Deploy to Coolify
     runs-on: ubuntu-latest

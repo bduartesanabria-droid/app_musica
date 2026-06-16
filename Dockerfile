@@ -28,7 +28,7 @@ COPY . .
 RUN chmod +x /app/docker-entrypoint.sh
 
 # Directorios necesarios
-RUN mkdir -p /app/audio_storage /app/migrations
+RUN mkdir -p /app/audio_storage
 
 # Usuario no-root
 RUN useradd -m -u 1001 semimus && chown -R semimus /app
