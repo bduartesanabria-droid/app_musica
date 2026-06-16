@@ -31,10 +31,10 @@ RUN mkdir -p /app/audio_storage
 RUN useradd -m -u 1001 semimus && chown -R semimus /app
 USER semimus
 
-EXPOSE 5000
+EXPOSE 6000
 
 CMD ["gunicorn", "run:app", \
-     "--bind", "0.0.0.0:5000", \
+     "--bind", "0.0.0.0:6000", \
      "--workers", "2", \
      "--threads", "2", \
      "--timeout", "60", \
