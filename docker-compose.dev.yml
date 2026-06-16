@@ -1,0 +1,65 @@
+version: "3.9"
+
+# ============================================================
+# SEMIMUS – Overrides para DESARROLLO LOCAL
+# Uso: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+#   o: docker compose up   (si renombras este archivo a docker-compose.override.yml)
+# ============================================================
+
+services:
+
+  postgres:
+    ports:
+      - "5432:5432"          # exponer al host en dev
+
+  redis:
+    ports:
+      - "6379:6379"
+
+  backend:
+    build:
+      context: ./backend
+      target: development    # stage multi-stage (si lo usas)
+    environment:
+      FLASK_ENV:        development
+      FLASK_DEBUG:      "1"
+      SECRET_KEY:       dev-secret-key-not-for-production
+      JWT_SECRET_KEY:   dev-jwt-key-not-for-production
+      DATABASE_URL:     postgresql://semimus:semimus123@postgres:5432/semimus_dev
+      REDIS_URL:        redis://redis:6379/0
+      AUDIO_STORAGE_PATH: /app/storage/audio
+      FRONTEND_URL:     http://localhost:5173
+      CORS_ORIGINS:     http://localhost:5173,http://localhost:3000
+    volumes:
+      - ./backend:/app          # hot-reload del código
+      - audio_storage:/app/storage/audio
+    command: >
+      flask run
+      --host=0.0.0.0
+      --port=5000
+      --debug
+      --reload
+    ports:
+      - "5000:5000"
+    deploy:
+      resources:              # sin límites en dev
+        limits:
+          cpus: "2"
+          memory: 2G
+
+  frontend:
+    build:
+      context: ./frontend
+      target: development
+    environment:
+      VITE_API_URL: http://localhost:5000/api
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules      # preservar node_modules del contenedor
+    command: npm run dev -- --host 0.0.0.0
+    ports:
+      - "5173:5173"
+
+  nginx:
+    ports:
+      - "8080:80"              # en dev usar el puerto 8080 para evitar conflictos

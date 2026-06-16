@@ -1,0 +1,73 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.Python
+venv/
+env/
+ENV/
+*.egg-info/
+dist/
+build/
+.eggs/
+*.log
+
+# Flask
+instance/
+.webassets-cache
+migrations/versions/
+
+# Environment
+.env
+.env.local
+.env.production
+.env.*.local
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Vite / Build
+frontend/dist/
+frontend/.vite/
+
+# Audio storage (no subir audios al repo)
+storage/
+backend/storage/
+
+# Docker
+.docker/
+
+# Datos persistentes (no subir al repo)
+data/postgres/
+data/redis/
+data/audio/
+!data/**/.gitkeep
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# SSL certs
+nginx/ssl/
+*.pem
+*.key
+*.crt
+
+# Coverage
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Pyright/MyPy
+.mypy_cache/
+.pyright/
