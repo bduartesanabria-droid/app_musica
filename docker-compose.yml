@@ -25,6 +25,7 @@ services:
       SECRET_KEY:         ${SECRET_KEY:-change-me-in-prod-32chars}
       DATABASE_URL:       postgresql://${POSTGRES_USER:-semimus}:${POSTGRES_PASSWORD:-semimus_secret}@db:5432/${POSTGRES_DB:-semimus}
       AUDIO_STORAGE_PATH: /app/audio_storage
+      RATELIMIT_STORAGE_URI: memory://
       MAIL_SERVER:        ${MAIL_SERVER:-}
       MAIL_PORT:          ${MAIL_PORT:-587}
       MAIL_USERNAME:      ${MAIL_USERNAME:-}
@@ -34,15 +35,6 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    command: >
-      sh -c "flask db upgrade &&
-             gunicorn run:app
-             --bind 0.0.0.0:6000
-             --workers 2
-             --threads 2
-             --timeout 60
-             --access-logfile -
-             --error-logfile -"
 
 volumes:
   postgres_data:

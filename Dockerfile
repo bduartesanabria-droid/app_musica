@@ -13,30 +13,27 @@ FROM python:3.12-slim AS runtime
 
 WORKDIR /app
 
-# System deps for soundfile / psycopg2
+# System deps para soundfile / psycopg2
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libsndfile1 \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy installed packages
+# Copiar paquetes instalados
 COPY --from=builder /install /usr/local
 
-# Copy source
+# Copiar código fuente
 COPY . .
 
-# Create audio storage dir
-RUN mkdir -p /app/audio_storage
+# Entrypoint ejecutable
+RUN chmod +x /app/docker-entrypoint.sh
 
-# Non-root user
+# Directorios necesarios
+RUN mkdir -p /app/audio_storage /app/migrations
+
+# Usuario no-root
 RUN useradd -m -u 1001 semimus && chown -R semimus /app
 USER semimus
 
 EXPOSE 6000
 
-CMD ["gunicorn", "run:app", \
-     "--bind", "0.0.0.0:6000", \
-     "--workers", "2", \
-     "--threads", "2", \
-     "--timeout", "60", \
-     "--access-logfile", "-", \
-     "--error-logfile", "-"]
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
