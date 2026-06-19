@@ -21,7 +21,7 @@
           bandola: 'Entrenamiento enfocado en la bandola andina.',
         }
       }">
-  {{ csrf_token() if csrf_token is defined else '' }}
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
   <div class="max-w-3xl mx-auto space-y-8">
 

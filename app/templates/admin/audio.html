@@ -21,7 +21,7 @@
        class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
     <h3 class="font-bold text-gray-900 dark:text-white mb-5">Subir nuevo audio</h3>
     <form method="POST" action="{{ url_for('audio.upload') }}" enctype="multipart/form-data" class="space-y-4">
-      {{ csrf_token() if csrf_token is defined else '' }}
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <div class="grid sm:grid-cols-2 gap-4">
         <div>
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Instrumento</label>
@@ -96,7 +96,7 @@
             </td>
             <td class="px-5 py-3 text-center">
               <form method="POST" action="{{ url_for('audio.delete_audio', audio_id=audio.id) }}" class="inline">
-                {{ csrf_token() if csrf_token is defined else '' }}
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="text-xs text-red-500 hover:text-red-700 font-medium"
                         onclick="return confirm('¿Eliminar este audio?')">Eliminar</button>
               </form>

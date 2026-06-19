@@ -12,7 +12,7 @@
        class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
     <h3 class="font-bold text-gray-900 dark:text-white mb-5">Crear instrumento</h3>
     <form method="POST" action="{{ url_for('admin.create_instrument') }}" class="space-y-4">
-      {{ csrf_token() if csrf_token is defined else '' }}
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <div class="grid sm:grid-cols-2 gap-4">
         <div>
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nombre</label>
@@ -52,7 +52,7 @@
           {{ 'Activo' if instr.is_active else 'Inactivo' }}
         </span>
         <form method="POST" action="{{ url_for('admin.toggle_instrument', instrument_id=instr.id) }}" class="inline">
-          {{ csrf_token() if csrf_token is defined else '' }}
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <button type="submit" class="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors">
             {{ 'Desactivar' if instr.is_active else 'Activar' }}
           </button>
