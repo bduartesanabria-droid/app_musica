@@ -132,25 +132,43 @@ def rankings():
 @login_required
 def profile():
     from flask import request, flash
-    from ..forms.profile import ProfileForm
 
     progress     = Progress.query.filter_by(user_id=current_user.id).first()
     gamification = UserGamification.query.filter_by(user_id=current_user.id).first()
-    form = ProfileForm(obj=current_user)
 
-    if form.validate_on_submit():
-        current_user.first_name = form.first_name.data.strip()
-        current_user.last_name  = form.last_name.data.strip()
-        current_user.bio        = (form.bio.data or "").strip()
-        db.session.commit()
-        flash("Perfil actualizado.", "success")
+    if request.method == "POST":
+        action = request.form.get("action", "update_info")
+
+        if action == "change_password":
+            current_pw = request.form.get("current_password", "")
+            new_pw     = request.form.get("new_password", "")
+            if not current_user.check_password(current_pw):
+                flash("Contraseña actual incorrecta.", "danger")
+            elif len(new_pw) < 8:
+                flash("La nueva contraseña debe tener al menos 8 caracteres.", "danger")
+            else:
+                current_user.set_password(new_pw)
+                db.session.commit()
+                flash("Contraseña actualizada correctamente.", "success")
+        else:
+            first_name = request.form.get("first_name", "").strip()
+            last_name  = request.form.get("last_name", "").strip()
+            bio        = request.form.get("bio", "").strip()
+            if not first_name or not last_name:
+                flash("Nombre y apellido son obligatorios.", "danger")
+            else:
+                current_user.first_name = first_name
+                current_user.last_name  = last_name
+                current_user.bio        = bio
+                db.session.commit()
+                flash("Perfil actualizado.", "success")
+
         return redirect(url_for("main.profile"))
 
     return render_template(
         "profile/index.html",
         progress=progress,
         gamification=gamification,
-        form=form,
     )
 
 

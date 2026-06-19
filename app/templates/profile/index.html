@@ -71,7 +71,7 @@
   <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
     <h3 class="font-bold text-gray-900 dark:text-white mb-5">Editar información</h3>
 
-    <form method="POST" action="{{ url_for('main.update_profile') }}" class="space-y-4">
+    <form method="POST" action="{{ url_for('main.profile') }}" class="space-y-4">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
       <div class="grid sm:grid-cols-2 gap-4">
@@ -103,7 +103,7 @@
   <!-- Cambiar contraseña -->
   <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
     <h3 class="font-bold text-gray-900 dark:text-white mb-5">Cambiar contraseña</h3>
-    <form method="POST" action="{{ url_for('main.update_profile') }}" class="space-y-4">
+    <form method="POST" action="{{ url_for('main.profile') }}" class="space-y-4">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <input type="hidden" name="action" value="change_password">
       <div x-data="{ show: false }">
