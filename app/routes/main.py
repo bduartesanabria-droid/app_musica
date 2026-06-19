@@ -154,18 +154,6 @@ def profile():
     )
 
 
-@main_bp.route("/profile/update", methods=["POST"])
-@login_required
-def update_profile():
-    from flask import request, flash
-    current_user.first_name = request.form.get("first_name", current_user.first_name).strip()
-    current_user.last_name  = request.form.get("last_name",  current_user.last_name).strip()
-    current_user.bio        = request.form.get("bio", "").strip()
-    db.session.commit()
-    flash("Perfil actualizado.", "success")
-    return redirect(url_for("main.profile"))
-
-
 @main_bp.route("/statistics")
 @login_required
 def statistics():

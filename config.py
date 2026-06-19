@@ -30,8 +30,11 @@ class Config:
     MAX_AUDIO_SIZE_MB     = int(os.environ.get("MAX_AUDIO_SIZE_MB", 50))
     ALLOWED_AUDIO_EXTENSIONS = {"wav", "mp3", "ogg", "flac"}
 
-    # Rate limiting
-    RATELIMIT_STORAGE_URI = os.environ.get("RATELIMIT_STORAGE_URI", "memory://")
+    # Rate limiting — usa Redis si está disponible, memory como fallback
+    RATELIMIT_STORAGE_URI = os.environ.get(
+        "RATELIMIT_STORAGE_URI",
+        os.environ.get("REDIS_URL", "memory://"),
+    )
 
     # WTF
     WTF_CSRF_ENABLED = True

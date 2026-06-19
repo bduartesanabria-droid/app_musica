@@ -31,20 +31,29 @@ def get_notes():
 @login_required
 def audio_list():
     instrument_id = request.args.get("instrument_id", type=int)
+    page          = request.args.get("page", 1, type=int)
+    per_page      = min(request.args.get("per_page", 50, type=int), 200)
+
     q = Audio.query.filter_by(is_active=True)
     if instrument_id:
         q = q.filter_by(instrument_id=instrument_id)
-    audios = q.all()
-    return jsonify([
-        {
-            "id":        a.id,
-            "filename":  a.filename,
-            "stream_url": a.stream_url,
-            "note":      a.note.display_name if a.note else None,
-            "instrument": a.instrument.name if a.instrument else None,
-        }
-        for a in audios
-    ])
+
+    pagination = q.order_by(Audio.id).paginate(page=page, per_page=per_page, error_out=False)
+    return jsonify({
+        "items": [
+            {
+                "id":         a.id,
+                "filename":   a.filename,
+                "stream_url": a.stream_url,
+                "note":       a.note.display_name if a.note else None,
+                "instrument": a.instrument.name  if a.instrument else None,
+            }
+            for a in pagination.items
+        ],
+        "total": pagination.total,
+        "pages": pagination.pages,
+        "page":  page,
+    })
 
 
 @api_bp.route("/gamification/me")

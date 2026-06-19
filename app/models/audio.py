@@ -15,6 +15,7 @@ class Audio(db.Model):
     sample_rate       = db.Column(db.Integer, nullable=True)
     bit_depth         = db.Column(db.Integer, nullable=True)
     channels          = db.Column(db.Integer, nullable=True)
+    peak_amplitude    = db.Column(db.Float, nullable=True)
     file_size         = db.Column(db.Integer, nullable=True)
     difficulty        = db.Column(db.String(20), nullable=False, default="intermedio")
     is_active         = db.Column(db.Boolean, default=True)

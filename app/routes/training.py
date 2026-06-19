@@ -1,3 +1,4 @@
+import json
 from flask import Blueprint, render_template, redirect, url_for, request, flash, jsonify, session as flask_session
 from flask_login import login_required, current_user
 from datetime import datetime, timezone
@@ -6,15 +7,15 @@ from ..models.session import TrainingSession, Answer
 from ..models.question import Question, TRAINING_MODES
 from ..models.instrument import Instrument
 from ..models.progress import Progress, UserStatistics
-from ..models.gamification import UserGamification
-from ..utils.question_generator import QuestionGenerator
+from ..models.gamification import UserGamification, Badge, UserBadge
 
 training_bp = Blueprint("training", __name__)
 
-XP_PER_CORRECT  = 10
+XP_PER_CORRECT   = 10
 XP_PERFECT_BONUS = 50
-COINS_PER_SESSION = 5
-COINS_ACCURACY_BONUS = 15
+COINS_PER_SESSION      = 5
+COINS_ACCURACY_BONUS   = 15
+from ..utils.question_generator import QuestionGenerator
 
 
 @training_bp.route("/")
@@ -36,17 +37,17 @@ def start():
     difficulty     = int(request.form.get("difficulty", 1))
     question_count = min(int(request.form.get("question_count", 10)), 20)
 
-    session = TrainingSession(
+    sess = TrainingSession(
         user_id=current_user.id,
         mode=mode,
         instrument_id=instrument_id,
         difficulty_level=difficulty,
     )
-    db.session.add(session)
+    db.session.add(sess)
     db.session.commit()
 
     return redirect(url_for("training.session_view",
-                            session_id=session.id,
+                            session_id=sess.id,
                             count=question_count))
 
 
@@ -62,7 +63,6 @@ def session_view(session_id):
 
     count = request.args.get("count", 10, type=int)
 
-    # Generar preguntas
     generator = QuestionGenerator(user_id=current_user.id)
     questions = generator.generate(
         mode=sess.mode,
@@ -75,19 +75,23 @@ def session_view(session_id):
         flash("No hay audios disponibles para este modo. Sube archivos de audio primero.", "warning")
         return redirect(url_for("training.index"))
 
-    import json
+    # Persist questions so we can link answers to them
+    for q in questions:
+        db.session.add(q)
+    db.session.flush()
 
-    # Guardar respuestas correctas en la sesión del servidor (no se envían al cliente)
+    # Store correct answers server-side (never sent to client)
     server_answers = {
         str(i): {
             "correct_answer": q.correct_answer,
             "explanation":    q.explanation or "",
+            "question_id":    q.id,
         }
         for i, q in enumerate(questions)
     }
     flask_session[f"training_{sess.id}"] = server_answers
+    db.session.commit()
 
-    # Solo enviar al cliente los datos necesarios (sin correct_answer)
     questions_data = [
         {
             "index":     i,
@@ -123,21 +127,30 @@ def submit_answer(session_id):
     user_answer    = (data.get("answer") or "").strip()
     response_time  = float(data.get("response_time", 0))
 
-    # Validar contra las respuestas guardadas en la sesión del servidor
     server_answers = flask_session.get(f"training_{session_id}", {})
     q_data         = server_answers.get(question_index, {})
     correct_answer = q_data.get("correct_answer", "")
     explanation    = q_data.get("explanation", "")
+    question_id    = q_data.get("question_id")
 
-    is_correct = user_answer.strip().upper() == correct_answer.strip().upper()
+    is_correct = user_answer.upper() == correct_answer.upper()
 
     answer = Answer(
         session_id=session_id,
+        question_id=question_id,
         user_answer=user_answer,
         is_correct=is_correct,
         response_time=response_time,
     )
     db.session.add(answer)
+
+    # Update question stats
+    if question_id:
+        q_obj = Question.query.get(question_id)
+        if q_obj:
+            q_obj.times_answered += 1
+            if is_correct:
+                q_obj.times_correct += 1
 
     sess.total_questions += 1
     sess.total_time_secs += response_time
@@ -154,6 +167,50 @@ def submit_answer(session_id):
     })
 
 
+def _award_badges(user_id, gami, progress, sess):
+    """Check all active badges and award any newly earned ones. Returns list of new badge names."""
+    badges       = Badge.query.filter_by(is_active=True).all()
+    already_ids  = {ub.badge_id for ub in gami.user_badges.all()}
+    new_badges   = []
+
+    for badge in badges:
+        if badge.id in already_ids:
+            continue
+
+        rt = badge.requirement_type
+        rv = badge.requirement_value
+        earned = False
+
+        if rt == "sessions" and progress and progress.total_sessions >= rv:
+            earned = True
+        elif rt == "accuracy" and sess.accuracy >= rv and sess.total_questions >= 5:
+            earned = True
+        elif rt == "streak" and progress and progress.current_streak_days >= rv:
+            earned = True
+        elif rt == "correct" and progress and progress.total_correct >= rv:
+            earned = True
+        elif rt == "perfect" and sess.accuracy == 100 and sess.total_questions >= 10:
+            earned = True
+        elif rt == "instruments":
+            distinct = db.session.query(
+                db.func.count(db.func.distinct(TrainingSession.instrument_id))
+            ).filter(
+                TrainingSession.user_id == user_id,
+                TrainingSession.is_completed == True,
+                TrainingSession.instrument_id != None,
+            ).scalar() or 0
+            if distinct >= rv:
+                earned = True
+
+        if earned:
+            db.session.add(UserBadge(user_gamification_id=gami.id, badge_id=badge.id))
+            gami.total_xp += badge.xp_reward
+            gami.coins    += badge.coin_reward
+            new_badges.append(badge.name)
+
+    return new_badges
+
+
 @training_bp.route("/session/<int:session_id>/complete", methods=["POST"])
 @login_required
 def complete_session(session_id):
@@ -164,12 +221,12 @@ def complete_session(session_id):
     if sess.is_completed:
         return jsonify({"redirect": url_for("training.results", session_id=session_id)})
 
-    sess.is_completed  = True
-    sess.completed_at  = datetime.now(timezone.utc)
+    sess.is_completed = True
+    sess.completed_at = datetime.now(timezone.utc)
     if sess.total_questions:
         sess.avg_response_time = sess.total_time_secs / sess.total_questions
 
-    # Calcular XP y monedas
+    # XP y monedas
     xp = sess.correct_answers * XP_PER_CORRECT
     if sess.accuracy == 100:
         xp += XP_PERFECT_BONUS
@@ -197,8 +254,9 @@ def complete_session(session_id):
             delta = (today - progress.last_activity_date).days
             if delta == 1:
                 progress.current_streak_days += 1
-            elif delta > 1:
+            elif delta >= 2:
                 progress.current_streak_days = 1
+            # delta == 0 means same day — don't change streak
         else:
             progress.current_streak_days = 1
         progress.last_activity_date = today
@@ -215,15 +273,47 @@ def complete_session(session_id):
         gami.total_coins_earned += coins
         gami.recalculate_level()
 
-    db.session.commit()
+    # Actualizar estadísticas
+    stats = UserStatistics.query.filter_by(user_id=current_user.id).first()
+    if stats and sess.total_questions:
+        by_mode = stats.accuracy_by_mode
+        m = by_mode.setdefault(sess.mode, {"sessions": 0, "questions": 0, "correct": 0})
+        m["sessions"]  += 1
+        m["questions"] += sess.total_questions
+        m["correct"]   += sess.correct_answers
+        import json as _json
+        stats.accuracy_by_mode_json = _json.dumps(by_mode)
 
-    # Limpiar las respuestas de la sesión del servidor
+        if sess.instrument and sess.instrument.name:
+            by_instr = stats.accuracy_by_instrument
+            k = sess.instrument.name
+            ki = by_instr.setdefault(k, {"sessions": 0, "questions": 0, "correct": 0})
+            ki["sessions"]  += 1
+            ki["questions"] += sess.total_questions
+            ki["correct"]   += sess.correct_answers
+            stats.accuracy_by_instr_json = _json.dumps(by_instr)
+
+        if stats.avg_response_time:
+            stats.avg_response_time = (stats.avg_response_time + sess.avg_response_time) / 2
+        else:
+            stats.avg_response_time = sess.avg_response_time
+        stats.updated_at = datetime.now(timezone.utc)
+
+    # Dar badges nuevos
+    new_badges = []
+    if gami and progress:
+        new_badges = _award_badges(current_user.id, gami, progress, sess)
+        if new_badges:
+            gami.recalculate_level()
+
+    db.session.commit()
     flask_session.pop(f"training_{session_id}", None)
 
     return jsonify({
         "redirect":     url_for("training.results", session_id=session_id),
         "xp_earned":    xp,
         "coins_earned": coins,
+        "new_badges":   new_badges,
     })
 
 

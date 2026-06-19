@@ -139,14 +139,15 @@ def _admin_user():
         role="admin",
         is_active=True,
     )
-    user.set_password("Semimus2026!")
+    admin_password = os.getenv("ADMIN_PASSWORD", "Semimus2026!")
+    user.set_password(admin_password)
     db.session.add(user)
     db.session.flush()
 
     db.session.add(Progress(user_id=user.id))
     db.session.add(UserStatistics(user_id=user.id))
     db.session.add(UserGamification(user_id=user.id))
-    print(f"  ✓ Admin creado: admin@semimus.app / Semimus2026!")
+    print(f"  ✓ Admin creado: admin@semimus.app / {admin_password}")
 
 
 if __name__ == "__main__":

@@ -21,19 +21,33 @@ def _analyze(filepath):
     try:
         import soundfile as sf
         import numpy as np
+        info     = sf.info(filepath)
         data, sr = sf.read(filepath)
         duration = round(len(data) / sr, 2)
         channels = 1 if data.ndim == 1 else data.shape[1]
         mono     = np.mean(data, axis=1) if data.ndim > 1 else data
-        peak     = float(np.max(np.abs(mono)))
+        peak     = float(np.max(np.abs(mono))) if len(mono) else 0.0
         down     = max(1, len(mono) // 300)
         waveform = [round(float(x), 4) for x in mono[::down].tolist()[:300]]
+
+        subtype   = getattr(info, "subtype", "")
+        bit_depth = None
+        if "PCM_16" in subtype:
+            bit_depth = 16
+        elif "PCM_24" in subtype:
+            bit_depth = 24
+        elif "PCM_32" in subtype or "FLOAT" in subtype:
+            bit_depth = 32
+        elif "DOUBLE" in subtype:
+            bit_depth = 64
+
         return {
-            "duration":      duration,
-            "sample_rate":   sr,
-            "channels":      channels,
+            "duration":       duration,
+            "sample_rate":    sr,
+            "bit_depth":      bit_depth,
+            "channels":       channels,
             "peak_amplitude": round(peak, 4),
-            "waveform_data": json.dumps(waveform),
+            "waveform_data":  json.dumps(waveform),
         }
     except Exception:
         return {}
@@ -102,6 +116,19 @@ def upload():
     description   = request.form.get("description", "")
     tags          = request.form.get("tags", "")
 
+    if instrument_id:
+        from ..models.instrument import Instrument as InstrumentModel
+        if not InstrumentModel.query.get(int(instrument_id)):
+            flash("Instrumento no válido.", "danger")
+            return redirect(url_for("audio.manager"))
+        instrument_id = int(instrument_id)
+    if note_id:
+        from ..models.instrument import Note as NoteModel
+        if not NoteModel.query.get(int(note_id)):
+            flash("Nota no válida.", "danger")
+            return redirect(url_for("audio.manager"))
+        note_id = int(note_id)
+
     ext             = file.filename.rsplit(".", 1)[1].lower()
     unique_name     = f"{uuid.uuid4().hex}.{ext}"
     storage_path    = current_app.config["AUDIO_STORAGE_PATH"]
@@ -116,6 +143,12 @@ def upload():
         return redirect(url_for("audio.manager"))
 
     analysis = _analyze(filepath)
+
+    duration = analysis.get("duration", 0)
+    if duration and duration > 300:
+        os.remove(filepath)
+        flash("El audio no puede superar 5 minutos de duración.", "danger")
+        return redirect(url_for("audio.manager"))
 
     audio_obj = Audio(
         filename=unique_name,

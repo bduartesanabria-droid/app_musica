@@ -1,11 +1,15 @@
 import secrets
+import logging
 from datetime import datetime, timezone, timedelta
-from flask import Blueprint, render_template, redirect, url_for, flash, request, session
+from flask import Blueprint, render_template, redirect, url_for, flash, request, session, current_app
 from flask_login import login_user, logout_user, login_required, current_user
-from ..extensions import db, limiter
+from flask_mail import Message
+from ..extensions import db, limiter, mail
 from ..models.user import User
 from ..models.progress import Progress, UserStatistics
 from ..models.gamification import UserGamification
+
+log = logging.getLogger(__name__)
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -119,7 +123,20 @@ def forgot_password():
             user.reset_token = secrets.token_urlsafe(32)
             user.reset_token_expires = datetime.now(timezone.utc) + timedelta(hours=2)
             db.session.commit()
-            # TODO: enviar correo con el token
+            try:
+                reset_url = url_for("auth.reset_password", token=user.reset_token, _external=True)
+                msg = Message(
+                    subject="Recuperación de contraseña – SEMIMUS",
+                    recipients=[user.email],
+                    html=render_template(
+                        "auth/email/reset_password.html",
+                        user=user,
+                        reset_url=reset_url,
+                    ),
+                )
+                mail.send(msg)
+            except Exception:
+                log.exception("Error enviando correo de recuperación a %s", user.email)
         flash("Si el correo existe, recibirás un enlace de recuperación.", "info")
         return redirect(url_for("auth.login"))
     return render_template("auth/forgot_password.html")
