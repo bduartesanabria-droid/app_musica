@@ -1,172 +1,522 @@
 {% extends "layouts/app.html" %}
-{% block title %}Dashboard{% endblock %}
-{% block page_title %}Dashboard{% endblock %}
+{% block title %}Inicio{% endblock %}
 
 {% block content %}
+<div class="flex gap-5 min-h-full" x-data="{
+  tab_learners: 'xp',
+  tab_progress: 'semana',
+  userName: '{{ current_user.first_name }}',
+  typedName: '',
+  init() {
+    let i = 0;
+    const type = () => {
+      if (i <= this.userName.length) {
+        this.typedName = this.userName.substring(0, i);
+        i++;
+        setTimeout(type, 80);
+      }
+    };
+    setTimeout(type, 600);
+  }
+}">
 
-<!-- Saludo + nivel -->
-<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-  <div>
-    <h2 class="text-2xl font-bold text-gray-900 dark:text-white">
-      Hola, {{ current_user.first_name }} 👋
-    </h2>
-    <p class="text-gray-500 dark:text-gray-400 text-sm mt-1">
-      {% if progress and progress.last_activity_date %}
-        Última actividad {{ progress.last_activity_date | timeago }}
-      {% else %}
-        ¡Bienvenido! Comienza tu primer entrenamiento.
-      {% endif %}
-    </p>
-  </div>
-  {% if gamification %}
-  <div class="flex items-center gap-3 bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
-    <span class="text-3xl">{{ gamification.level_info.icon }}</span>
-    <div>
-      <p class="text-xs text-gray-500 font-medium uppercase tracking-wide">Nivel {{ gamification.current_level }}</p>
-      <p class="font-bold text-gray-900 dark:text-white">{{ gamification.level_info.name }}</p>
-      <div class="w-32 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full mt-1 overflow-hidden">
-        <div class="h-full bg-amber-500 rounded-full transition-all duration-500"
-             style="width: {{ gamification.level_info.progress }}%"></div>
-      </div>
+  <!-- ══════════════════════════════════
+       COLUMNA PRINCIPAL (izquierda)
+       ══════════════════════════════════ -->
+  <div class="flex-1 min-w-0 space-y-5">
+
+    <!-- ── Bienvenida ── -->
+    <div class="animate-fade-in">
+      <h1 class="text-2xl font-black text-white">
+        ¡Bienvenido, <span x-text="typedName" class="text-sena"></span><span class="typewriter-cursor" x-show="typedName.length < userName.length"></span>! 👋
+      </h1>
+      <p class="text-sm mt-1" style="color:rgba(255,255,255,0.45)">
+        Continúa tu entrenamiento y mejora tu oído melódico
+      </p>
     </div>
-  </div>
-  {% endif %}
-</div>
 
-<!-- Métricas rápidas -->
-<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-  {% set metrics = [
-    {'label': 'Sesiones', 'value': progress.total_sessions if progress else 0, 'icon': '🎵', 'color': 'blue'},
-    {'label': 'Preguntas', 'value': progress.total_questions_answered if progress else 0, 'icon': '❓', 'color': 'purple'},
-    {'label': 'Precisión', 'value': ((progress.total_correct / progress.total_questions_answered * 100) | round(1) | string + '%') if (progress and progress.total_questions_answered) else '—', 'icon': '🎯', 'color': 'green'},
-    {'label': 'Racha', 'value': (progress.current_streak_days | string + ' días') if progress else '0 días', 'icon': '🔥', 'color': 'orange'},
-  ] %}
-  {% for m in metrics %}
-  <div class="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-gray-700">
-    <div class="flex items-start justify-between">
-      <div>
-        <p class="text-xs text-gray-500 uppercase tracking-wide font-medium">{{ m.label }}</p>
-        <p class="text-2xl font-black text-gray-900 dark:text-white mt-1">{{ m.value }}</p>
-      </div>
-      <span class="text-2xl">{{ m.icon }}</span>
-    </div>
-  </div>
-  {% endfor %}
-</div>
+    <!-- ── Nivel + Racha ── -->
+    {% if gamification %}
+    <div class="grid grid-cols-2 gap-4 animate-slide-up delay-100">
 
-<!-- CTA entrenar + actividad reciente -->
-<div class="grid lg:grid-cols-3 gap-6 mb-8">
-
-  <!-- Tarjeta entrenar -->
-  <div class="lg:col-span-1 bg-gradient-to-br from-primary-900 to-blue-800 rounded-2xl p-6 text-white flex flex-col justify-between">
-    <div>
-      <div class="text-4xl mb-3">🎼</div>
-      <h3 class="text-xl font-black mb-2">¿Listo para entrenar?</h3>
-      <p class="text-blue-200 text-sm mb-6">Mejora tu oído musical con ejercicios de notas, intervalos y escalas en instrumentos andinos colombianos.</p>
-    </div>
-    <a href="{{ url_for('training.index') }}"
-       class="inline-flex items-center justify-center gap-2 bg-accent-500 hover:bg-accent-600 text-black font-bold py-3 px-6 rounded-xl transition-colors shadow-lg">
-      Comenzar Entrenamiento →
-    </a>
-  </div>
-
-  <!-- Sesiones recientes -->
-  <div class="lg:col-span-2 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
-    <h3 class="font-bold text-gray-900 dark:text-white mb-4">Sesiones Recientes</h3>
-    {% if recent_sessions %}
-    <div class="space-y-3">
-      {% for session in recent_sessions %}
-      <div class="flex items-center gap-4 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
-        <div class="w-10 h-10 bg-primary-100 dark:bg-primary-900/30 rounded-xl flex items-center justify-center text-lg flex-shrink-0">
-          {% if session.mode == 'notas' %}🎵
-          {% elif session.mode == 'intervalos' %}🎹
-          {% elif session.mode == 'escalas' %}📏
-          {% else %}🎼{% endif %}
+      <!-- Nivel actual -->
+      <div class="card flex items-center gap-4">
+        <div class="w-12 h-12 rounded-xl flex items-center justify-center text-2xl flex-shrink-0"
+             style="background:rgba(57,169,0,0.15);border:1px solid rgba(57,169,0,0.2)">
+          🎵
         </div>
         <div class="flex-1 min-w-0">
-          <p class="text-sm font-semibold text-gray-900 dark:text-white truncate">
-            {{ session.mode | mode_label }}
+          <p class="text-xs font-medium uppercase tracking-wide mb-1" style="color:rgba(255,255,255,0.45)">Nivel actual</p>
+          <div class="flex items-baseline gap-2 mb-1">
+            <span class="text-3xl font-black text-white">{{ gamification.current_level }}</span>
+            <span class="text-xs" style="color:rgba(255,255,255,0.4)">{{ gamification.total_xp }} / {{ gamification.level_info.xp_next }} XP</span>
+          </div>
+          <div class="xp-bar-track">
+            <div class="xp-bar-fill" style="width:{{ gamification.level_info.progress }}%"></div>
+          </div>
+          <p class="text-xs mt-1.5" style="color:rgba(255,255,255,0.35)">
+            {% set xp_left = gamification.level_info.xp_next - gamification.total_xp %}
+            Siguiente nivel: {{ xp_left if xp_left > 0 else 0 }} XP más para el nivel {{ gamification.current_level + 1 }}
           </p>
-          <p class="text-xs text-gray-500">
-            {{ session.correct_answers }}/{{ session.total_questions }} correctas · {{ session.total_time_secs | duration }}
-          </p>
-        </div>
-        <div class="text-right flex-shrink-0">
-          {% set pct = (session.correct_answers / session.total_questions * 100) | round | int if session.total_questions else 0 %}
-          <span class="text-sm font-bold {{ pct | accuracy_color }}">{{ pct }}%</span>
-          <p class="text-xs text-amber-600 font-medium">+{{ session.xp_earned }} XP</p>
         </div>
       </div>
-      {% endfor %}
-    </div>
-    {% else %}
-    <div class="text-center py-8 text-gray-400">
-      <div class="text-4xl mb-2">🎵</div>
-      <p class="text-sm">Aún no has completado sesiones.</p>
-    </div>
-    {% endif %}
-  </div>
-</div>
 
-<!-- Actividad semanal + badges -->
-<div class="grid lg:grid-cols-2 gap-6">
-
-  <!-- Gráfica semanal -->
-  <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
-    <h3 class="font-bold text-gray-900 dark:text-white mb-4">Actividad esta semana</h3>
-    <canvas id="weeklyChart" class="max-h-48"></canvas>
-  </div>
-
-  <!-- Badges -->
-  <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
-    <h3 class="font-bold text-gray-900 dark:text-white mb-4">Logros</h3>
-    {% if user_badges %}
-    <div class="grid grid-cols-4 gap-3">
-      {% for ub in user_badges %}
-      <div class="flex flex-col items-center text-center" title="{{ ub.badge.name }}">
-        <div class="w-12 h-12 bg-amber-50 dark:bg-amber-900/20 border-2 border-amber-300 dark:border-amber-700 rounded-xl flex items-center justify-center text-2xl">
-          {{ ub.badge.icon }}
+      <!-- Racha actual -->
+      <div class="card flex items-center gap-4">
+        <div class="streak-icon flex-shrink-0">🔥</div>
+        <div>
+          <p class="text-xs font-medium uppercase tracking-wide" style="color:rgba(255,255,255,0.45)">Racha actual</p>
+          <p class="text-3xl font-black text-white mt-0.5">
+            {{ progress.current_streak_days if progress else 0 }}
+            <span class="text-base font-normal" style="color:rgba(255,255,255,0.5)">días</span>
+          </p>
+          <p class="text-xs mt-1" style="color:rgba(255,255,255,0.4)">
+            {% if progress and progress.current_streak_days > 0 %}¡Sigue así!{% else %}¡Empieza hoy!{% endif %}
+          </p>
         </div>
-        <p class="text-xs text-gray-500 mt-1 truncate w-full">{{ ub.badge.name }}</p>
       </div>
-      {% endfor %}
-    </div>
-    {% else %}
-    <div class="text-center py-8 text-gray-400">
-      <div class="text-4xl mb-2">🏅</div>
-      <p class="text-sm">¡Entrena para desbloquear logros!</p>
+
     </div>
     {% endif %}
+
+    <!-- ── Modos de Entrenamiento ── -->
+    <div class="animate-slide-up delay-200">
+      <h2 class="section-title">Modos de Entrenamiento</h2>
+
+      <div class="grid grid-cols-3 gap-3">
+
+        <!-- Notas -->
+        <a href="{{ url_for('training.index') }}?mode=notas" class="training-card">
+          <div class="flex items-start justify-between mb-2">
+            <span class="text-xs font-bold" style="color:#39A900">Notas</span>
+            <span class="text-xs" style="color:rgba(255,255,255,0.35)">0%</span>
+          </div>
+          <p class="text-xs mb-2.5" style="color:rgba(255,255,255,0.5)">Reconoce notas individuales</p>
+          <img src="{{ url_for('static', filename='img/tiple.jpg') }}"
+               alt="Tiple" class="training-card-img"
+               style="height:80px;width:100%;object-fit:cover;object-position:center top">
+          <div class="progress-bar mt-2">
+            <div class="progress-fill" style="width:0%;background:#39A900"></div>
+          </div>
+        </a>
+
+        <!-- Intervalos -->
+        <a href="{{ url_for('training.index') }}?mode=intervalos" class="training-card">
+          <div class="flex items-start justify-between mb-2">
+            <span class="text-xs font-bold" style="color:#FFC107">Intervalos</span>
+            <span class="text-xs" style="color:rgba(255,255,255,0.35)">65%</span>
+          </div>
+          <p class="text-xs mb-2.5" style="color:rgba(255,255,255,0.5)">Identifica intervalos</p>
+          <img src="{{ url_for('static', filename='img/requinto.jpg') }}"
+               alt="Requinto" class="training-card-img"
+               style="height:80px;width:100%;object-fit:cover;object-position:center">
+          <div class="progress-bar mt-2">
+            <div class="progress-fill" style="width:65%;background:#FFC107"></div>
+          </div>
+        </a>
+
+        <!-- Escalas -->
+        <a href="{{ url_for('training.index') }}?mode=escalas" class="training-card">
+          <div class="flex items-start justify-between mb-2">
+            <span class="text-xs font-bold" style="color:#A78BFA">Escalas</span>
+            <span class="text-xs" style="color:rgba(255,255,255,0.35)">40%</span>
+          </div>
+          <p class="text-xs mb-2.5" style="color:rgba(255,255,255,0.5)">Reconoce escalas</p>
+          <img src="{{ url_for('static', filename='img/bandola.jpg') }}"
+               alt="Bandola" class="training-card-img"
+               style="height:80px;width:100%;object-fit:cover;object-position:center top">
+          <div class="progress-bar mt-2">
+            <div class="progress-fill" style="width:40%;background:#A78BFA"></div>
+          </div>
+        </a>
+
+        <!-- Dictado Melódico -->
+        <a href="{{ url_for('training.index') }}?mode=dictado" class="training-card">
+          <div class="flex items-start justify-between mb-2">
+            <span class="text-xs font-bold" style="color:#F87171">Dictado Melódico</span>
+            <span class="text-xs" style="color:rgba(255,255,255,0.35)">30%</span>
+          </div>
+          <p class="text-xs mb-2.5" style="color:rgba(255,255,255,0.5)">Escribe lo que escuchas</p>
+          <img src="{{ url_for('static', filename='img/tiple.jpg') }}"
+               alt="Tiple" class="training-card-img"
+               style="height:80px;width:100%;object-fit:cover;object-position:center 30%">
+          <div class="progress-bar mt-2">
+            <div class="progress-fill" style="width:30%;background:#F87171"></div>
+          </div>
+        </a>
+
+        <!-- Guabina -->
+        <a href="{{ url_for('training.index') }}?mode=guabina" class="training-card">
+          <div class="flex items-start justify-between mb-2">
+            <span class="text-xs font-bold" style="color:#34D399">Guabina</span>
+            <span class="text-xs" style="color:rgba(255,255,255,0.35)">20%</span>
+          </div>
+          <p class="text-xs mb-2.5" style="color:rgba(255,255,255,0.5)">Patrones y melodías en ritmo de guabina</p>
+          <img src="{{ url_for('static', filename='img/requinto.jpg') }}"
+               alt="Requinto" class="training-card-img"
+               style="height:80px;width:100%;object-fit:cover;object-position:center 20%">
+          <div class="progress-bar mt-2">
+            <div class="progress-fill" style="width:20%;background:#34D399"></div>
+          </div>
+        </a>
+
+        <!-- Instrumentos -->
+        <a href="{{ url_for('training.index') }}" class="training-card">
+          <div class="flex items-start justify-between mb-2">
+            <span class="text-xs font-bold" style="color:#60A5FA">Instrumentos</span>
+            <span class="text-xs" style="color:rgba(255,255,255,0.35)">—</span>
+          </div>
+          <p class="text-xs mb-2.5" style="color:rgba(255,255,255,0.5)">Entrenamiento por instrumento</p>
+          <!-- Collage de los tres instrumentos -->
+          <div class="training-card-img overflow-hidden" style="height:80px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;border-radius:0.5rem">
+            <img src="{{ url_for('static', filename='img/tiple.jpg') }}"
+                 style="width:100%;height:80px;object-fit:cover;object-position:center top" alt="Tiple">
+            <img src="{{ url_for('static', filename='img/requinto.jpg') }}"
+                 style="width:100%;height:80px;object-fit:cover;object-position:center" alt="Requinto">
+            <img src="{{ url_for('static', filename='img/bandola.jpg') }}"
+                 style="width:100%;height:80px;object-fit:cover;object-position:center top" alt="Bandola">
+          </div>
+          <div class="progress-bar mt-2">
+            <div class="progress-fill" style="width:0%;background:#60A5FA"></div>
+          </div>
+        </a>
+
+      </div>
+    </div>
+
+    <!-- ── Instrumentos ── -->
+    <div class="animate-slide-up delay-300">
+      <div class="grid grid-cols-3 gap-3">
+
+        <!-- Tiple -->
+        <a href="{{ url_for('training.index') }}?instrument=tiple" class="instrument-card">
+          <div class="overflow-hidden" style="height:110px">
+            <img src="{{ url_for('static', filename='img/tiple.jpg') }}"
+                 alt="Tiple colombiano"
+                 class="instrument-img"
+                 style="height:110px;width:100%;object-fit:cover;object-position:center top">
+          </div>
+          <div class="p-3">
+            <p class="text-sm font-bold text-white">Tiple</p>
+            <p class="text-xs mt-0.5 mb-2" style="color:rgba(255,255,255,0.45)">Entrenamiento con tiple</p>
+            <div class="progress-bar">
+              <div class="progress-fill" style="width:60%;background:#FFC107"></div>
+            </div>
+            <p class="text-xs mt-1 font-semibold" style="color:#FFC107">60%</p>
+          </div>
+        </a>
+
+        <!-- Requinto -->
+        <a href="{{ url_for('training.index') }}?instrument=requinto" class="instrument-card">
+          <div class="overflow-hidden" style="height:110px">
+            <img src="{{ url_for('static', filename='img/requinto.jpg') }}"
+                 alt="Requinto colombiano"
+                 class="instrument-img"
+                 style="height:110px;width:100%;object-fit:cover;object-position:center">
+          </div>
+          <div class="p-3">
+            <p class="text-sm font-bold text-white">Requinto</p>
+            <p class="text-xs mt-0.5 mb-2" style="color:rgba(255,255,255,0.45)">Entrenamiento con requinto</p>
+            <div class="progress-bar">
+              <div class="progress-fill" style="width:45%;background:#39A900"></div>
+            </div>
+            <p class="text-xs mt-1 font-semibold" style="color:#39A900">45%</p>
+          </div>
+        </a>
+
+        <!-- Bandola -->
+        <a href="{{ url_for('training.index') }}?instrument=bandola" class="instrument-card">
+          <div class="overflow-hidden" style="height:110px">
+            <img src="{{ url_for('static', filename='img/bandola.jpg') }}"
+                 alt="Bandola andina colombiana"
+                 class="instrument-img"
+                 style="height:110px;width:100%;object-fit:cover;object-position:center top">
+          </div>
+          <div class="p-3">
+            <p class="text-sm font-bold text-white">Bandola</p>
+            <p class="text-xs mt-0.5 mb-2" style="color:rgba(255,255,255,0.45)">Entrenamiento con bandola</p>
+            <div class="progress-bar">
+              <div class="progress-fill" style="width:50%;background:#60A5FA"></div>
+            </div>
+            <p class="text-xs mt-1 font-semibold" style="color:#60A5FA">50%</p>
+          </div>
+        </a>
+
+      </div>
+    </div>
+
+    <!-- ── Sesión de Entrenamiento (Demo) ── -->
+    {% if recent_sessions %}
+    {% set last = recent_sessions[0] %}
+    <div class="card animate-slide-up delay-400" x-data="{ playing: false, answered: false, correct: false }">
+      <div class="flex items-center justify-between mb-3">
+        <div>
+          <p class="text-sm font-bold text-white">
+            Entrenamiento: {{ last.mode | mode_label }}
+          </p>
+          <p class="text-xs" style="color:rgba(255,255,255,0.4)">
+            {{ last.correct_answers }} / {{ last.total_questions }} preguntas correctas
+          </p>
+        </div>
+        <div class="flex items-center gap-3">
+          <div class="flex items-center gap-1.5" style="color:rgba(255,255,255,0.5)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <span class="text-xs font-mono">{{ last.total_time_secs | duration }}</span>
+          </div>
+          <span class="text-xs px-2 py-0.5 rounded-full font-semibold" style="background:rgba(57,169,0,0.15);color:#4ADE80">
+            {{ last.correct_answers }}/{{ last.total_questions }}
+          </span>
+        </div>
+      </div>
+
+      <p class="text-xs font-medium mb-3" style="color:rgba(255,255,255,0.55)">
+        Escucha el intervalo y selecciona la respuesta correcta
+      </p>
+
+      <!-- Audio player demo -->
+      <div class="audio-player mb-4">
+        <button @click="playing = !playing" class="audio-play-btn" :class="playing ? 'playing' : ''">
+          <svg x-show="!playing" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          <svg x-show="playing" x-cloak width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+        </button>
+        <div class="waveform-container">
+          <div class="waveform-bars">
+            {% for h in [25,45,60,35,70,55,40,80,50,65,30,75,45,60,35,70,55,40,80,50,65,30,75,45,60,35,70,55,40,80,50,65,30,45,60] %}
+            <div class="waveform-bar" :class="playing ? 'playing' : 'played'" style="height:{{ h }}%;animation-delay:{{ loop.index * 0.05 }}s"></div>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="text-xs text-right flex-shrink-0" style="color:rgba(255,255,255,0.4);min-width:60px">
+          <span x-text="playing ? '0:02 / 0:04' : '0:00 / 0:04'"></span>
+        </div>
+      </div>
+
+      <!-- Answer options -->
+      <div class="grid grid-cols-2 gap-2.5">
+        {% set demo_options = ['Tercera Mayor', 'Cuarta Justa', 'Quinta Justa', 'Segunda Menor'] %}
+        {% for opt in demo_options %}
+        <button @click="answered = true; correct = ('{{ opt }}' === 'Tercera Mayor')"
+                :disabled="answered"
+                class="option-btn text-sm"
+                :class="{
+                  'correct': answered && '{{ opt }}' === 'Tercera Mayor',
+                  'wrong': answered && '{{ opt }}' !== 'Tercera Mayor' && $el.dataset.clicked
+                }"
+                @click.prevent="$el.dataset.clicked='1'">
+          <span>{{ opt }}</span>
+          <span x-show="answered && '{{ opt }}' === 'Tercera Mayor'" class="text-sena">✓</span>
+        </button>
+        {% endfor %}
+      </div>
+
+      <!-- Continuar -->
+      <div class="mt-3 text-right">
+        <a href="{{ url_for('training.index') }}" class="btn-sena text-sm">
+          Nueva sesión
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        </a>
+      </div>
+    </div>
+
+    {% else %}
+    <!-- CTA primera sesión -->
+    <div class="card text-center py-8 animate-slide-up delay-400">
+      <div class="text-5xl mb-3 animate-float">🎼</div>
+      <h3 class="text-lg font-bold text-white mb-2">¿Listo para entrenar?</h3>
+      <p class="text-sm mb-5" style="color:rgba(255,255,255,0.45)">
+        Mejora tu oído con instrumentos andinos colombianos
+      </p>
+      <a href="{{ url_for('training.index') }}" class="btn-sena">
+        Comenzar Entrenamiento →
+      </a>
+    </div>
+    {% endif %}
+
+  </div>
+
+  <!-- ══════════════════════════════════
+       COLUMNA DERECHA (panel lateral)
+       ══════════════════════════════════ -->
+  <div class="w-80 flex-shrink-0 space-y-4" style="min-width:300px;">
+
+    <!-- ── Desafío Diario ── -->
+    <div class="card animate-fade-in">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="text-xl">🏆</span>
+        <p class="font-bold text-white text-sm">Desafío Diario</p>
+      </div>
+      <p class="text-xs mb-1" style="color:rgba(255,255,255,0.6)">Completa 5 sesiones de intervalos</p>
+      <div class="flex items-center justify-between text-xs mb-2" style="color:rgba(255,255,255,0.4)">
+        <span></span>
+        <span class="font-semibold">
+          {% if recent_sessions %}{{ [recent_sessions | length, 5] | min }}{% else %}0{% endif %} / 5
+        </span>
+      </div>
+      <div class="challenge-progress mb-3">
+        <div class="challenge-fill" style="width:{{ ([recent_sessions | length, 5] | min * 20) if recent_sessions else 0 }}%"></div>
+      </div>
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-1.5">
+          <span class="text-sm">🪙</span>
+          <span class="text-xs font-semibold" style="color:#FFC107">50 XP</span>
+          <span class="text-xs" style="color:rgba(255,255,255,0.35)">Recompensa</span>
+        </div>
+        <a href="{{ url_for('training.index') }}" class="btn-sena-outline text-xs px-3 py-1.5">
+          Ver desafío
+        </a>
+      </div>
+    </div>
+
+    <!-- ── Tu Progreso General ── -->
+    <div class="card animate-fade-in delay-100">
+      <div class="flex items-center justify-between mb-3">
+        <p class="font-bold text-white text-sm">Tu Progreso General</p>
+        <button class="flex items-center gap-1 text-xs" style="color:rgba(255,255,255,0.4)">
+          Esta semana
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <!-- Precisión -->
+        <div class="stat-mini">
+          <p class="stat-label">Precisión</p>
+          <p class="stat-value">
+            {% if progress and progress.total_questions_answered %}
+              {{ (progress.total_correct / progress.total_questions_answered * 100) | round(0) | int }}%
+            {% else %}—{% endif %}
+          </p>
+          <p class="stat-change up">↑ 8%</p>
+        </div>
+        <!-- Sesiones -->
+        <div class="stat-mini">
+          <p class="stat-label">Sesiones</p>
+          <p class="stat-value">{{ progress.total_sessions if progress else 0 }}</p>
+          <p class="stat-change up">↑ 3</p>
+        </div>
+        <!-- Tiempo prom -->
+        <div class="stat-mini">
+          <p class="stat-label">Tiempo prom.</p>
+          <p class="stat-value" style="font-size:1.1rem">
+            {% if recent_sessions and recent_sessions[0].total_time_secs %}
+              {{ (recent_sessions | map(attribute='total_time_secs') | sum / recent_sessions | length) | round(1) }}s
+            {% else %}—{% endif %}
+          </p>
+          <p class="stat-change down">↓ 0.5s</p>
+        </div>
+        <!-- XP -->
+        <div class="stat-mini">
+          <p class="stat-label">XP obtenidos</p>
+          <p class="stat-value">{{ gamification.total_xp if gamification else 0 }}</p>
+          <p class="stat-change up">↑ 120</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Top Aprendices ── -->
+    <div class="card animate-fade-in delay-200">
+      <div class="flex items-center justify-between mb-3">
+        <p class="font-bold text-white text-sm">Top Aprendices</p>
+        <div class="flex gap-1" x-data="{ t: 'xp' }">
+          <button @click="t='xp'" :class="t==='xp'?'tab-btn active':'tab-btn'" class="tab-btn">XP</button>
+          <button @click="t='precision'" :class="t==='precision'?'tab-btn active':'tab-btn'" class="tab-btn">Precisión</button>
+          <button @click="t='racha'" :class="t==='racha'?'tab-btn active':'tab-btn'" class="tab-btn">Racha</button>
+        </div>
+      </div>
+
+      <div class="space-y-0">
+        {% for entry in top_learners %}
+        <div class="learner-item {% if entry.user.id == current_user.id %}is-current{% endif %}">
+          <!-- Rank number -->
+          <span class="text-xs font-bold flex-shrink-0 w-5 text-center
+            {% if loop.index == 1 %}text-yellow-400
+            {% elif loop.index == 2 %}text-gray-400
+            {% elif loop.index == 3 %}text-amber-600
+            {% else %}text-gray-600{% endif %}">
+            {{ loop.index }}
+          </span>
+          <!-- Avatar -->
+          <div class="learner-avatar" style="
+            {% if loop.index == 1 %}background:linear-gradient(135deg,#FFC107,#D97706)
+            {% elif loop.index == 2 %}background:linear-gradient(135deg,#9CA3AF,#6B7280)
+            {% else %}background:linear-gradient(135deg,#39A900,#1a5200){% endif %}
+          ">
+            {{ entry.user.initials }}
+          </div>
+          <!-- Name -->
+          <div class="flex-1 min-w-0">
+            <p class="text-xs font-semibold truncate
+               {% if entry.user.id == current_user.id %}text-sena{% else %}text-white{% endif %}">
+              {{ entry.user.full_name }}
+            </p>
+          </div>
+          <!-- XP -->
+          <span class="text-xs font-bold flex-shrink-0
+            {% if entry.user.id == current_user.id %}text-sena{% else %}text-amber-400{% endif %}">
+            {{ entry.gami.total_xp }} XP
+          </span>
+        </div>
+        {% else %}
+        <p class="text-xs text-center py-4" style="color:rgba(255,255,255,0.35)">Sin datos aún</p>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- ── Resultado Correcto ── -->
+    {% if recent_sessions %}
+    {% set last = recent_sessions[0] %}
+    <div class="correct-card animate-fade-in delay-300" style="padding:1.25rem">
+      <div class="text-center mb-3">
+        <div class="correct-icon mb-3">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+        </div>
+        <p class="text-lg font-black text-white">¡Correcto!</p>
+        <p class="text-xs mt-0.5" style="color:rgba(255,255,255,0.5)">
+          Última sesión: {{ last.mode | mode_label }}
+        </p>
+        <p class="text-xl font-black mt-2" style="color:#39A900">+{{ last.xp_earned }} XP</p>
+      </div>
+
+      <a href="{{ url_for('training.index') }}"
+         class="btn-sena w-full justify-center mb-3 text-sm">
+        Siguiente sesión →
+      </a>
+
+      <!-- Info card -->
+      <div class="rounded-lg p-3 text-xs space-y-1.5" style="background:rgba(255,255,255,0.05)">
+        <p class="font-semibold text-white mb-1.5">Información</p>
+        <div class="flex justify-between">
+          <span style="color:rgba(255,255,255,0.45)">Preguntas</span>
+          <span class="text-white font-medium">{{ last.total_questions }}</span>
+        </div>
+        <div class="flex justify-between">
+          <span style="color:rgba(255,255,255,0.45)">Correctas</span>
+          <span style="color:#4ADE80;font-weight:600">{{ last.correct_answers }}</span>
+        </div>
+        <div class="flex justify-between">
+          <span style="color:rgba(255,255,255,0.45)">Precisión</span>
+          <span class="text-white font-medium">
+            {{ (last.correct_answers / last.total_questions * 100) | round | int if last.total_questions else 0 }}%
+          </span>
+        </div>
+        <div class="flex justify-between">
+          <span style="color:rgba(255,255,255,0.45)">Tiempo</span>
+          <span class="text-white font-medium">{{ last.total_time_secs | duration }}</span>
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <!-- Primera sesión CTA derecha -->
+    <div class="card text-center animate-fade-in delay-300">
+      <div class="text-4xl mb-2 animate-float">🎯</div>
+      <p class="text-sm font-bold text-white mb-1">¡Tu primera sesión!</p>
+      <p class="text-xs mb-3" style="color:rgba(255,255,255,0.45)">Completa una sesión para ver tus resultados aquí</p>
+      <a href="{{ url_for('training.index') }}" class="btn-sena text-xs">Entrenar ahora</a>
+    </div>
+    {% endif %}
+
   </div>
 </div>
-
-{% endblock %}
-
-{% block scripts %}
-<script>
-const weeklyData = {{ weekly_stats | tojson }};
-const ctx = document.getElementById('weeklyChart');
-if (ctx && weeklyData) {
-  new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: weeklyData.map(d => d.day),
-      datasets: [{
-        label: 'Sesiones',
-        data: weeklyData.map(d => d.sessions),
-        backgroundColor: '#2563EB',
-        borderRadius: 6,
-      }]
-    },
-    options: {
-      responsive: true,
-      plugins: { legend: { display: false } },
-      scales: {
-        y: { beginAtZero: true, ticks: { stepSize: 1 } },
-        x: { grid: { display: false } }
-      }
-    }
-  });
-}
-</script>
 {% endblock %}

@@ -67,6 +67,21 @@ def dashboard():
             .all()
         )
 
+    # Top aprendices para el dashboard
+    from ..models.user import User
+    from sqlalchemy import desc
+    top_learners = [
+        {"user": u, "gami": g}
+        for u, g in (
+            db.session.query(User, UserGamification)
+            .join(UserGamification, User.id == UserGamification.user_id)
+            .filter(User.is_active == True)
+            .order_by(desc(UserGamification.total_xp))
+            .limit(5)
+            .all()
+        )
+    ]
+
     return render_template(
         "dashboard/index.html",
         progress=progress,
@@ -75,6 +90,7 @@ def dashboard():
         recent_sessions=recent_sessions,
         weekly_stats=weekly_stats,
         user_badges=user_badges,
+        top_learners=top_learners,
     )
 
 
