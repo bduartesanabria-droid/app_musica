@@ -26,7 +26,8 @@ class Config:
     MAIL_DEFAULT_SENDER = os.environ.get("MAIL_DEFAULT_SENDER", "noreply@semimus.app")
 
     # Almacenamiento de audio
-    AUDIO_STORAGE_PATH    = os.environ.get("AUDIO_STORAGE_PATH", os.path.join(BASE_DIR, "storage", "audio"))
+    _audio_path = os.environ.get("AUDIO_STORAGE_PATH", os.path.join(BASE_DIR, "storage", "audio"))
+    AUDIO_STORAGE_PATH = _audio_path if os.path.isabs(_audio_path) else os.path.join(BASE_DIR, _audio_path)
     MAX_AUDIO_SIZE_MB     = int(os.environ.get("MAX_AUDIO_SIZE_MB", 50))
     ALLOWED_AUDIO_EXTENSIONS = {"wav", "mp3", "ogg", "flac"}
 

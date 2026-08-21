@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from urllib.parse import quote
 from ..extensions import db
 
 
@@ -31,7 +32,7 @@ class Audio(db.Model):
 
     @property
     def stream_url(self):
-        return f"/audio/stream/{self.filename}"
+        return f"/audio/stream/{quote(self.filename)}"
 
     @property
     def file_size_kb(self):

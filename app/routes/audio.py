@@ -53,10 +53,10 @@ def _analyze(filepath):
         return {}
 
 
-@audio_bp.route("/stream/<filename>")
+@audio_bp.route("/stream/<path:filename>")
 def stream(filename):
     path = current_app.config["AUDIO_STORAGE_PATH"]
-    return send_from_directory(path, secure_filename(filename))
+    return send_from_directory(path, filename)
 
 
 @audio_bp.route("/manager")
