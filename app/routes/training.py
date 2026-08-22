@@ -34,6 +34,11 @@ def index():
 def start():
     mode           = request.form.get("mode", "notas")
     instrument_id  = request.form.get("instrument_id") or None
+    if instrument_id:
+        try:
+            instrument_id = int(instrument_id)
+        except (ValueError, TypeError):
+            instrument_id = None
     difficulty     = int(request.form.get("difficulty", 1))
     question_count = min(int(request.form.get("question_count", 10)), 20)
 
