@@ -56,6 +56,11 @@ function trainingSession(questions, answerUrl, completeUrl) {
         .catch(err => { console.warn('Audio playback error:', err); this.isPlaying = false; });
 
       player.onended = () => {
+        if (this.currentQ.second_audio_url && player.src.endsWith(this.currentQ.audio_url)) {
+          player.src = this.currentQ.second_audio_url;
+          player.play().catch(() => { this.isPlaying = false; });
+          return;
+        }
         this.isPlaying = false;
         if (btn) btn.classList.remove('audio-playing');
       };

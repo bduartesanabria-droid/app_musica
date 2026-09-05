@@ -68,11 +68,9 @@ def main():
         instruments = {i.name: i for i in Instrument.query.filter_by(is_active=True).all()}
         notes = {(n.name, n.octave): n for n in Note.query.all()}
 
-        if "Requinto" not in instruments:
-            print("ERROR: Instrumento 'Requinto' no existe. Ejecuta primero el seed.")
-            return
-        if "Guitarra" not in instruments:
-            print("ERROR: Instrumento 'Guitarra' no existe. Ejecuta primero el seed.")
+        missing = {name for name in ("Tiple", "Requinto", "Bandola") if name not in instruments}
+        if missing:
+            print(f"ERROR: Faltan instrumentos {sorted(missing)}. Ejecuta primero el seed.")
             return
 
         existing = {a.filename for a in Audio.query.filter_by(is_active=True).all()}

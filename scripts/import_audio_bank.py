@@ -1,5 +1,5 @@
 """
-Importa el banco sonoro descargado (Requinto + Guitarra) a la app.
+Importa el banco sonoro descargado (Tiple, Requinto y Bandola) a la app.
 
 - Convierte los archivos .wma a .wav usando el ffmpeg incluido en imageio-ffmpeg.
 - Normaliza el nombre a {Instrumento}_{NOTA}{OCTAVA}.wav y lo copia a storage/audio.
@@ -22,13 +22,16 @@ try:
 except Exception:
     FFMPEG = "ffmpeg"
 
-REQUINTO_MAIN = r"C:\Users\ASUS\Downloads\SONIDOS REQUINTO-20260814T040259Z-1-001\SONIDOS REQUINTO"
-REQUINTO_SUB  = r"C:\Users\ASUS\Downloads\SONIDOS REQUINTO-20260814T040259Z-1-001\SONIDOS REQUINTO\Requinto"
-GUITARRA      = r"C:\Users\ASUS\Downloads\SONIDOS GUITARRA-20260814T040348Z-1-001\SONIDOS GUITARRA\Guitarra"
+SONIDOS_ROOT  = r"C:\Users\ASUS\Downloads\Sonidos-20260905T035642Z-1-001\Sonidos"
+TIPLE          = os.path.join(SONIDOS_ROOT, "SONIDOS TIPLE")
+BANDOLA       = os.path.join(SONIDOS_ROOT, "SONIDOS BANDOLA")
+REQUINTO_MAIN = os.path.join(SONIDOS_ROOT, "SONIDOS REQUINTO")
+REQUINTO_SUB  = os.path.join(REQUINTO_MAIN, "Requinto")
 
 SOURCES = [
+    ("Tiple", [TIPLE]),
+    ("Bandola", [BANDOLA]),
     ("Requinto", [REQUINTO_MAIN, REQUINTO_SUB]),
-    ("Guitarra", [GUITARRA]),
 ]
 
 # Búsqueda con notación española (do, re, mi...) que es la usada en la BD.

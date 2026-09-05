@@ -6,23 +6,18 @@ from ..models.instrument import Note, Interval, Scale, Instrument
 
 NOTES = ["DO", "DO#", "RE", "RE#", "MI", "FA", "FA#", "SOL", "SOL#", "LA", "LA#", "SI"]
 
+# The first release uses four clearly distinguishable ascending intervals.
+FEATURE_INTERVALS = (2, 4, 5, 7)
+
 
 class QuestionGenerator:
     def __init__(self, user_id=None):
         self.user_id = user_id
 
     def generate(self, mode, instrument_id=None, difficulty=1, count=10):
-        fn = {
-            "notas":            self._notas,
-            "intervalos":       self._intervalos,
-            "escalas":          self._escalas,
-            "dictado_melodico": self._notas,
-            "patrones_andinos": self._notas,
-            "guabina":          self._notas,
-            "tiple":            self._tiple,
-            "requinto":         self._requinto,
-            "bandola":          self._bandola,
-        }.get(mode, self._notas)
+        fn = {"intervalos": self._intervalos}.get(mode)
+        if not fn:
+            return []
 
         questions = fn(instrument_id=instrument_id, difficulty=difficulty, count=count)
         random.shuffle(questions)
@@ -97,24 +92,44 @@ class QuestionGenerator:
         return questions
 
     def _intervalos(self, instrument_id=None, difficulty=1, count=10):
-        intervals = Interval.query.order_by(Interval.semitones).all()
+        intervals = Interval.query.filter(Interval.semitones.in_(FEATURE_INTERVALS)).order_by(Interval.semitones).all()
         if not intervals:
             return []
 
         interval_names = [i.name for i in intervals]
+        audios = self._get_audios(instrument_id)
+        audios = [a for a in audios if a.instrument and a.instrument.name in ("Tiple", "Requinto", "Bandola")]
+        by_instrument_and_midi = {}
+        for audio in audios:
+            if audio.note and audio.note.midi_number is not None:
+                key = (audio.instrument_id, audio.note.midi_number)
+                by_instrument_and_midi[key] = audio
+
         questions = []
         for _ in range(count):
             interval = random.choice(intervals)
+            pairs = []
+            for (instrument, first_midi), first in by_instrument_and_midi.items():
+                second = by_instrument_and_midi.get((instrument, first_midi + interval.semitones))
+                if second:
+                    pairs.append((first, second))
+            if not pairs:
+                continue
+            first, second = random.choice(pairs)
             correct  = interval.name
             options  = self._make_options(correct, pool=interval_names)
             q = Question(
                 mode="intervalos",
                 type="identificar_intervalo",
+                audio_id=first.id,
                 correct_answer=correct,
                 difficulty=difficulty,
+                instrument_id=first.instrument_id,
                 hint=f"Intervalo de {interval.semitones} semitonos.",
             )
             q.options = options
+            q._audio_stream_url = first.stream_url
+            q._second_audio_stream_url = second.stream_url
             questions.append(q)
         return questions
 

@@ -3,15 +3,7 @@ from datetime import datetime, timezone
 from ..extensions import db
 
 TRAINING_MODES = [
-    ("notas",           "Reconocimiento de Notas"),
-    ("intervalos",      "Reconocimiento de Intervalos"),
-    ("escalas",         "Reconocimiento de Escalas"),
-    ("dictado_melodico","Dictado Melódico"),
-    ("patrones_andinos","Patrones Andinos"),
-    ("guabina",         "Guabina"),
-    ("tiple",           "Tiple"),
-    ("requinto",        "Requinto"),
-    ("bandola",         "Bandola"),
+    ("intervalos",      "Identificación de intervalos"),
 ]
 
 

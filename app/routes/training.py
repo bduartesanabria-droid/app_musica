@@ -32,15 +32,16 @@ def index():
 @training_bp.route("/start", methods=["POST"])
 @login_required
 def start():
-    mode           = request.form.get("mode", "notas")
+    # SEMIMUS v1 is intentionally focused on interval recognition.
+    mode           = "intervalos"
     instrument_id  = request.form.get("instrument_id") or None
     if instrument_id:
         try:
             instrument_id = int(instrument_id)
         except (ValueError, TypeError):
             instrument_id = None
-    difficulty     = int(request.form.get("difficulty", 1))
-    question_count = min(int(request.form.get("question_count", 10)), 20)
+    difficulty     = max(1, min(int(request.form.get("difficulty", 1)), 5))
+    question_count = min(max(int(request.form.get("question_count", 10)), 5), 20)
 
     sess = TrainingSession(
         user_id=current_user.id,
@@ -103,6 +104,7 @@ def session_view(session_id):
             "type":      q.type,
             "mode":      q.mode,
             "audio_url": getattr(q, "_audio_stream_url", None),
+            "second_audio_url": getattr(q, "_second_audio_stream_url", None),
             "options":   q.options,
             "hint":      q.hint or "",
         }
