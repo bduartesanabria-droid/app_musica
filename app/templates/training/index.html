@@ -23,8 +23,8 @@
         <input type="hidden" name="instrument_id" x-model="instrument_id">
         <div class="instrument-choice-grid">
           <label class="choice-card"><input type="radio" name="_instrument" value="" @change="instrument_id = ''" :checked="instrument_id === ''"><span class="choice-icon">◎</span><strong>Todos</strong><small>Mezcla andina</small></label>
-          {% for instr in instruments if instr.name in ['Tiple', 'Requinto', 'Bandola'] %}
-          <label class="choice-card"><input type="radio" name="_instrument" value="{{ instr.id }}" @change="instrument_id = '{{ instr.id }}'" :checked="instrument_id === '{{ instr.id }}'"><span class="choice-icon">{{ '◉' if instr.name == 'Tiple' else '◌' }}</span><strong>{{ instr.name }}</strong><small>Sonido auténtico</small></label>
+          {% for instr in instruments %}
+          <label class="choice-card"><input type="radio" name="_instrument" value="{{ instr.id }}" @change="instrument_id = '{{ instr.id }}'" :checked="instrument_id === '{{ instr.id }}'"><span class="choice-icon">{{ instr.emoji or '♪' }}</span><strong>{{ instr.name }}</strong><small>Sonido auténtico</small></label>
           {% endfor %}
         </div>
       </section>

@@ -242,6 +242,22 @@
           </div>
         </a>
 
+        <!-- Guitarra -->
+        <a href="{{ url_for('training.index') }}?instrument=guitarra" class="instrument-card">
+          <div class="overflow-hidden" style="height:110px">
+            <img src="{{ url_for('static', filename='img/guitarra.jpg') }}"
+                 alt="Guitarra"
+                 class="instrument-img"
+                 style="height:110px;width:100%;object-fit:cover;object-position:center">
+          </div>
+          <div class="p-3">
+            <p class="text-sm font-bold text-white">Guitarra</p>
+            <p class="text-xs mt-0.5 mb-2" style="color:rgba(255,255,255,0.45)">Entrenamiento con guitarra</p>
+            <div class="progress-bar"><div class="progress-fill" style="width:0%;background:#39A900"></div></div>
+            <p class="text-xs mt-1 font-semibold" style="color:#39A900">0%</p>
+          </div>
+        </a>
+
       </div>
     </div>
 

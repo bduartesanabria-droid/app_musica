@@ -3,7 +3,7 @@
 {% block body %}
 <div class="interval-session" x-data="trainingSession({{ questions_json }}, '{{ url_for('training.submit_answer', session_id=session.id) }}', '{{ url_for('training.complete_session', session_id=session.id) }}')" @keydown.space.prevent="!answered && currentQ ? playAudio() : null" @keydown.digit1.window="!answered && selectOption(0)" @keydown.digit2.window="!answered && selectOption(1)" @keydown.digit3.window="!answered && selectOption(2)" @keydown.digit4.window="!answered && selectOption(3)">
   <header class="interval-topbar"><a href="{{ url_for('training.index') }}" onclick="return confirm('¿Salir? Perderás el progreso de esta sesión.')" class="session-exit">×</a><div class="session-progress"><div class="session-meta"><span>Pregunta <b x-text="currentIndex + 1"></b> de {{ total }}</span><span x-text="correct + ' correctas'"></span></div><div class="green-progress"><i :style="`width: ${(currentIndex / {{ total }}) * 100}%`"></i></div></div><span class="session-time" x-text="formatTime(elapsed)"></span></header>
-  <main class="session-main"><div class="session-card">
+  <main class="session-main"><div class="session-card" data-feedback>
     <div class="session-label"><span>INTERVALOS</span><small>Tecla espacio para escuchar</small></div>
     <h1>¿Qué intervalo escuchas?</h1>
     <p class="session-instruction">Reproduce las dos notas y reconoce la distancia entre ellas.</p>

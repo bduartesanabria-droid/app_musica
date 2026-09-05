@@ -40,15 +40,17 @@ class UserGamification(db.Model):
 
     @property
     def level_info(self):
-        current = next((l for l in LEVELS if l[0] == self.current_level), LEVELS[0])
-        next_lvl = next((l for l in LEVELS if l[0] == self.current_level + 1), None)
-        xp_next = next_lvl[3] if next_lvl else self.total_xp
+        level = self.current_level or 1
+        total_xp = self.total_xp or 0
+        current = next((l for l in LEVELS if l[0] == level), LEVELS[0])
+        next_lvl = next((l for l in LEVELS if l[0] == level + 1), None)
+        xp_next = next_lvl[3] if next_lvl else total_xp
         xp_cur  = current[3]
         span    = xp_next - xp_cur
-        earned  = self.total_xp - xp_cur
+        earned  = total_xp - xp_cur
         pct     = min(round((earned / span) * 100, 1), 100) if span > 0 else 100
         return {
-            "level":    self.current_level,
+            "level":    level,
             "name":     current[1],
             "icon":     current[2],
             "xp_next":  xp_next,

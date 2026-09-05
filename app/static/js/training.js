@@ -49,7 +49,7 @@ function trainingSession(questions, answerUrl, completeUrl) {
       player.src = this.currentQ.audio_url;
       this.isPlaying = true;
 
-      const btn = document.querySelector('.audio-btn');
+      const btn = document.querySelector('.session-play');
       if (btn) btn.classList.add('audio-playing');
 
       player.play()
@@ -122,6 +122,7 @@ function trainingSession(questions, answerUrl, completeUrl) {
         // Offline fallback: evaluate locally
         this.lastCorrect = (option === this.currentQ.correct_answer);
         if (this.lastCorrect) this.correct++; else this.wrong++;
+        this._flashFeedback(this.lastCorrect ? 'correct' : 'wrong');
       }
     },
 

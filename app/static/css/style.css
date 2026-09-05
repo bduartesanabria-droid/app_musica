@@ -867,6 +867,10 @@ input[type="range"]::-webkit-slider-thumb {
 .neumorphic-cta b { font-size: 1.3rem; }
 
 .interval-session { --sena: #39a900; --ink: #183126; --muted: #718278; min-height: 100vh; background: #eef4f0; color: var(--ink); display: flex; flex-direction: column; }
+.session-card.feedback-correct { animation: feedbackCorrect .6s ease; }
+.session-card.feedback-wrong { animation: feedbackWrong .6s ease; }
+@keyframes feedbackCorrect { 50% { box-shadow: 0 0 0 7px rgba(57,169,0,.18), 14px 14px 30px #d5ded8, -14px -14px 30px #fff; } }
+@keyframes feedbackWrong { 50% { box-shadow: 0 0 0 7px rgba(198,74,74,.18), 14px 14px 30px #d5ded8, -14px -14px 30px #fff; } }
 .interval-topbar { display: flex; align-items: center; gap: 1.3rem; padding: 1.2rem max(1.2rem, calc((100vw - 780px) / 2)); background: #eef4f0; }
 .session-exit { color: var(--muted); font-size: 1.8rem; text-decoration: none; line-height: 1; }
 .session-progress { flex: 1; }.session-meta { display: flex; justify-content: space-between; color: var(--muted); font-size: .74rem; margin-bottom: .5rem; }.green-progress { height: .5rem; border-radius: 99px; box-shadow: inset 3px 3px 6px #d5ded8, inset -3px -3px 6px #fff; overflow: hidden; }.green-progress i { display: block; height: 100%; background: var(--sena); border-radius: inherit; transition: width .4s; }.session-time { color: var(--muted); font: 700 .75rem monospace; }

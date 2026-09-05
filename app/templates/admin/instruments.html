@@ -51,7 +51,7 @@
                      {{ 'bg-green-100 text-green-700' if instr.is_active else 'bg-gray-100 text-gray-500' }}">
           {{ 'Activo' if instr.is_active else 'Inactivo' }}
         </span>
-        <form method="POST" action="{{ url_for('admin.toggle_instrument', instrument_id=instr.id) }}" class="inline">
+        <form method="POST" action="{{ url_for('admin.toggle_instrument', instr_id=instr.id) }}" class="inline">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <button type="submit" class="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors">
             {{ 'Desactivar' if instr.is_active else 'Activar' }}

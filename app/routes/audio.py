@@ -1,4 +1,5 @@
 import os
+import re
 import uuid
 import json
 from flask import Blueprint, render_template, request, redirect, url_for, flash, send_from_directory, current_app, jsonify
@@ -11,6 +12,8 @@ from ..models.instrument import Instrument, Note
 audio_bp = Blueprint("audio", __name__)
 
 ALLOWED = {"wav", "mp3", "ogg", "flac"}
+NOTE_RE = re.compile(r"(?i)(do|re|mi|fa|sol|la|si)(#|b)?([0-8])")
+FLAT_TO_SHARP = {"reb": "DO#", "mib": "RE#", "solb": "FA#", "lab": "SOL#", "sib": "LA#"}
 
 
 def _allowed(filename):
@@ -51,6 +54,70 @@ def _analyze(filepath):
         }
     except Exception:
         return {}
+
+
+def _detect_metadata(filename, instruments, notes):
+    """Detect instrument/note from a selected file or its relative folder."""
+    normalized = filename.replace("\\", "/").casefold()
+    instrument = next(
+        (item for item in instruments if item.name.casefold() in normalized),
+        None,
+    )
+    match = NOTE_RE.search(os.path.basename(filename))
+    note = None
+    if match:
+        name = match.group(1).upper()
+        accidental = match.group(2) or ""
+        token = name + accidental.upper()
+        if accidental.lower() == "b":
+            token = FLAT_TO_SHARP.get(name + "b", token)
+        note = notes.get((token, int(match.group(3))))
+    return instrument, note
+
+
+def _store_audio(file, instrument_id, note_id, tags, description, uploaded_by, instruments, notes):
+    """Persist one uploaded audio and return (Audio, error_message)."""
+    if not file or not file.filename or not _allowed(file.filename):
+        return None, "Formato no permitido. Use: WAV, MP3, OGG o FLAC."
+
+    detected_instrument, detected_note = _detect_metadata(file.filename, instruments, notes)
+    instrument = Instrument.query.get(int(instrument_id)) if instrument_id else detected_instrument
+    note = Note.query.get(int(note_id)) if note_id else detected_note
+    if not instrument:
+        return None, f"No se pudo detectar el instrumento en '{file.filename}'."
+
+    original_name = secure_filename(os.path.basename(file.filename))
+    ext = original_name.rsplit(".", 1)[1].lower()
+    storage_path = current_app.config["AUDIO_STORAGE_PATH"]
+    filepath = os.path.join(storage_path, f"{uuid.uuid4().hex}.{ext}")
+    file.save(filepath)
+
+    file_size = os.path.getsize(filepath)
+    max_bytes = current_app.config["MAX_AUDIO_SIZE_MB"] * 1024 * 1024
+    if file_size > max_bytes:
+        os.remove(filepath)
+        return None, f"'{original_name}' supera el límite de {current_app.config['MAX_AUDIO_SIZE_MB']} MB."
+
+    analysis = _analyze(filepath)
+    if analysis.get("duration", 0) > 300:
+        os.remove(filepath)
+        return None, f"'{original_name}' supera los 5 minutos permitidos."
+
+    audio = Audio(
+        filename=os.path.basename(filepath),
+        original_filename=original_name,
+        file_path=filepath,
+        instrument_id=instrument.id,
+        note_id=note.id if note else None,
+        difficulty="intermedio",
+        description=description or "",
+        tags=tags or f"{instrument.name},{note.display_name if note else ''}",
+        file_size=file_size,
+        uploaded_by=uploaded_by,
+        **analysis,
+    )
+    db.session.add(audio)
+    return audio, None
 
 
 @audio_bp.route("/stream/<path:filename>")
@@ -106,66 +173,52 @@ def upload():
         return redirect(url_for("audio.manager"))
 
     file = request.files.get("audio_file")
-    if not file or not _allowed(file.filename):
-        flash("Formato no permitido. Use: WAV, MP3, OGG, FLAC.", "danger")
-        return redirect(url_for("audio.manager"))
-
-    instrument_id = request.form.get("instrument_id") or None
-    note_id       = request.form.get("note_id")       or None
-    difficulty    = request.form.get("difficulty", "intermedio")
-    description   = request.form.get("description", "")
-    tags          = request.form.get("tags", "")
-
-    if instrument_id:
-        from ..models.instrument import Instrument as InstrumentModel
-        if not InstrumentModel.query.get(int(instrument_id)):
-            flash("Instrumento no válido.", "danger")
-            return redirect(url_for("audio.manager"))
-        instrument_id = int(instrument_id)
-    if note_id:
-        from ..models.instrument import Note as NoteModel
-        if not NoteModel.query.get(int(note_id)):
-            flash("Nota no válida.", "danger")
-            return redirect(url_for("audio.manager"))
-        note_id = int(note_id)
-
-    ext             = file.filename.rsplit(".", 1)[1].lower()
-    unique_name     = f"{uuid.uuid4().hex}.{ext}"
-    storage_path    = current_app.config["AUDIO_STORAGE_PATH"]
-    filepath        = os.path.join(storage_path, unique_name)
-    file.save(filepath)
-
-    file_size = os.path.getsize(filepath)
-    max_bytes = current_app.config["MAX_AUDIO_SIZE_MB"] * 1024 * 1024
-    if file_size > max_bytes:
-        os.remove(filepath)
-        flash(f"El archivo supera {current_app.config['MAX_AUDIO_SIZE_MB']} MB.", "danger")
-        return redirect(url_for("audio.manager"))
-
-    analysis = _analyze(filepath)
-
-    duration = analysis.get("duration", 0)
-    if duration and duration > 300:
-        os.remove(filepath)
-        flash("El audio no puede superar 5 minutos de duración.", "danger")
-        return redirect(url_for("audio.manager"))
-
-    audio_obj = Audio(
-        filename=unique_name,
-        original_filename=secure_filename(file.filename),
-        file_path=filepath,
-        instrument_id=instrument_id,
-        note_id=note_id,
-        difficulty=difficulty,
-        description=description,
-        tags=tags,
-        file_size=file_size,
-        uploaded_by=current_user.id,
-        **analysis,
+    instruments = Instrument.query.filter_by(is_active=True).all()
+    notes = {(n.name.upper(), n.octave): n for n in Note.query.all()}
+    audio_obj, error = _store_audio(
+        file, request.form.get("instrument_id"), request.form.get("note_id"),
+        request.form.get("tags", ""), request.form.get("description", ""),
+        current_user.id, instruments, notes,
     )
-    db.session.add(audio_obj)
+    if error:
+        flash(error, "danger")
+        return redirect(url_for("audio.manager"))
     db.session.commit()
     flash(f"Audio '{file.filename}' subido correctamente.", "success")
+    return redirect(url_for("audio.manager"))
+
+
+@audio_bp.route("/upload-folder", methods=["POST"])
+@login_required
+def upload_folder():
+    if not current_user.is_instructor:
+        flash("Sin permisos.", "danger")
+        return redirect(url_for("main.dashboard"))
+
+    instruments = Instrument.query.filter_by(is_active=True).all()
+    notes = {(n.name.upper(), n.octave): n for n in Note.query.all()}
+    files = request.files.getlist("audio_files")
+    selected_instrument = request.form.get("instrument_id") or None
+    tags = request.form.get("tags", "")
+    uploaded = 0
+    errors = []
+    for file in files:
+        _, error = _store_audio(
+            file, selected_instrument, None, tags, "", current_user.id, instruments, notes,
+        )
+        if error:
+            errors.append(error)
+        else:
+            uploaded += 1
+
+    if uploaded:
+        db.session.commit()
+        flash(f"{uploaded} audios de la carpeta fueron cargados correctamente.", "success")
+    if errors:
+        db.session.rollback()
+        flash(f"{len(errors)} archivos no se cargaron. Revisa que incluyan instrumento y nota.", "warning")
+    if not files:
+        flash("Selecciona una carpeta que contenga archivos de audio.", "warning")
     return redirect(url_for("audio.manager"))
 
 
@@ -179,4 +232,3 @@ def delete_audio(audio_id):
     db.session.commit()
     flash("Audio eliminado.", "success")
     return redirect(url_for("audio.manager"))
-

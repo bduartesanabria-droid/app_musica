@@ -98,7 +98,7 @@ class QuestionGenerator:
 
         interval_names = [i.name for i in intervals]
         audios = self._get_audios(instrument_id)
-        audios = [a for a in audios if a.instrument and a.instrument.name in ("Tiple", "Requinto", "Bandola")]
+        audios = [a for a in audios if a.instrument and a.instrument.is_active]
         by_instrument_and_midi = {}
         for audio in audios:
             if audio.note and audio.note.midi_number is not None:

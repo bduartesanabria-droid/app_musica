@@ -251,6 +251,11 @@ def complete_session(session_id):
     # Actualizar progreso
     progress = Progress.query.filter_by(user_id=current_user.id).first()
     if progress:
+        for field in (
+            "total_sessions", "total_questions_answered", "total_correct",
+            "total_time_minutes", "current_streak_days", "longest_streak_days",
+        ):
+            setattr(progress, field, getattr(progress, field) or 0)
         progress.total_sessions           += 1
         progress.total_questions_answered += sess.total_questions
         progress.total_correct            += sess.correct_answers
@@ -273,6 +278,8 @@ def complete_session(session_id):
     # Actualizar gamificación
     gami = UserGamification.query.filter_by(user_id=current_user.id).first()
     if gami:
+        for field in ("total_xp", "weekly_xp", "monthly_xp", "coins", "total_coins_earned"):
+            setattr(gami, field, getattr(gami, field) or 0)
         gami.total_xp           += xp
         gami.weekly_xp          += xp
         gami.monthly_xp         += xp
