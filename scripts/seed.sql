@@ -1,6 +1,6 @@
 -- ===============================================================
 -- SEMIMUS - Datos iniciales (seed)
--- Generado el 2026-08-19T19:06:44.531911
+-- Generado el 2026-09-07T03:15:01.795757+00:00
 -- ===============================================================
 
 BEGIN;
@@ -11,7 +11,7 @@ INSERT INTO instruments (name, description, emoji, is_active) VALUES ('Requinto'
 INSERT INTO instruments (name, description, emoji, is_active) VALUES ('Bandola', E'Instrumento de cuerdas pulsadas del folclore andino colombiano, similar al laud.', '🪕', TRUE);
 INSERT INTO instruments (name, description, emoji, is_active) VALUES ('Guitarra', E'Guitarra clasica usada como base armonica en la musica andina.', '🎸', TRUE);
 
--- Notas (octavas 2 a 5)
+-- Notas (octavas 2 a 6)
 INSERT INTO notes (name, octave, frequency, midi_number, scientific_name) VALUES ('DO', 2, 65.41, 36, 'DO2');
 INSERT INTO notes (name, octave, frequency, midi_number, scientific_name) VALUES ('DO#', 2, 69.3, 37, 'DO#2');
 INSERT INTO notes (name, octave, frequency, midi_number, scientific_name) VALUES ('RE', 2, 73.42, 38, 'RE2');
@@ -60,6 +60,18 @@ INSERT INTO notes (name, octave, frequency, midi_number, scientific_name) VALUES
 INSERT INTO notes (name, octave, frequency, midi_number, scientific_name) VALUES ('LA', 5, 880.0, 81, 'LA5');
 INSERT INTO notes (name, octave, frequency, midi_number, scientific_name) VALUES ('LA#', 5, 932.32, 82, 'LA#5');
 INSERT INTO notes (name, octave, frequency, midi_number, scientific_name) VALUES ('SI', 5, 987.76, 83, 'SI5');
+INSERT INTO notes (name, octave, frequency, midi_number, scientific_name) VALUES ('DO', 6, 1046.52, 84, 'DO6');
+INSERT INTO notes (name, octave, frequency, midi_number, scientific_name) VALUES ('DO#', 6, 1108.72, 85, 'DO#6');
+INSERT INTO notes (name, octave, frequency, midi_number, scientific_name) VALUES ('RE', 6, 1174.64, 86, 'RE6');
+INSERT INTO notes (name, octave, frequency, midi_number, scientific_name) VALUES ('RE#', 6, 1244.52, 87, 'RE#6');
+INSERT INTO notes (name, octave, frequency, midi_number, scientific_name) VALUES ('MI', 6, 1318.52, 88, 'MI6');
+INSERT INTO notes (name, octave, frequency, midi_number, scientific_name) VALUES ('FA', 6, 1396.92, 89, 'FA6');
+INSERT INTO notes (name, octave, frequency, midi_number, scientific_name) VALUES ('FA#', 6, 1479.96, 90, 'FA#6');
+INSERT INTO notes (name, octave, frequency, midi_number, scientific_name) VALUES ('SOL', 6, 1568.0, 91, 'SOL6');
+INSERT INTO notes (name, octave, frequency, midi_number, scientific_name) VALUES ('SOL#', 6, 1661.2, 92, 'SOL#6');
+INSERT INTO notes (name, octave, frequency, midi_number, scientific_name) VALUES ('LA', 6, 1760.0, 93, 'LA6');
+INSERT INTO notes (name, octave, frequency, midi_number, scientific_name) VALUES ('LA#', 6, 1864.64, 94, 'LA#6');
+INSERT INTO notes (name, octave, frequency, midi_number, scientific_name) VALUES ('SI', 6, 1975.52, 95, 'SI6');
 
 -- Intervalos
 INSERT INTO intervals (name, semitones, abbreviation, consonance) VALUES ('Unisono', 0, 'U', 'perfecto');
@@ -95,11 +107,5 @@ INSERT INTO badges (name, description, icon, requirement_type, requirement_value
 INSERT INTO badges (name, description, icon, requirement_type, requirement_value, xp_reward, coin_reward, is_active) VALUES ('Maestra Andina', E'Completa 50 sesiones de entrenamiento.', '🏆', 'sessions', 50, 200, 80, TRUE);
 INSERT INTO badges (name, description, icon, requirement_type, requirement_value, xp_reward, coin_reward, is_active) VALUES ('Perfeccion', E'Logra 100% de precision en una sesion de 10+.', '⭐', 'perfect', 1, 150, 60, TRUE);
 INSERT INTO badges (name, description, icon, requirement_type, requirement_value, xp_reward, coin_reward, is_active) VALUES ('Explorador', E'Entrena con los 3 instrumentos principales.', '🗺', 'instruments', 3, 75, 30, TRUE);
-
--- Usuario admin (password por defecto: Semimus2026!)
-INSERT INTO users (username, email, password_hash, first_name, last_name, role, is_active, is_verified, created_at) VALUES ('admin', 'admin@semimus.app', '$2b$12$LYkYBg4Y7kIGp2umpzUavexlGAOLDO2Vd9wTgBUXaVzp9AIb5VoMm', 'Admin', 'SEMIMUS', 'admin', TRUE, TRUE, CURRENT_TIMESTAMP);
-INSERT INTO progress (user_id) VALUES ((SELECT id FROM users WHERE email='admin@semimus.app'));
-INSERT INTO user_statistics (user_id) VALUES ((SELECT id FROM users WHERE email='admin@semimus.app'));
-INSERT INTO user_gamification (user_id) VALUES ((SELECT id FROM users WHERE email='admin@semimus.app'));
 
 COMMIT;

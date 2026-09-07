@@ -23,6 +23,15 @@ from app.models.audio import Audio
 from app.models.instrument import Instrument, Note
 
 RE_FILE = re.compile(r"^([A-Za-zÁÉÍÓÚñ]+)_(DO#?|RE#?|MI|FA#?|SOL#?|LA#?|SI)(\d+)\.wav$")
+EXPECTED_OCTAVES = {
+    # Only compare the documented recording ranges, not notes outside each
+    # instrument's physical/source coverage.
+    "Tiple": ((3, 0, 11), (4, 0, 11), (5, 0, 11)),
+    "Requinto": ((3, 0, 11), (4, 0, 11), (5, 0, 11)),
+    "Bandola": ((3, 0, 11), (4, 0, 11), (5, 0, 11), (6, 0, 7)),
+    "Guitarra": ((2, 4, 11), (3, 0, 11), (4, 0, 11), (5, 0, 11)),
+}
+NOTE_NAMES = ["DO", "DO#", "RE", "RE#", "MI", "FA", "FA#", "SOL", "SOL#", "LA", "LA#", "SI"]
 
 
 def _analyze(filepath):
@@ -68,7 +77,7 @@ def main():
         instruments = {i.name: i for i in Instrument.query.filter_by(is_active=True).all()}
         notes = {(n.name, n.octave): n for n in Note.query.all()}
 
-        missing = {name for name in ("Tiple", "Requinto", "Bandola") if name not in instruments}
+        missing = {name for name in EXPECTED_OCTAVES if name not in instruments}
         if missing:
             print(f"ERROR: Faltan instrumentos {sorted(missing)}. Ejecuta primero el seed.")
             return
@@ -117,6 +126,34 @@ def main():
 
         db.session.commit()
         print(f"=== {created} audios registrados ===")
+
+        print("=== Cobertura de notas por instrumento ===")
+        note_order = {n.name: n.id for n in Note.query.order_by(Note.id).all()}
+        for instrument_name, octaves in EXPECTED_OCTAVES.items():
+            instrument = instruments[instrument_name]
+            registered = {
+                (audio.note.name, audio.note.octave)
+                for audio in Audio.query.filter_by(
+                    instrument_id=instrument.id, is_active=True
+                ).all()
+                if audio.note
+            }
+            expected = {
+                (NOTE_NAMES[index], octave)
+                for octave, first_index, last_index in octaves
+                for index in range(first_index, last_index + 1)
+                if (NOTE_NAMES[index], octave) in notes
+            }
+            missing_notes = sorted(
+                expected - registered,
+                key=lambda item: (item[1], note_order.get(item[0], 0)),
+            )
+            registered_in_range = len(expected - set(missing_notes))
+            formatted_missing = ", ".join(f"{name}{octave}" for name, octave in missing_notes)
+            print(
+                f"{instrument_name}: {registered_in_range}/{len(expected)} notas registradas"
+            )
+            print(f"  Faltantes: {formatted_missing or 'ninguna'}")
 
 
 if __name__ == "__main__":

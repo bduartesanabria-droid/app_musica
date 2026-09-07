@@ -7,7 +7,7 @@ Uso:
 """
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -67,7 +67,7 @@ ADMIN_PASSWORD_HASH = "ADMIN_HASH_GENERADO"
 
 
 def generate():
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     L = []
     L.append("-- ===============================================================")
     L.append("-- SEMIMUS - Datos iniciales (seed)")
@@ -82,8 +82,8 @@ def generate():
         L.append(f"INSERT INTO instruments (name, description, emoji, is_active) VALUES ('{name}', E'{desc}', '{emoji}', TRUE);")
     L.append("")
 
-    L.append("-- Notas (octavas 2 a 5)")
-    for octave in range(2, 6):
+    L.append("-- Notas (octavas 2 a 6)")
+    for octave in range(2, 7):
         for i, name in enumerate(NOTE_NAMES):
             freq = round(FREQ_4[i] * (2 ** (octave - 4)), 2)
             midi = 12 * (octave + 1) + i
