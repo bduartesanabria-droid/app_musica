@@ -7,6 +7,7 @@ from pathlib import Path
 
 import soundfile as sf
 from flask import current_app
+from sqlalchemy import func
 
 from ..extensions import db
 from ..models.audio import Audio
@@ -68,6 +69,31 @@ def _validate(data, filename):
     return info, peak
 
 
+def _get_or_create_note(note_name):
+    name = note_name[:-1].upper()
+    octave = int(note_name[-1])
+    note = Note.query.filter(
+        func.upper(Note.name) == name,
+        Note.octave == octave,
+    ).first()
+    if note:
+        return note
+
+    semitone = {"DO": 0, "DO#": 1, "RE": 2, "RE#": 3, "MI": 4, "FA": 5,
+                "FA#": 6, "SOL": 7, "SOL#": 8, "LA": 9, "LA#": 10, "SI": 11}[name]
+    midi = (octave + 1) * 12 + semitone
+    note = Note(
+        name=name,
+        octave=octave,
+        midi_number=midi,
+        frequency=440.0 * 2 ** ((midi - 69) / 12),
+        scientific_name=f"{name}{octave}",
+    )
+    db.session.add(note)
+    db.session.flush()
+    return note
+
+
 def import_files(files, instrument_id, uploaded_by=None):
     instrument = Instrument.query.filter_by(id=instrument_id).first()
     if not instrument or _clean(instrument.name) not in {"guitarra", "bandola", "requinto", "tiple"}:
@@ -85,9 +111,7 @@ def import_files(files, instrument_id, uploaded_by=None):
             continue
         try:
             note_name, interval, technique = _parse_name(original)
-            note = Note.query.filter_by(name=note_name[:-1], octave=int(note_name[-1])).first()
-            if not note:
-                raise ValueError("la nota no existe en el catalogo")
+            note = _get_or_create_note(note_name)
             data = file.read()
             info, peak = _validate(data, original)
             stored_name = f"{uuid.uuid4().hex}{Path(original).suffix.lower()}"
