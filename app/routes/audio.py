@@ -220,6 +220,7 @@ def manager():
         instruments=instruments,
         notes=notes,
         search=search,
+        selected_instrument_id=instr_id,
     )
 
 
@@ -323,3 +324,38 @@ def delete_audio(audio_id):
     db.session.commit()
     flash("Audio eliminado.", "success")
     return redirect(url_for("audio.manager"))
+
+
+@audio_bp.route("/<int:audio_id>/note", methods=["POST"])
+@login_required
+def update_note(audio_id):
+    if not current_user.is_instructor:
+        return jsonify({"error": "Sin permisos"}), 403
+    audio = Audio.query.get_or_404(audio_id)
+    note_id = request.form.get("note_id", type=int)
+    note = Note.query.get(note_id) if note_id else None
+    if not note:
+        flash("Selecciona una nota válida.", "danger")
+    else:
+        audio.note_id = note.id
+        audio.octave = note.octave
+        db.session.commit()
+        flash(f"Nota actualizada a {note.display_name}.", "success")
+    return redirect(url_for("audio.manager", instrument_id=audio.instrument_id))
+
+
+@audio_bp.route("/delete-instrument", methods=["POST"])
+@login_required
+def delete_instrument_audios():
+    if not current_user.is_instructor:
+        return jsonify({"error": "Sin permisos"}), 403
+    instrument_id = request.form.get("instrument_id", type=int)
+    if not instrument_id:
+        flash("Selecciona un instrumento.", "danger")
+        return redirect(url_for("audio.manager"))
+    total = Audio.query.filter_by(instrument_id=instrument_id, is_active=True).update(
+        {Audio.is_active: False}, synchronize_session=False
+    )
+    db.session.commit()
+    flash(f"{total} audios eliminados del instrumento seleccionado.", "success")
+    return redirect(url_for("audio.manager", instrument_id=instrument_id))

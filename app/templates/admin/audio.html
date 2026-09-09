@@ -83,7 +83,28 @@
      </div>
    </div>
 
-  <!-- Tabla audios -->
+   <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-4 flex flex-col sm:flex-row gap-3 sm:items-end sm:justify-between">
+     <form method="GET" action="{{ url_for('audio.manager') }}" class="flex flex-col sm:flex-row gap-3 sm:items-end">
+       <label class="text-sm text-gray-600 dark:text-gray-300">Instrumento
+         <select name="instrument_id" class="form-input mt-1 min-w-48">
+           <option value="">Todos</option>
+           {% for instr in instruments %}
+           <option value="{{ instr.id }}" {% if selected_instrument_id == instr.id %}selected{% endif %}>{{ instr.name }}</option>
+           {% endfor %}
+         </select>
+       </label>
+       <button class="btn-secondary px-4 py-2 text-sm" type="submit">Filtrar</button>
+     </form>
+     {% if selected_instrument_id %}
+     <form method="POST" action="{{ url_for('audio.delete_instrument_audios') }}" onsubmit="return confirm('¿Eliminar todos los audios de este instrumento?')">
+       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+       <input type="hidden" name="instrument_id" value="{{ selected_instrument_id }}">
+       <button class="text-sm font-semibold text-red-500 hover:text-red-400" type="submit">Eliminar todos del instrumento</button>
+     </form>
+     {% endif %}
+   </div>
+
+   <!-- Tabla audios -->
   <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
     <div class="overflow-x-auto">
       <table class="w-full text-sm">
@@ -112,7 +133,17 @@
               {% endif %}
             </td>
             <td class="px-5 py-3 text-gray-500">{{ audio.instrument.name if audio.instrument else '—' }}</td>
-            <td class="px-5 py-3 text-gray-500">{{ audio.note.display_name if audio.note else '—' }}</td>
+            <td class="px-5 py-3">
+              <form method="POST" action="{{ url_for('audio.update_note', audio_id=audio.id) }}" class="flex gap-1">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <select name="note_id" class="form-input text-xs py-1 max-w-32">
+                  {% for note in notes %}
+                  <option value="{{ note.id }}" {% if audio.note_id == note.id %}selected{% endif %}>{{ note.display_name }}</option>
+                  {% endfor %}
+                </select>
+                <button type="submit" class="text-xs text-sena font-semibold">Guardar</button>
+              </form>
+            </td>
             <td class="px-5 py-3 text-center text-gray-500">{{ audio.duration | duration if audio.duration else '—' }}</td>
             <td class="px-5 py-3 text-center text-gray-500">{{ audio.file_size_kb }} KB</td>
             <td class="px-5 py-3 text-center">
@@ -139,10 +170,10 @@
       <p class="text-xs text-gray-500">{{ audios.total }} archivos · Página {{ audios.page }}/{{ audios.pages }}</p>
       <div class="flex gap-2">
         {% if audios.has_prev %}
-        <a href="{{ url_for('audio.manager', page=audios.prev_num) }}" class="btn-secondary px-3 py-1.5 text-xs">← Anterior</a>
+        <a href="{{ url_for('audio.manager', page=audios.prev_num, instrument_id=selected_instrument_id) }}" class="btn-secondary px-3 py-1.5 text-xs">← Anterior</a>
         {% endif %}
         {% if audios.has_next %}
-        <a href="{{ url_for('audio.manager', page=audios.next_num) }}" class="btn-secondary px-3 py-1.5 text-xs">Siguiente →</a>
+        <a href="{{ url_for('audio.manager', page=audios.next_num, instrument_id=selected_instrument_id) }}" class="btn-secondary px-3 py-1.5 text-xs">Siguiente →</a>
         {% endif %}
       </div>
     </div>
