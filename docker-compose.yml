@@ -18,5 +18,12 @@ services:
       MAIL_PASSWORD:         ${MAIL_PASSWORD:-}
     volumes:
       - audio_data_semimus:/app/audio_storage
+    networks:
+      - coolify
+
 volumes:
   audio_data_semimus:
+
+networks:
+  coolify:
+    external: true
