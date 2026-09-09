@@ -15,12 +15,6 @@
           {% for instrument in instruments %}<option value="{{ instrument.id }}">{{ instrument.name }}</option>{% endfor %}
         </select>
       </label>
-      <label class="block max-w-xs">
-        <span class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Dificultad</span>
-        <select name="difficulty" class="form-input">
-          {% for level in range(1, 6) %}<option value="{{ level }}" {% if level == 3 %}selected{% endif %}>{{ level }}</option>{% endfor %}
-        </select>
-      </label>
       <label class="block">
         <span class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Carpeta de audios</span>
         <input type="file" name="audio_files" accept=".wav,.aif,.aiff,.wma" multiple webkitdirectory directory required class="w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-primary-100 file:text-primary-700 file:font-semibold cursor-pointer">

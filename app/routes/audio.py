@@ -236,7 +236,6 @@ def upload_multiple():
             imported, errors = import_files(
                 request.files.getlist("audio_files"),
                 request.form.get("instrument_id", type=int),
-                request.form.get("difficulty", 3, type=int),
                 current_user.id,
             )
         except ValueError as exc:

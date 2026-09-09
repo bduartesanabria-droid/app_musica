@@ -68,9 +68,7 @@ def _validate(data, filename):
     return info, peak
 
 
-def import_files(files, instrument_id, difficulty, uploaded_by=None):
-    if not 1 <= difficulty <= 5:
-        raise ValueError("la dificultad debe estar entre 1 y 5")
+def import_files(files, instrument_id, uploaded_by=None):
     instrument = Instrument.query.filter_by(id=instrument_id).first()
     if not instrument or _clean(instrument.name) not in {"guitarra", "bandola", "requinto", "tiple"}:
         raise ValueError("selecciona un instrumento valido")
@@ -109,7 +107,7 @@ def import_files(files, instrument_id, difficulty, uploaded_by=None):
                 channels=info.channels if info else None,
                 peak_amplitude=peak,
                 file_size=len(data),
-                difficulty=str(difficulty),
+                difficulty="intermedio",
                 technique=technique,
                 rhythm=technique,
                 octave=note.octave,
