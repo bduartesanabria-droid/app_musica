@@ -16,6 +16,7 @@ WORKDIR /app
 # System deps para soundfile / psycopg2
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libsndfile1 \
+    ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
 # Copiar paquetes instalados

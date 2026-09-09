@@ -2,6 +2,8 @@ import io
 import math
 import os
 import re
+import subprocess
+import tempfile
 import uuid
 from pathlib import Path
 
@@ -47,10 +49,6 @@ def _parse_name(filename):
 
 
 def _validate(data, filename):
-    extension = Path(filename).suffix.casefold()
-    if extension == ".wma":
-        # soundfile no decodifica WMA, pero se conserva el archivo y sus metadatos.
-        return None, None
     try:
         info = sf.info(io.BytesIO(data))
         samples, _ = sf.read(io.BytesIO(data), dtype="float32")
@@ -67,6 +65,22 @@ def _validate(data, filename):
     if not -1.5 <= peak_db <= -0.5:
         raise ValueError("el pico debe ser aproximadamente -1 dBFS")
     return info, peak
+
+
+def _convert_wma(data):
+    with tempfile.TemporaryDirectory() as directory:
+        source = Path(directory) / "source.wma"
+        target = Path(directory) / "converted.wav"
+        source.write_bytes(data)
+        result = subprocess.run(
+            ["ffmpeg", "-y", "-i", str(source), "-ar", "44100", "-ac", "1", "-c:a", "pcm_s24le", str(target)],
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+        if result.returncode != 0 or not target.exists():
+            raise ValueError("no se pudo convertir el WMA a WAV")
+        return target.read_bytes()
 
 
 def _get_or_create_note(note_name):
@@ -113,8 +127,10 @@ def import_files(files, instrument_id, uploaded_by=None):
             note_name, interval, technique = _parse_name(original)
             note = _get_or_create_note(note_name)
             data = file.read()
-            info, peak = _validate(data, original)
-            stored_name = f"{uuid.uuid4().hex}{Path(original).suffix.lower()}"
+            if Path(original).suffix.casefold() == ".wma":
+                data = _convert_wma(data)
+            info, peak = _validate(data, original if not original.casefold().endswith(".wma") else "converted.wav")
+            stored_name = f"{uuid.uuid4().hex}.wav" if original.casefold().endswith(".wma") else f"{uuid.uuid4().hex}{Path(original).suffix.lower()}"
             path = destination / stored_name
             path.write_bytes(data)
             created.append(path)
