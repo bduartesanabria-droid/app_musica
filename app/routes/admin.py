@@ -77,7 +77,7 @@ def toggle_user(user_id):
 def change_role(user_id):
     user = User.query.get_or_404(user_id)
     new_role = request.form.get("role")
-    if new_role not in ("admin", "instructor", "aprendiz"):
+    if new_role not in ("superadmin", "admin", "instructor", "aprendiz"):
         flash("Rol inválido.", "danger")
         return redirect(url_for("admin.users"))
     if user.id == current_user.id:
@@ -87,6 +87,27 @@ def change_role(user_id):
     db.session.commit()
     flash(f"Rol de {user.username} cambiado a {new_role}.", "success")
     return redirect(url_for("admin.users"))
+
+
+@admin_bp.route("/users/<int:user_id>/detail")
+@login_required
+@require_instructor
+def user_detail(user_id):
+    user_obj = User.query.get_or_404(user_id)
+    progress_obj = Progress.query.filter_by(user_id=user_obj.id).first()
+    gamification_obj = UserGamification.query.filter_by(user_id=user_obj.id).first()
+    from ..models.session import TrainingSession
+    recent_sessions = TrainingSession.query.filter_by(user_id=user_obj.id)\
+                                           .order_by(TrainingSession.started_at.desc())\
+                                           .limit(10).all()
+
+    return render_template(
+        "admin/user_detail.html",
+        user_detail=user_obj,
+        progress=progress_obj,
+        gamification=gamification_obj,
+        recent_sessions=recent_sessions,
+    )
 
 
 @admin_bp.route("/instruments")

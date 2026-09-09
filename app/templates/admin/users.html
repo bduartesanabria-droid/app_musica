@@ -47,7 +47,7 @@
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <select name="role" onchange="this.form.submit()"
                         class="text-xs border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-1 bg-transparent text-gray-700 dark:text-gray-300">
-                  {% for r in ['aprendiz', 'instructor', 'admin'] %}
+                  {% for r in ['aprendiz', 'instructor', 'admin', 'superadmin'] %}
                   <option value="{{ r }}" {{ 'selected' if user.role == r }}>{{ r | title }}</option>
                   {% endfor %}
                 </select>

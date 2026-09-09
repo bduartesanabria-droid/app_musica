@@ -1,0 +1,202 @@
+{% extends "layouts/app.html" %}
+{% block title %}Cargar Audios - SEMIMUS{% endblock %}
+{% block page_title %}Cargar Audios por Instrumento{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+  <!-- Selector de Instrumentos (Tabs) -->
+  <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
+    <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Selecciona el instrumento para cargar sonidos:</p>
+    <div class="flex flex-wrap gap-2">
+      {% for inst in instruments %}
+      <a href="{{ url_for('audio.upload_page', instrument_id=inst.id) }}"
+         class="flex items-center gap-2.5 px-5 py-3 rounded-xl font-semibold text-sm transition-all
+                {{ 'bg-primary-600 text-white shadow-lg shadow-primary-500/25 scale-[1.02]' if selected_instrument and selected_instrument.id == inst.id else 'bg-gray-50 dark:bg-gray-700/50 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700' }}">
+        <span class="text-xl">{{ inst.emoji or '🎵' }}</span>
+        <span>{{ inst.name }}</span>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+
+  {% if selected_instrument %}
+
+  <!-- Panel de Carga del Instrumento Seleccionado -->
+  <div class="grid lg:grid-cols-2 gap-6" x-data="{ uploadType: 'file' }">
+
+    <!-- Opción 1: Archivo Individual -->
+    <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="font-bold text-gray-900 dark:text-white flex items-center gap-2">
+          <span>{{ selected_instrument.emoji or '🎵' }}</span>
+          <span>Cargar Audio Individual ({{ selected_instrument.name }})</span>
+        </h3>
+        <span class="text-xs bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300 font-semibold px-2.5 py-1 rounded-full">
+          WAV / AIFF
+        </span>
+      </div>
+      <p class="text-xs text-gray-500">Subir un archivo de audio asignando su nota musical y etiquetas correspondientes.</p>
+
+      <form method="POST" action="{{ url_for('audio.upload') }}" enctype="multipart/form-data" class="space-y-4 pt-2">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="instrument_id" value="{{ selected_instrument.id }}">
+        <input type="hidden" name="redirect_to" value="upload_page">
+
+        <div>
+          <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Nota Musical (opcional u autodetectada)</label>
+          <select name="note_id" class="form-input text-sm">
+            <option value="">Detectar automáticamente desde el nombre</option>
+            {% for note in notes %}
+            <option value="{{ note.id }}">{{ note.display_name }} ({{ note.frequency }} Hz)</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Archivo de Audio (.wav, .aiff, .mp3, .ogg, .flac)</label>
+          <input type="file" name="audio_file" accept=".wav,.aiff,.aif,.mp3,.ogg,.flac" required
+                 class="w-full text-xs text-gray-600 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-primary-100 file:text-primary-700 file:font-semibold hover:file:bg-primary-200 cursor-pointer">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Etiquetas opcionales</label>
+          <input type="text" name="tags" class="form-input text-sm" placeholder="ej: cuerdas, grave, punteado">
+        </div>
+
+        <button type="submit" class="btn-primary w-full py-2.5 text-sm font-semibold flex items-center justify-center gap-2">
+          <span>Subir Audio de {{ selected_instrument.name }}</span>
+        </button>
+      </form>
+    </div>
+
+    <!-- Opción 2: Carpeta Completa -->
+    <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="font-bold text-gray-900 dark:text-white flex items-center gap-2">
+          <span>📁</span>
+          <span>Cargar Carpeta Completa de {{ selected_instrument.name }}</span>
+        </h3>
+        <span class="text-xs bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 font-semibold px-2.5 py-1 rounded-full">
+          Carga Masiva
+        </span>
+      </div>
+      <p class="text-xs text-gray-500">Selecciona una carpeta completa. El sistema detectará las notas automáticamente desde los archivos (ej. <code>{{ selected_instrument.name }}_DO4.wav</code>).</p>
+
+      <form method="POST" action="{{ url_for('audio.upload_folder') }}" enctype="multipart/form-data" class="space-y-4 pt-2">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="instrument_id" value="{{ selected_instrument.id }}">
+        <input type="hidden" name="redirect_to" value="upload_page">
+
+        <div>
+          <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Etiquetas para todos los audios de la carpeta</label>
+          <input type="text" name="tags" class="form-input text-sm" placeholder="ej: banco {{ selected_instrument.name }}, 2026">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Seleccionar Carpeta (.wav, .aiff)</label>
+          <input type="file" name="audio_files" accept=".wav,.aiff,.aif,.mp3,.ogg,.flac" multiple webkitdirectory directory required
+                 class="w-full text-xs text-gray-600 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-amber-100 file:text-amber-700 file:font-semibold hover:file:bg-amber-200 cursor-pointer">
+        </div>
+
+        <button type="submit" class="btn-primary w-full py-2.5 text-sm font-semibold flex items-center justify-center gap-2" style="background:#D97706">
+          <span>Cargar Carpeta de {{ selected_instrument.name }}</span>
+        </button>
+      </form>
+    </div>
+
+  </div>
+
+  <!-- Lista de Audios de este Instrumento -->
+  <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+    <div class="p-5 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+      <div>
+        <h3 class="font-bold text-gray-900 dark:text-white">Audios de {{ selected_instrument.name }} Registrados</h3>
+        <p class="text-xs text-gray-500">{{ audios.total if audios and hasattr(audios, 'total') else 0 }} archivos de audio para este instrumento</p>
+      </div>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600">
+          <tr>
+            <th class="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Archivo</th>
+            <th class="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Nota</th>
+            <th class="px-5 py-3 text-center text-xs font-semibold text-gray-500 uppercase">Duración</th>
+            <th class="px-5 py-3 text-center text-xs font-semibold text-gray-500 uppercase">Tamaño</th>
+            <th class="px-5 py-3 text-center text-xs font-semibold text-gray-500 uppercase">Reproducir</th>
+            <th class="px-5 py-3 text-center text-xs font-semibold text-gray-500 uppercase">Acción</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+          {% if audios and audios.items %}
+          {% for audio in audios.items %}
+          <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+            <td class="px-5 py-3">
+              <p class="font-medium text-gray-900 dark:text-white truncate max-w-[220px]">{{ audio.original_filename }}</p>
+              {% if audio.tag_list %}
+              <div class="flex flex-wrap gap-1 mt-1">
+                {% for tag in audio.tag_list[:3] %}
+                <span class="text-[10px] bg-gray-100 dark:bg-gray-700 text-gray-500 px-1.5 py-0.5 rounded">{{ tag }}</span>
+                {% endfor %}
+              </div>
+              {% endif %}
+            </td>
+            <td class="px-5 py-3 text-gray-500">{{ audio.note.display_name if audio.note else '—' }}</td>
+            <td class="px-5 py-3 text-center text-gray-500">{{ audio.duration | duration if audio.duration else '—' }}</td>
+            <td class="px-5 py-3 text-center text-gray-500">{{ audio.file_size_kb }} KB</td>
+            <td class="px-5 py-3 text-center">
+              <button onclick="playPreview('{{ audio.stream_url }}')"
+                      class="text-primary-600 hover:text-primary-700 text-lg transition-colors">▶</button>
+            </td>
+            <td class="px-5 py-3 text-center">
+              <form method="POST" action="{{ url_for('audio.delete_audio', audio_id=audio.id) }}" class="inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="text-xs text-red-600 hover:text-red-700 font-semibold"
+                        onclick="return confirm('¿Eliminar {{ audio.original_filename }}?')">
+                  Eliminar
+                </button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+          {% else %}
+          <tr>
+            <td colspan="6" class="text-center text-gray-400 py-10">
+              No hay audios cargados aún para {{ selected_instrument.name }}.
+            </td>
+          </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if audios and audios.pages > 1 %}
+    <div class="px-5 py-3 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between">
+      <p class="text-xs text-gray-500">{{ audios.total }} audios · Página {{ audios.page }}/{{ audios.pages }}</p>
+      <div class="flex gap-2">
+        {% if audios.has_prev %}
+        <a href="{{ url_for('audio.upload_page', instrument_id=selected_instrument.id, page=audios.prev_num) }}" class="btn-secondary px-3 py-1.5 text-xs">← Anterior</a>
+        {% endif %}
+        {% if audios.has_next %}
+        <a href="{{ url_for('audio.upload_page', instrument_id=selected_instrument.id, page=audios.next_num) }}" class="btn-secondary px-3 py-1.5 text-xs">Siguiente →</a>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+
+  {% endif %}
+
+</div>
+
+<script>
+let currentAudio = null;
+function playPreview(url) {
+  if (currentAudio) { currentAudio.pause(); }
+  currentAudio = new Audio(url);
+  currentAudio.play().catch(e => console.log('Playback error:', e));
+}
+</script>
+{% endblock %}

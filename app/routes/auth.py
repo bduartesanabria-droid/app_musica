@@ -27,13 +27,17 @@ def login():
         return redirect(url_for("main.dashboard"))
 
     if request.method == "POST":
-        email    = request.form.get("email", "").lower().strip()
-        password = request.form.get("password", "")
-        remember = bool(request.form.get("remember"))
+        login_input = request.form.get("email", "").strip()
+        password    = request.form.get("password", "")
+        remember    = bool(request.form.get("remember"))
 
-        user = User.query.filter_by(email=email).first()
+        user = User.query.filter(
+            (db.func.lower(User.email) == login_input.lower()) |
+            (db.func.lower(User.username) == login_input.lower())
+        ).first()
+
         if not user or not user.check_password(password):
-            flash("Correo o contraseña incorrectos.", "danger")
+            flash("Usuario/Correo o contraseña incorrectos.", "danger")
             return render_template("auth/login.html")
 
         if not user.is_active:
