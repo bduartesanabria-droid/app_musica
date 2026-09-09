@@ -8,9 +8,9 @@
   <!-- Header acciones -->
   <div class="flex items-center justify-between">
     <p class="text-sm text-gray-500">{{ audios.total }} archivos de audio registrados</p>
-    <button @click="showUpload = !showUpload" class="btn-primary px-5 py-2.5 text-sm font-semibold">
-      + Subir Audio
-    </button>
+     <div class="flex gap-2">
+       <button @click="showUpload = !showUpload" class="btn-primary px-5 py-2.5 text-sm font-semibold">+ Subir Audio</button>
+     </div>
   </div>
 
   <!-- Panel de subida -->
@@ -43,8 +43,8 @@
         </div>
       </div>
       <div>
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Archivo de audio (WAV, MP3, OGG)</label>
-        <input type="file" name="audio_file" accept=".wav,.mp3,.ogg,.flac" required
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Archivo de audio (WAV, AIFF, MP3, OGG, FLAC)</label>
+        <input type="file" name="audio_file" accept=".wav,.aiff,.aif,.mp3,.ogg,.flac" required
                class="w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-primary-100 file:text-primary-700 file:font-semibold hover:file:bg-primary-200 cursor-pointer">
       </div>
       <div>
@@ -75,7 +75,7 @@
              <input type="text" name="tags" class="form-input" placeholder="ej: banco inicial, andino">
            </div>
          </div>
-         <input type="file" name="audio_files" accept=".wav,.mp3,.ogg,.flac" multiple webkitdirectory directory required
+         <input type="file" name="audio_files" accept=".wav,.aiff,.aif,.mp3,.ogg,.flac" multiple webkitdirectory directory required
                 class="w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-primary-100 file:text-primary-700 file:font-semibold cursor-pointer">
          <button type="submit" class="btn-primary px-5 py-2.5 text-sm font-semibold">Cargar carpeta automáticamente</button>
        </form>

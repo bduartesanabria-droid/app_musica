@@ -29,7 +29,8 @@ class Config:
     _audio_path = os.environ.get("AUDIO_STORAGE_PATH", os.path.join(BASE_DIR, "storage", "audio"))
     AUDIO_STORAGE_PATH = _audio_path if os.path.isabs(_audio_path) else os.path.join(BASE_DIR, _audio_path)
     MAX_AUDIO_SIZE_MB     = int(os.environ.get("MAX_AUDIO_SIZE_MB", 50))
-    ALLOWED_AUDIO_EXTENSIONS = {"wav", "mp3", "ogg", "flac"}
+    MAX_CONTENT_LENGTH    = int(os.environ.get("MAX_UPLOAD_MB", 200)) * 1024 * 1024
+    ALLOWED_AUDIO_EXTENSIONS = {"wav", "aiff", "aif", "mp3", "ogg", "flac"}
 
     # Rate limiting — usa Redis si está disponible, memory como fallback
     RATELIMIT_STORAGE_URI = os.environ.get(

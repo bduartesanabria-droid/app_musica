@@ -73,6 +73,7 @@ CREATE TABLE audios (
 	filename VARCHAR(255) NOT NULL, 
 	original_filename VARCHAR(255) NOT NULL, 
 	file_path VARCHAR(500) NOT NULL, 
+	audio_data BYTEA,
 	instrument_id INTEGER, 
 	note_id INTEGER, 
 	duration FLOAT, 

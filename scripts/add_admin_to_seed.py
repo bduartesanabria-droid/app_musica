@@ -17,19 +17,29 @@ SEED = os.path.join(os.path.dirname(os.path.abspath(__file__)), "seed.sql")
 def generate_admin_sql():
     app = create_app(os.getenv("FLASK_ENV", "development"))
     with app.app_context():
-        pwd = os.getenv("ADMIN_PASSWORD", "Semimus2026!")
-        pwd_hash = bcrypt.generate_password_hash(pwd).decode("utf-8")
+        super_user = os.getenv("SUPERADMIN_USERNAME", "superadmin")
+        super_email = os.getenv("SUPERADMIN_EMAIL", "superadmin@semimus.app")
+        super_pwd = os.getenv("SUPERADMIN_PASSWORD", "SuperAdminPass2026!")
+        super_hash = bcrypt.generate_password_hash(super_pwd).decode("utf-8")
+
+        admin_user = os.getenv("ADMIN_USERNAME", "admin")
+        admin_email = os.getenv("ADMIN_EMAIL", "admin@semimus.app")
+        admin_pwd = os.getenv("ADMIN_PASSWORD", "Semimus2026!")
+        admin_hash = bcrypt.generate_password_hash(admin_pwd).decode("utf-8")
+
     return (
-        "-- Usuario admin (password por defecto: "
-        + (os.getenv("ADMIN_PASSWORD", "Semimus2026!"))
-        + ")\n"
-        "INSERT INTO users (username, email, password_hash, first_name, last_name, role, is_active, is_verified, created_at) "
-        "VALUES ('admin', 'admin@semimus.app', '"
-        + pwd_hash
-        + "', 'Admin', 'SEMIMUS', 'admin', TRUE, TRUE, CURRENT_TIMESTAMP);\n"
-        "INSERT INTO progress (user_id) VALUES ((SELECT id FROM users WHERE email='admin@semimus.app'));\n"
-        "INSERT INTO user_statistics (user_id) VALUES ((SELECT id FROM users WHERE email='admin@semimus.app'));\n"
-        "INSERT INTO user_gamification (user_id) VALUES ((SELECT id FROM users WHERE email='admin@semimus.app'));\n"
+        f"-- Super Admin ({super_email})\n"
+        f"INSERT INTO users (username, email, password_hash, first_name, last_name, role, is_active, is_verified, created_at) "
+        f"VALUES ('{super_user}', '{super_email}', '{super_hash}', 'Super', 'Admin', 'superadmin', TRUE, TRUE, CURRENT_TIMESTAMP);\n"
+        f"INSERT INTO progress (user_id) VALUES ((SELECT id FROM users WHERE email='{super_email}'));\n"
+        f"INSERT INTO user_statistics (user_id) VALUES ((SELECT id FROM users WHERE email='{super_email}'));\n"
+        f"INSERT INTO user_gamification (user_id) VALUES ((SELECT id FROM users WHERE email='{super_email}'));\n\n"
+        f"-- Admin ({admin_email})\n"
+        f"INSERT INTO users (username, email, password_hash, first_name, last_name, role, is_active, is_verified, created_at) "
+        f"VALUES ('{admin_user}', '{admin_email}', '{admin_hash}', 'Admin', 'SEMIMUS', 'admin', TRUE, TRUE, CURRENT_TIMESTAMP);\n"
+        f"INSERT INTO progress (user_id) VALUES ((SELECT id FROM users WHERE email='{admin_email}'));\n"
+        f"INSERT INTO user_statistics (user_id) VALUES ((SELECT id FROM users WHERE email='{admin_email}'));\n"
+        f"INSERT INTO user_gamification (user_id) VALUES ((SELECT id FROM users WHERE email='{admin_email}'));\n"
     )
 
 

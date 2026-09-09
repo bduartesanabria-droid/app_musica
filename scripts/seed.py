@@ -27,7 +27,7 @@ def seed():
         _badges()
         _admin_user()
         db.session.commit()
-        print("✓ Seed completado exitosamente.")
+        print("[OK] Seed completado exitosamente.")
 
 
 def _instruments():
@@ -41,7 +41,7 @@ def _instruments():
         if not Instrument.query.filter_by(name=d["name"]).first():
             db.session.add(Instrument(**d))
     db.session.flush()
-    print(f"  ✓ {len(data)} instrumentos")
+    print(f"  [OK] {len(data)} instrumentos")
 
 
 def _notes():
@@ -58,7 +58,7 @@ def _notes():
                 db.session.add(Note(name=name, octave=octave, frequency=round(freq, 2), midi_number=midi, scientific_name=sci))
                 count += 1
     db.session.flush()
-    print(f"  ✓ {count} notas")
+    print(f"  [OK] {count} notas")
 
 
 def _intervals():
@@ -83,7 +83,7 @@ def _intervals():
             db.session.add(Interval(**d))
             count += 1
     db.session.flush()
-    print(f"  ✓ {count} intervalos")
+    print(f"  [OK] {count} intervalos")
 
 
 def _scales():
@@ -103,7 +103,7 @@ def _scales():
             db.session.add(Scale(**d))
             count += 1
     db.session.flush()
-    print(f"  ✓ {count} escalas")
+    print(f"  [OK] {count} escalas")
 
 
 def _badges():
@@ -123,31 +123,61 @@ def _badges():
             db.session.add(Badge(**d))
             count += 1
     db.session.flush()
-    print(f"  ✓ {count} badges")
+    print(f"  [OK] {count} badges")
 
 
 def _admin_user():
-    if User.query.filter_by(email="admin@semimus.app").first():
-        print("  ✓ Admin ya existe")
-        return
+    # 1. Super Admin
+    super_email = os.getenv("SUPERADMIN_EMAIL", "superadmin@semimus.app")
+    super_username = os.getenv("SUPERADMIN_USERNAME", "superadmin")
+    super_password = os.getenv("SUPERADMIN_PASSWORD", "Semimus2026!SuperAdmin")
 
-    user = User(
-        username="admin",
-        email="admin@semimus.app",
-        first_name="Admin",
-        last_name="SEMIMUS",
-        role="admin",
-        is_active=True,
-    )
+    super_user = User.query.filter((User.email == super_email) | (User.username == super_username)).first()
+    if not super_user:
+        super_user = User(
+            username=super_username,
+            email=super_email,
+            first_name="Super",
+            last_name="Admin",
+            role="superadmin",
+            is_active=True,
+            is_verified=True,
+        )
+        super_user.set_password(super_password)
+        db.session.add(super_user)
+        db.session.flush()
+        db.session.add(Progress(user_id=super_user.id))
+        db.session.add(UserStatistics(user_id=super_user.id))
+        db.session.add(UserGamification(user_id=super_user.id))
+        print(f"  [OK] Super Admin creado: {super_email} / {super_username}")
+    else:
+        print(f"  [OK] Super Admin ya existe ({super_email})")
+
+    # 2. Admin Estándar
+    admin_email = os.getenv("ADMIN_EMAIL", "admin@semimus.app")
+    admin_username = os.getenv("ADMIN_USERNAME", "admin")
     admin_password = os.getenv("ADMIN_PASSWORD", "Semimus2026!")
-    user.set_password(admin_password)
-    db.session.add(user)
-    db.session.flush()
 
-    db.session.add(Progress(user_id=user.id))
-    db.session.add(UserStatistics(user_id=user.id))
-    db.session.add(UserGamification(user_id=user.id))
-    print(f"  ✓ Admin creado: admin@semimus.app / {admin_password}")
+    admin_user = User.query.filter((User.email == admin_email) | (User.username == admin_username)).first()
+    if not admin_user:
+        admin_user = User(
+            username=admin_username,
+            email=admin_email,
+            first_name="Admin",
+            last_name="SEMIMUS",
+            role="admin",
+            is_active=True,
+            is_verified=True,
+        )
+        admin_user.set_password(admin_password)
+        db.session.add(admin_user)
+        db.session.flush()
+        db.session.add(Progress(user_id=admin_user.id))
+        db.session.add(UserStatistics(user_id=admin_user.id))
+        db.session.add(UserGamification(user_id=admin_user.id))
+        print(f"  [OK] Admin creado: {admin_email} / {admin_username}")
+    else:
+        print(f"  [OK] Admin ya existe ({admin_email})")
 
 
 if __name__ == "__main__":

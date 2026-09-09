@@ -2,7 +2,8 @@ import os
 import re
 import uuid
 import json
-from flask import Blueprint, render_template, request, redirect, url_for, flash, send_from_directory, current_app, jsonify
+import io
+from flask import Blueprint, render_template, request, redirect, url_for, flash, send_from_directory, send_file, current_app, jsonify, abort
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 from ..extensions import db
@@ -11,9 +12,16 @@ from ..models.instrument import Instrument, Note
 
 audio_bp = Blueprint("audio", __name__)
 
-ALLOWED = {"wav", "mp3", "ogg", "flac"}
+ALLOWED = {"wav", "aiff", "aif", "mp3", "ogg", "flac"}
 NOTE_RE = re.compile(r"(?i)(do|re|mi|fa|sol|la|si)(#|b)?([0-8])")
 FLAT_TO_SHARP = {"reb": "DO#", "mib": "RE#", "solb": "FA#", "lab": "SOL#", "sib": "LA#"}
+
+
+def _require_instructor():
+    if not current_user.is_authenticated or not current_user.is_instructor:
+        flash("Sin permisos para acceder.", "danger")
+        return redirect(url_for("main.dashboard"))
+    return None
 
 
 def _allowed(filename):
@@ -78,7 +86,7 @@ def _detect_metadata(filename, instruments, notes):
 def _store_audio(file, instrument_id, note_id, tags, description, uploaded_by, instruments, notes):
     """Persist one uploaded audio and return (Audio, error_message)."""
     if not file or not file.filename or not _allowed(file.filename):
-        return None, "Formato no permitido. Use: WAV, MP3, OGG o FLAC."
+        return None, "Formato no permitido. Use: WAV, AIFF, MP3, OGG o FLAC."
 
     detected_instrument, detected_note = _detect_metadata(file.filename, instruments, notes)
     instrument = Instrument.query.get(int(instrument_id)) if instrument_id else detected_instrument
@@ -103,10 +111,14 @@ def _store_audio(file, instrument_id, note_id, tags, description, uploaded_by, i
         os.remove(filepath)
         return None, f"'{original_name}' supera los 5 minutos permitidos."
 
+    with open(filepath, "rb") as stored_file:
+        audio_data = stored_file.read()
+
     audio = Audio(
         filename=os.path.basename(filepath),
         original_filename=original_name,
         file_path=filepath,
+        audio_data=audio_data,
         instrument_id=instrument.id,
         note_id=note.id if note else None,
         difficulty="intermedio",
@@ -122,8 +134,26 @@ def _store_audio(file, instrument_id, note_id, tags, description, uploaded_by, i
 
 @audio_bp.route("/stream/<path:filename>")
 def stream(filename):
+    audio = Audio.query.filter_by(filename=filename).first()
+    if audio and audio.audio_data:
+        mimetypes = {
+            "wav": "audio/wav",
+            "mp3": "audio/mpeg",
+            "ogg": "audio/ogg",
+            "flac": "audio/flac",
+        }
+        extension = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+        return send_file(
+            io.BytesIO(audio.audio_data),
+            mimetype=mimetypes.get(extension, "application/octet-stream"),
+            download_name=audio.original_filename,
+        )
+
+    # Compatibility with audio records created before binary storage was enabled.
     path = current_app.config["AUDIO_STORAGE_PATH"]
-    return send_from_directory(path, filename)
+    if audio and audio.file_path and os.path.isfile(audio.file_path):
+        return send_from_directory(path, filename)
+    abort(404)
 
 
 @audio_bp.route("/manager")

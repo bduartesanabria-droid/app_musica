@@ -47,12 +47,16 @@ class User(UserMixin, db.Model):
         return f"{self.first_name[0]}{self.last_name[0]}".upper()
 
     @property
+    def is_superadmin(self):
+        return self.role == "superadmin"
+
+    @property
     def is_admin(self):
-        return self.role == "admin"
+        return self.role in ("superadmin", "admin")
 
     @property
     def is_instructor(self):
-        return self.role in ("admin", "instructor")
+        return self.role in ("superadmin", "admin", "instructor")
 
     def __repr__(self):
         return f"<User {self.username}>"

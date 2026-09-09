@@ -11,6 +11,7 @@ dist/
 build/
 .eggs/
 *.log
+*.zip
 
 # Flask
 instance/
@@ -35,6 +36,8 @@ frontend/.vite/
 
 # Audio storage (no subir audios al repo)
 storage/
+app/static/audio_samples/*
+!app/static/audio_samples/.gitkeep
 backend/storage/
 
 # Docker
