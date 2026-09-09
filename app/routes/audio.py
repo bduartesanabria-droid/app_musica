@@ -241,10 +241,10 @@ def upload_multiple():
         except ValueError as exc:
             flash(str(exc), "danger")
             return render_template("admin/upload_multiple.html", instruments=instruments)
-        except Exception:
+        except Exception as exc:
             db.session.rollback()
             current_app.logger.exception("Error importando audios")
-            flash("No se pudieron procesar los audios. Revisa el formato y los permisos.", "danger")
+            flash(f"No se pudieron procesar los audios: {exc}", "danger")
             return render_template("admin/upload_multiple.html", instruments=instruments)
 
         if imported:
