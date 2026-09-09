@@ -15,16 +15,8 @@
 
     <!-- Logo SENA + SEMIMUS -->
     <div class="flex flex-col items-center px-5 py-5 border-b" style="border-color:rgba(255,255,255,0.06)">
-      <!-- SENA Logo SVG -->
-      <svg width="52" height="52" viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg" class="mb-1">
-        <circle cx="26" cy="10" r="7" fill="#39A900"/>
-        <path d="M6 26 Q26 18 46 26" stroke="#39A900" stroke-width="4" stroke-linecap="round" fill="none"/>
-        <line x1="26" y1="20" x2="26" y2="38" stroke="#39A900" stroke-width="4" stroke-linecap="round"/>
-        <line x1="26" y1="38" x2="16" y2="50" stroke="#39A900" stroke-width="4" stroke-linecap="round"/>
-        <line x1="26" y1="38" x2="36" y2="50" stroke="#39A900" stroke-width="4" stroke-linecap="round"/>
-      </svg>
-      <p class="text-xs font-black tracking-widest" style="color:#39A900;letter-spacing:0.25em">SENA</p>
-      <p class="text-[9px] text-center leading-tight mt-0.5" style="color:rgba(255,255,255,0.35);">SERVICIO NACIONAL<br>DE APRENDIZAJE</p>
+       <img src="{{ url_for('static', filename='img/sena-logo.svg') }}" width="72" height="72" alt="SENA" class="mb-1 object-contain">
+       <p class="text-[9px] text-center leading-tight mt-0.5" style="color:rgba(255,255,255,0.35);">SERVICIO NACIONAL<br>DE APRENDIZAJE</p>
     </div>
 
     <!-- App name -->
