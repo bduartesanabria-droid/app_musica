@@ -26,12 +26,29 @@ def _require_instructor():
 
 
 def _available_instruments():
-    allowed = {"guitarra", "bandola", "requinto", "tiple"}
-    return [
-        instrument for instrument in Instrument.query.order_by(Instrument.name).all()
-        if instrument.name and instrument.name.strip().casefold() in allowed
-        and instrument.is_active is not False
-    ]
+    allowed = ("Guitarra", "Bandola", "Requinto", "Tiple")
+    existing = {
+        instrument.name.strip().casefold(): instrument
+        for instrument in Instrument.query.all()
+        if instrument.name
+    }
+    instruments = []
+    created = False
+    for name in allowed:
+        instrument = existing.get(name.casefold())
+        if not instrument:
+            instrument = Instrument(
+                name=name,
+                type="cuerdas",
+                is_active=True,
+                description=f"Instrumento disponible para entrenamiento de intervalos: {name}.",
+            )
+            db.session.add(instrument)
+            created = True
+        instruments.append(instrument)
+    if created:
+        db.session.commit()
+    return instruments
 
 
 def _allowed(filename):
