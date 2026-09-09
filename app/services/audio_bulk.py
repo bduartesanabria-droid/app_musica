@@ -52,7 +52,7 @@ def _validate(data, filename):
         # soundfile no decodifica WMA, pero se conserva el archivo y sus metadatos.
         return None, None
     try:
-        info = sf.info(io.BytesIO(data), format=Path(filename).suffix[1:].upper())
+        info = sf.info(io.BytesIO(data))
         samples, _ = sf.read(io.BytesIO(data), dtype="float32")
     except Exception as exc:
         raise ValueError(f"audio invalido: {exc}") from exc
