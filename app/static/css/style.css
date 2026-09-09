@@ -786,6 +786,16 @@ body { background: #0B0F14; color: #fff; }
   .main-content { padding: 0 !important; }
 }
 
+/* Dashboard: texto y superficies legibles en ambos temas. */
+.light .dashboard-page .text-white { color: #111827 !important; }
+.light .dashboard-page [style*="color:rgba(255,255,255"] { color: #64748B !important; }
+.light .dashboard-page .interval-hero {
+  background: linear-gradient(135deg, #FFFBEB, #FFFFFF) !important;
+  border-color: #F3D37A !important;
+}
+.light .dashboard-page .dashboard-session-row { background: #F8FAFC !important; }
+.light .dashboard-page .instrument-card { color: #111827; }
+
 /* ══════════════════════════════════════
    RANGE SLIDER
    ══════════════════════════════════════ */

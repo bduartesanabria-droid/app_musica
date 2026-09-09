@@ -2,7 +2,7 @@
 {% block title %}Inicio{% endblock %}
 
 {% block content %}
-<div class="space-y-6">
+<div class="dashboard-page space-y-6">
   <section class="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
     <div>
       <p class="text-xs font-bold uppercase tracking-[.2em] text-sena">SEMIMUS · intervalos</p>
@@ -30,7 +30,7 @@
     </div>
   </section>
 
-  <section class="card border border-yellow-400/20" style="background:linear-gradient(135deg,rgba(255,193,7,.12),rgba(17,24,39,.95))">
+  <section class="interval-hero card border border-yellow-400/20" style="background:linear-gradient(135deg,rgba(255,193,7,.12),rgba(17,24,39,.95))">
     <div class="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
       <div>
         <p class="text-xs font-bold uppercase tracking-widest text-yellow-400">Modo disponible</p>
@@ -70,7 +70,7 @@
 
   {% if recent_sessions %}
   <section class="card">
-    <div class="flex items-center justify-between mb-4">
+      <div class="flex items-center justify-between mb-4">
       <div>
         <h2 class="font-bold text-white">Últimas sesiones</h2>
         <p class="text-xs mt-1" style="color:rgba(255,255,255,.4)">Tu actividad reciente en intervalos</p>
@@ -79,7 +79,7 @@
     </div>
     <div class="space-y-2">
       {% for session in recent_sessions %}
-      <div class="flex items-center justify-between rounded-xl px-4 py-3" style="background:rgba(255,255,255,.04)">
+      <div class="dashboard-session-row flex items-center justify-between rounded-xl px-4 py-3" style="background:rgba(255,255,255,.04)">
         <div>
           <p class="text-sm font-semibold text-white">Intervalos{% if session.instrument %} · {{ session.instrument.name }}{% endif %}</p>
           <p class="text-xs mt-1" style="color:rgba(255,255,255,.4)">{{ session.correct_answers }}/{{ session.total_questions }} correctas</p>
