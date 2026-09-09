@@ -25,10 +25,16 @@ def index():
         Instrument.is_active == True,
         db.func.lower(Instrument.name).in_(["guitarra", "bandola", "requinto", "tiple"]),
     ).order_by(Instrument.name).all()
+    selected_instrument = request.args.get("instrument", "").casefold()
+    selected_id = next(
+        (instrument.id for instrument in instruments if instrument.name.casefold() == selected_instrument),
+        "",
+    )
     return render_template(
         "training/index.html",
         instruments=instruments,
         modes=TRAINING_MODES,
+        selected_instrument_id=selected_id,
     )
 
 

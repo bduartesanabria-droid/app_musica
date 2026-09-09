@@ -3,7 +3,7 @@
 {% block page_title %}Entrenamiento de intervalos{% endblock %}
 
 {% block content %}
-<div class="training-neumorphic min-h-full" x-data="{ instrument_id: '', difficulty: 1, question_count: 10 }">
+<div class="training-neumorphic min-h-full" x-data="{ instrument_id: '{{ selected_instrument_id }}', difficulty: 1, question_count: 10 }">
   <div class="training-shell">
     <header class="training-hero">
       <div>
