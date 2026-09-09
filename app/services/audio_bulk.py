@@ -71,8 +71,9 @@ def _validate(data, filename):
 def import_files(files, instrument_id, difficulty, uploaded_by=None):
     if not 1 <= difficulty <= 5:
         raise ValueError("la dificultad debe estar entre 1 y 5")
-    instrument = Instrument.query.filter_by(id=instrument_id, is_active=True).first()
-    if not instrument or _clean(instrument.name) not in {"guitarra", "bandola", "requinto", "tiple"}:
+    instrument = Instrument.query.filter_by(id=instrument_id).first()
+    if (not instrument or instrument.is_active is False
+            or _clean(instrument.name) not in {"guitarra", "bandola", "requinto", "tiple"}):
         raise ValueError("selecciona un instrumento valido")
 
     destination = Path(current_app.static_folder) / "audio_samples"

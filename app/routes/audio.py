@@ -25,6 +25,15 @@ def _require_instructor():
     return None
 
 
+def _available_instruments():
+    allowed = {"guitarra", "bandola", "requinto", "tiple"}
+    return [
+        instrument for instrument in Instrument.query.order_by(Instrument.name).all()
+        if instrument.name and instrument.name.strip().casefold() in allowed
+        and instrument.is_active is not False
+    ]
+
+
 def _allowed(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED
 
@@ -185,10 +194,7 @@ def manager():
         )
 
     pagination  = q.order_by(Audio.created_at.desc()).paginate(page=page, per_page=12)
-    instruments = Instrument.query.filter(
-        Instrument.is_active == True,
-        db.func.lower(Instrument.name).in_(["guitarra", "bandola", "requinto", "tiple"]),
-    ).order_by(Instrument.name).all()
+    instruments = _available_instruments()
     notes       = Note.query.order_by(Note.octave, Note.id).all()
 
     return render_template(
@@ -207,10 +213,7 @@ def upload_multiple():
         flash("Solo administradores e instructores pueden cargar audios.", "danger")
         return redirect(url_for("main.dashboard"))
 
-    instruments = Instrument.query.filter(
-        Instrument.is_active == True,
-        db.func.lower(Instrument.name).in_(["guitarra", "bandola", "requinto", "tiple"]),
-    ).order_by(Instrument.name).all()
+    instruments = _available_instruments()
     if request.method == "POST":
         try:
             imported, errors = import_files(
