@@ -8,7 +8,8 @@
   <!-- Header acciones -->
   <div class="flex items-center justify-between">
     <p class="text-sm text-gray-500">{{ audios.total }} archivos de audio registrados</p>
-     <div class="flex gap-2">
+       <div class="flex gap-2">
+       <a href="{{ url_for('audio.upload_multiple') }}" class="btn-secondary px-5 py-2.5 text-sm font-semibold">Cargar varios audios</a>
        <button @click="showUpload = !showUpload" class="btn-primary px-5 py-2.5 text-sm font-semibold">+ Subir Audio</button>
      </div>
   </div>

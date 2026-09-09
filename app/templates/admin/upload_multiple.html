@@ -1,0 +1,42 @@
+{% extends "layouts/app.html" %}
+{% block title %}Carga de audios{% endblock %}
+{% block page_title %}Carga de audios por instrumento{% endblock %}
+{% block content %}
+<div class="max-w-3xl mx-auto">
+  <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6">
+    <h1 class="text-xl font-bold text-gray-900 dark:text-white">Cargar varios audios</h1>
+    <p class="text-sm text-gray-500 mt-1 mb-6">Selecciona un instrumento y varios archivos. Todos quedaran asociados al instrumento elegido.</p>
+    <form method="POST" enctype="multipart/form-data" class="space-y-5">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label class="block">
+        <span class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Instrumento</span>
+        <select name="instrument_id" class="form-input" required>
+          <option value="">Selecciona un instrumento</option>
+          {% for instrument in instruments %}<option value="{{ instrument.id }}">{{ instrument.name }}</option>{% endfor %}
+        </select>
+      </label>
+      <label class="block max-w-xs">
+        <span class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Dificultad</span>
+        <select name="difficulty" class="form-input">
+          {% for level in range(1, 6) %}<option value="{{ level }}" {% if level == 3 %}selected{% endif %}>{{ level }}</option>{% endfor %}
+        </select>
+      </label>
+      <label class="block">
+        <span class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Archivos WAV o AIFF</span>
+        <input type="file" name="audio_files" accept=".wav,.aif,.aiff" multiple required class="w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-primary-100 file:text-primary-700 file:font-semibold cursor-pointer">
+      </label>
+      <div class="rounded-xl bg-gray-50 dark:bg-gray-700/40 p-4 text-sm text-gray-600 dark:text-gray-300">
+        <p class="font-semibold mb-1">Nombre de cada archivo</p>
+        <p><code>Do3_Natural.wav</code></p>
+        <p><code>Re#4_Pua.wav</code></p>
+        <p><code>LA4_5taJusta.wav</code></p>
+        <p class="mt-2">PCM de 24 o 32 bits, 44.1 kHz o superior, 3 a 5 segundos y pico aproximado de -1 dBFS.</p>
+      </div>
+      <div class="flex gap-3">
+        <a href="{{ url_for('audio.manager') }}" class="btn-secondary px-5 py-2.5 text-sm">Cancelar</a>
+        <button type="submit" class="btn-primary px-5 py-2.5 text-sm font-semibold">Cargar audios</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

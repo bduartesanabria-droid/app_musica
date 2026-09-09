@@ -9,6 +9,7 @@ from werkzeug.utils import secure_filename
 from ..extensions import db
 from ..models.audio import Audio
 from ..models.instrument import Instrument, Note
+from ..services.audio_bulk import import_files
 
 audio_bp = Blueprint("audio", __name__)
 
@@ -193,6 +194,42 @@ def manager():
         notes=notes,
         search=search,
     )
+
+
+@audio_bp.route("/upload-multiple", methods=["GET", "POST"])
+@login_required
+def upload_multiple():
+    if not current_user.is_instructor:
+        flash("Solo administradores e instructores pueden cargar audios.", "danger")
+        return redirect(url_for("main.dashboard"))
+
+    instruments = Instrument.query.filter(
+        Instrument.is_active == True,
+        db.func.lower(Instrument.name).in_(["guitarra", "bandola", "requinto", "tiple"]),
+    ).order_by(Instrument.name).all()
+    if request.method == "POST":
+        try:
+            imported, errors = import_files(
+                request.files.getlist("audio_files"),
+                request.form.get("instrument_id", type=int),
+                request.form.get("difficulty", 3, type=int),
+            )
+        except ValueError as exc:
+            flash(str(exc), "danger")
+            return render_template("admin/upload_multiple.html", instruments=instruments)
+        except Exception:
+            db.session.rollback()
+            current_app.logger.exception("Error importando audios")
+            flash("No se pudieron procesar los audios. Revisa el formato y los permisos.", "danger")
+            return render_template("admin/upload_multiple.html", instruments=instruments)
+
+        if imported:
+            flash(f"{imported} audios cargados para el instrumento seleccionado.", "success")
+        if errors:
+            flash(f"{len(errors)} archivos rechazados: " + "; ".join(errors[:10]), "warning")
+        return redirect(url_for("audio.upload_multiple"))
+
+    return render_template("admin/upload_multiple.html", instruments=instruments)
 
 
 @audio_bp.route("/upload", methods=["POST"])
