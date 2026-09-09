@@ -142,6 +142,7 @@ def stream(filename):
             "mp3": "audio/mpeg",
             "ogg": "audio/ogg",
             "flac": "audio/flac",
+            "wma": "audio/x-ms-wma",
         }
         extension = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
         return send_file(
@@ -184,7 +185,10 @@ def manager():
         )
 
     pagination  = q.order_by(Audio.created_at.desc()).paginate(page=page, per_page=12)
-    instruments = Instrument.query.filter_by(is_active=True).all()
+    instruments = Instrument.query.filter(
+        Instrument.is_active == True,
+        db.func.lower(Instrument.name).in_(["guitarra", "bandola", "requinto", "tiple"]),
+    ).order_by(Instrument.name).all()
     notes       = Note.query.order_by(Note.octave, Note.id).all()
 
     return render_template(
@@ -213,6 +217,7 @@ def upload_multiple():
                 request.files.getlist("audio_files"),
                 request.form.get("instrument_id", type=int),
                 request.form.get("difficulty", 3, type=int),
+                current_user.id,
             )
         except ValueError as exc:
             flash(str(exc), "danger")

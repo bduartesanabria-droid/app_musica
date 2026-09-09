@@ -4,6 +4,7 @@ from flask_login import login_required, current_user
 from ..models.audio import Audio
 from ..models.instrument import Instrument, Note
 from ..models.gamification import UserGamification
+from ..extensions import db
 
 api_bp = Blueprint("api", __name__)
 
@@ -16,7 +17,10 @@ def health():
 @api_bp.route("/instruments")
 @login_required
 def get_instruments():
-    instruments = Instrument.query.filter_by(is_active=True).all()
+    instruments = Instrument.query.filter(
+        Instrument.is_active == True,
+        db.func.lower(Instrument.name).in_(["guitarra", "bandola", "requinto", "tiple"]),
+    ).order_by(Instrument.name).all()
     return jsonify([{"id": i.id, "name": i.name} for i in instruments])
 
 

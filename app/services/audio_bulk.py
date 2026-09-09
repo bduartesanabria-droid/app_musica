@@ -13,7 +13,7 @@ from ..models.audio import Audio
 from ..models.instrument import Instrument, Note
 
 
-EXTENSIONS = {".wav", ".aif", ".aiff"}
+EXTENSIONS = {".wav", ".aif", ".aiff", ".wma"}
 TECHNIQUES = {"pua", "pulsacion", "pluctuacion", "natural", "guabina"}
 INTERVALS = {
     "2m": "Segunda menor", "2mayor": "Segunda mayor",
@@ -30,26 +30,26 @@ def _clean(value):
 
 
 def _parse_name(filename):
-    parts = [part for part in Path(filename).stem.split("_") if part]
-    if len(parts) < 2:
-        raise ValueError("usa Nota_Descriptor.ext")
-    match = NOTE_RE.match(parts[0])
+    stem = Path(filename).stem
+    match = re.search(r"(do|re|mi|fa|sol|la|si)(#|b)?([0-8])", stem, re.I)
     if not match:
-        raise ValueError("la nota debe ser como Do3 o Re#4")
+        raise ValueError("no se encontro una nota como Do3 o Re#4")
     note_name = match.group(1).upper()
     accidental = (match.group(2) or "").upper()
     if accidental == "B":
         note_name = {"RE": "DO#", "MI": "RE#", "SOL": "FA#", "LA": "SOL#", "SI": "LA#"}.get(note_name, note_name)
     note = f"{note_name}{match.group(3)}"
-    descriptor = _clean("_".join(parts[1:]))
+    descriptor = _clean(stem[match.end():].replace(".", "_"))
     interval = INTERVALS.get(descriptor)
     technique = descriptor if descriptor in TECHNIQUES else None
-    if not interval and not technique:
-        raise ValueError("intervalo o tecnica invalida")
     return note, interval, technique
 
 
 def _validate(data, filename):
+    extension = Path(filename).suffix.casefold()
+    if extension == ".wma":
+        # soundfile no decodifica WMA, pero se conserva el archivo y sus metadatos.
+        return None, None
     try:
         info = sf.info(io.BytesIO(data), format=Path(filename).suffix[1:].upper())
         samples, _ = sf.read(io.BytesIO(data), dtype="float32")
@@ -68,7 +68,7 @@ def _validate(data, filename):
     return info, peak
 
 
-def import_files(files, instrument_id, difficulty):
+def import_files(files, instrument_id, difficulty, uploaded_by=None):
     if not 1 <= difficulty <= 5:
         raise ValueError("la dificultad debe estar entre 1 y 5")
     instrument = Instrument.query.filter_by(id=instrument_id, is_active=True).first()
@@ -83,7 +83,7 @@ def import_files(files, instrument_id, difficulty):
             continue
         original = Path(file.filename).name
         if Path(original).suffix.casefold() not in EXTENSIONS:
-            errors.append(f"{original}: solo se aceptan WAV o AIFF")
+            errors.append(f"{original}: solo se aceptan WAV, AIFF o WMA")
             continue
         try:
             note_name, interval, technique = _parse_name(original)
@@ -103,16 +103,17 @@ def import_files(files, instrument_id, difficulty):
                 audio_data=data,
                 instrument_id=instrument.id,
                 note_id=note.id,
-                duration=info.duration,
-                sample_rate=info.samplerate,
-                bit_depth=int(info.subtype.rsplit("_", 1)[1]),
-                channels=info.channels,
+                duration=info.duration if info else None,
+                sample_rate=info.samplerate if info else None,
+                bit_depth=int(info.subtype.rsplit("_", 1)[1]) if info else None,
+                channels=info.channels if info else None,
                 peak_amplitude=peak,
                 file_size=len(data),
                 difficulty=str(difficulty),
                 technique=technique,
                 rhythm=technique,
                 octave=note.octave,
+                uploaded_by=uploaded_by,
                 tags=f"instrumento={instrument.name},nota={note_name},intervalo={interval or ''}",
                 description=interval or technique or "",
             ))

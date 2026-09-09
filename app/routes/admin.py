@@ -114,7 +114,9 @@ def user_detail(user_id):
 @login_required
 @require_admin
 def instruments():
-    instruments = Instrument.query.all()
+    instruments = Instrument.query.filter(
+        db.func.lower(Instrument.name).in_(["guitarra", "bandola", "requinto", "tiple"]),
+    ).order_by(Instrument.name).all()
     return render_template("admin/instruments.html", instruments=instruments)
 
 

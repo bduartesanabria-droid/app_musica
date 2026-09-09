@@ -21,7 +21,10 @@ from ..utils.question_generator import QuestionGenerator
 @training_bp.route("/")
 @login_required
 def index():
-    instruments = Instrument.query.filter_by(is_active=True).all()
+    instruments = Instrument.query.filter(
+        Instrument.is_active == True,
+        db.func.lower(Instrument.name).in_(["guitarra", "bandola", "requinto", "tiple"]),
+    ).order_by(Instrument.name).all()
     return render_template(
         "training/index.html",
         instruments=instruments,
