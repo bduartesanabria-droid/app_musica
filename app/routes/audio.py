@@ -359,3 +359,20 @@ def delete_instrument_audios():
     db.session.commit()
     flash(f"{total} audios eliminados del instrumento seleccionado.", "success")
     return redirect(url_for("audio.manager", instrument_id=instrument_id))
+
+
+@audio_bp.route("/delete-selected", methods=["POST"])
+@login_required
+def delete_selected():
+    if not current_user.is_instructor:
+        return jsonify({"error": "Sin permisos"}), 403
+    audio_ids = request.form.getlist("audio_ids", type=int)
+    if not audio_ids:
+        flash("Selecciona al menos un audio.", "warning")
+        return redirect(url_for("audio.manager"))
+    total = Audio.query.filter(Audio.id.in_(audio_ids), Audio.is_active == True).update(
+        {Audio.is_active: False}, synchronize_session=False
+    )
+    db.session.commit()
+    flash(f"{total} audios eliminados.", "success")
+    return redirect(url_for("audio.manager"))

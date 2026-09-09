@@ -7,7 +7,7 @@
 
   <!-- Header acciones -->
   <div class="flex items-center justify-between">
-    <p class="text-sm text-gray-500">{{ audios.total }} archivos de audio registrados</p>
+     <p class="text-sm text-gray-500">{{ audios.total }} archivos de audio registrados</p>
        <div class="flex gap-2">
        <a href="{{ url_for('audio.upload_multiple') }}" class="btn-secondary px-5 py-2.5 text-sm font-semibold">Cargar varios audios</a>
        <button @click="showUpload = !showUpload" class="btn-primary px-5 py-2.5 text-sm font-semibold">+ Subir Audio</button>
@@ -95,6 +95,13 @@
        </label>
        <button class="btn-secondary px-4 py-2 text-sm" type="submit">Filtrar</button>
      </form>
+     <div class="flex gap-3 items-center">
+       <a href="{{ url_for('audio.upload_multiple') }}" class="btn-primary px-4 py-2 text-sm">Cargar varios</a>
+       <form id="bulkDeleteForm" method="POST" action="{{ url_for('audio.delete_selected') }}" onsubmit="return confirm('¿Eliminar los audios seleccionados?')">
+         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+         <button class="text-sm font-semibold text-red-500 hover:text-red-400" type="submit">Eliminar seleccionados</button>
+       </form>
+     </div>
      {% if selected_instrument_id %}
      <form method="POST" action="{{ url_for('audio.delete_instrument_audios') }}" onsubmit="return confirm('¿Eliminar todos los audios de este instrumento?')">
        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -110,7 +117,8 @@
       <table class="w-full text-sm">
         <thead class="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600">
           <tr>
-            <th class="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Archivo</th>
+             <th class="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide"><input type="checkbox" id="selectAllAudios" title="Seleccionar todos"></th>
+             <th class="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Archivo</th>
             <th class="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Instrumento</th>
             <th class="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Nota</th>
             <th class="px-5 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide">Duración</th>
@@ -121,7 +129,8 @@
         </thead>
         <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
           {% for audio in audios.items %}
-          <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+           <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+             <td class="px-5 py-3"><input type="checkbox" name="audio_ids" value="{{ audio.id }}" form="bulkDeleteForm" class="audio-check"></td>
             <td class="px-5 py-3">
               <p class="font-medium text-gray-900 dark:text-white truncate max-w-[200px]">{{ audio.original_filename }}</p>
               {% if audio.tag_list %}
@@ -159,7 +168,7 @@
             </td>
           </tr>
           {% else %}
-          <tr><td colspan="7" class="text-center text-gray-400 py-10">No hay audios cargados todavía.</td></tr>
+           <tr><td colspan="8" class="text-center text-gray-400 py-10">No hay audios cargados todavía.</td></tr>
           {% endfor %}
         </tbody>
       </table>
@@ -189,6 +198,12 @@
 
 {% block scripts %}
 <script>
+const selectAll = document.getElementById('selectAllAudios');
+if (selectAll) {
+  selectAll.addEventListener('change', () => {
+    document.querySelectorAll('.audio-check').forEach((item) => { item.checked = selectAll.checked; });
+  });
+}
 function playPreview(url) {
   const player = document.getElementById('previewPlayer');
   if (player.src === url && !player.paused) {
