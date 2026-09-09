@@ -99,7 +99,7 @@ def import_files(files, instrument_id, uploaded_by=None):
     if not instrument or _clean(instrument.name) not in {"guitarra", "bandola", "requinto", "tiple"}:
         raise ValueError("selecciona un instrumento valido")
 
-    destination = Path(current_app.static_folder) / "audio_samples"
+    destination = Path(current_app.config.get("AUDIO_STORAGE_PATH", Path(current_app.static_folder) / "audio_samples"))
     destination.mkdir(parents=True, exist_ok=True)
     pending, errors, created = [], [], []
     for file in files:
