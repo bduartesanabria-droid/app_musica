@@ -48,13 +48,13 @@ def _parse_name(filename):
     return note, interval, technique
 
 
-def _validate(data, filename):
+def _validate(data, filename, converted=False):
     try:
         info = sf.info(io.BytesIO(data))
         samples, _ = sf.read(io.BytesIO(data), dtype="float32")
     except Exception as exc:
         raise ValueError(f"audio invalido: {exc}") from exc
-    if info.format not in {"WAV", "AIFF"} or info.subtype not in {"PCM_24", "PCM_32"}:
+    if not converted and (info.format not in {"WAV", "AIFF"} or info.subtype not in {"PCM_16", "PCM_24", "PCM_32"}):
         raise ValueError("se requiere WAV/AIFF PCM de 24 o 32 bits")
     if info.samplerate < 44100:
         raise ValueError("la frecuencia minima es 44.1 kHz")
@@ -127,9 +127,10 @@ def import_files(files, instrument_id, uploaded_by=None):
             note_name, interval, technique = _parse_name(original)
             note = _get_or_create_note(note_name)
             data = file.read()
-            if Path(original).suffix.casefold() == ".wma":
+            converted = Path(original).suffix.casefold() == ".wma"
+            if converted:
                 data = _convert_wma(data)
-            info, peak = _validate(data, original if not original.casefold().endswith(".wma") else "converted.wav")
+            info, peak = _validate(data, "converted.wav" if converted else original, converted=converted)
             stored_name = f"{uuid.uuid4().hex}.wav" if original.casefold().endswith(".wma") else f"{uuid.uuid4().hex}{Path(original).suffix.lower()}"
             path = destination / stored_name
             path.write_bytes(data)
