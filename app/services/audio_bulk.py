@@ -63,7 +63,7 @@ def _validate(data, filename, converted=False):
     return info, peak
 
 
-def _convert_wma(data):
+def convert_wma(data):
     with tempfile.TemporaryDirectory() as directory:
         source = Path(directory) / "source.wma"
         target = Path(directory) / "converted.wav"
@@ -125,7 +125,7 @@ def import_files(files, instrument_id, uploaded_by=None):
             data = file.read()
             converted = Path(original).suffix.casefold() == ".wma"
             if converted:
-                data = _convert_wma(data)
+                data = convert_wma(data)
             info, peak = _validate(data, "converted.wav" if converted else original, converted=converted)
             stored_name = f"{uuid.uuid4().hex}.wav" if original.casefold().endswith(".wma") else f"{uuid.uuid4().hex}{Path(original).suffix.lower()}"
             path = destination / stored_name

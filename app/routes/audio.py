@@ -9,7 +9,7 @@ from werkzeug.utils import secure_filename
 from ..extensions import db
 from ..models.audio import Audio
 from ..models.instrument import Instrument, Note
-from ..services.audio_bulk import import_files
+from ..services.audio_bulk import import_files, convert_wma
 
 audio_bp = Blueprint("audio", __name__)
 
@@ -171,8 +171,15 @@ def stream(filename):
             "wma": "audio/x-ms-wma",
         }
         extension = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+        audio_data = audio.audio_data
+        if extension == "wma":
+            try:
+                audio_data = convert_wma(audio_data)
+                extension = "wav"
+            except ValueError:
+                abort(415)
         return send_file(
-            io.BytesIO(audio.audio_data),
+            io.BytesIO(audio_data),
             mimetype=mimetypes.get(extension, "application/octet-stream"),
             download_name=audio.original_filename,
         )

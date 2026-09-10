@@ -108,7 +108,8 @@ def learning():
     catalog = {}
     audios = Audio.query.options(defer(Audio.audio_data)).filter_by(is_active=True).all()
     for audio in audios:
-        if not audio.instrument or not audio.note or audio.instrument.name.casefold() not in allowed:
+        if (not audio.instrument or not audio.note
+                or audio.instrument.name.casefold() not in allowed):
             continue
         catalog.setdefault(audio.instrument.name, []).append({
             "name": audio.note.display_name,
