@@ -37,16 +37,6 @@ def dashboard():
         .all()
     )
 
-
-@main_bp.route("/learning")
-@login_required
-def learning():
-    return render_template(
-        "learning/index.html",
-        intervals=Interval.query.order_by(Interval.semitones).all(),
-        scales=Scale.query.order_by(Scale.name).all(),
-    )
-
     # Actividad de los últimos 7 días
     # Actividad de los últimos 7 días — lista [{day, sessions}] para Chart.js
     week_ago = datetime.now(timezone.utc) - timedelta(days=7)
@@ -105,6 +95,16 @@ def learning():
         weekly_stats=weekly_stats,
         user_badges=user_badges,
         top_learners=top_learners,
+    )
+
+
+@main_bp.route("/learning")
+@login_required
+def learning():
+    return render_template(
+        "learning/index.html",
+        intervals=Interval.query.order_by(Interval.semitones).all(),
+        scales=Scale.query.order_by(Scale.name).all(),
     )
 
 
