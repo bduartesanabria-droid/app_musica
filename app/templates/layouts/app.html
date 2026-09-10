@@ -15,7 +15,7 @@
 
     <!-- Logo SENA + SEMIMUS -->
     <div class="flex flex-col items-center px-5 py-5 border-b" style="border-color:rgba(255,255,255,0.06)">
-       <img src="{{ url_for('static', filename='img/logo_sena.jpg') }}" width="72" height="72" alt="SENA" class="mb-1 object-contain">
+       <img src="{{ url_for('static', filename='img/logoSena.png') }}" width="72" height="72" alt="SENA" class="mb-1 object-contain">
        <p class="text-[9px] text-center leading-tight mt-0.5" style="color:rgba(255,255,255,0.35);">SERVICIO NACIONAL<br>DE APRENDIZAJE</p>
     </div>
 
@@ -43,6 +43,11 @@
           <circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/>
         </svg>
         <span>Entrenamiento</span>
+      </a>
+
+      <a href="{{ url_for('main.learning') }}"
+         class="nav-item {% if request.endpoint == 'main.learning' %}active{% endif %}">
+        <span aria-hidden="true">♫</span><span>Aprender</span>
       </a>
 
       <a href="{{ url_for('main.statistics') }}"

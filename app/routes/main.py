@@ -1,11 +1,15 @@
-from flask import Blueprint, render_template, redirect, url_for
+import os
+import uuid
+from flask import Blueprint, render_template, redirect, url_for, current_app
 from flask_login import login_required, current_user
 from ..models.progress import Progress, UserStatistics
 from ..models.gamification import UserGamification
+from ..models.instrument import Interval, Scale
 from ..models.session import TrainingSession
 from ..models.gamification import Badge, UserBadge
 from ..extensions import db
 from datetime import datetime, timezone, timedelta
+from werkzeug.utils import secure_filename
 
 main_bp = Blueprint("main", __name__)
 
@@ -31,6 +35,16 @@ def dashboard():
         .order_by(TrainingSession.completed_at.desc())
         .limit(5)
         .all()
+    )
+
+
+@main_bp.route("/learning")
+@login_required
+def learning():
+    return render_template(
+        "learning/index.html",
+        intervals=Interval.query.order_by(Interval.semitones).all(),
+        scales=Scale.query.order_by(Scale.name).all(),
     )
 
     # Actividad de los últimos 7 días
@@ -173,6 +187,17 @@ def profile():
             if not first_name or not last_name:
                 flash("Nombre y apellido son obligatorios.", "danger")
             else:
+                avatar = request.files.get("avatar")
+                if avatar and avatar.filename:
+                    extension = os.path.splitext(secure_filename(avatar.filename))[1].lower()
+                    if extension not in {".jpg", ".jpeg", ".png", ".webp"}:
+                        flash("La imagen debe ser JPG, PNG o WEBP.", "danger")
+                        return redirect(url_for("main.profile"))
+                    avatar_dir = os.path.join(current_app.static_folder, "uploads", "avatars")
+                    os.makedirs(avatar_dir, exist_ok=True)
+                    filename = f"{uuid.uuid4().hex}{extension}"
+                    avatar.save(os.path.join(avatar_dir, filename))
+                    current_user.avatar_url = url_for("static", filename=f"uploads/avatars/{filename}")
                 current_user.first_name = first_name
                 current_user.last_name  = last_name
                 current_user.bio        = bio

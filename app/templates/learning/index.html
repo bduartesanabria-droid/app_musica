@@ -1,0 +1,32 @@
+{% extends "layouts/app.html" %}
+{% block title %}Aprender{% endblock %}
+{% block page_title %}Aprender intervalos y escalas{% endblock %}
+{% block content %}
+<div class="learning-page max-w-5xl mx-auto space-y-6">
+  <section class="card">
+    <p class="eyebrow">Guía rápida</p>
+    <h1 class="text-2xl font-black text-white mt-2">Aprende antes de escuchar</h1>
+    <p class="text-sm mt-2 text-gray-400">Consulta los conceptos esenciales y luego practica con sonidos de Guitarra, Bandola, Requinto o Tiple.</p>
+  </section>
+  <section>
+    <h2 class="section-title mb-3">Intervalos</h2>
+    <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {% for item in intervals %}
+      <article class="card">
+        <p class="text-sena font-bold">{{ item.name }}</p>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">{{ item.semitones }} semitonos · {{ item.consonance or 'distancia entre notas' }}</p>
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+  <section>
+    <h2 class="section-title mb-3">Escalas</h2>
+    <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {% for item in scales %}
+      <article class="card"><p class="text-sena font-bold">{{ item.name }}</p><p class="text-sm text-gray-500 dark:text-gray-400 mt-2">{{ item.intervals_pattern }}</p></article>
+      {% endfor %}
+    </div>
+  </section>
+  <a href="{{ url_for('training.index') }}" class="btn-sena">Ir a practicar →</a>
+</div>
+{% endblock %}
