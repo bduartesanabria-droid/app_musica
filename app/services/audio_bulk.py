@@ -1,5 +1,4 @@
 import io
-import math
 import os
 import re
 import subprocess
@@ -58,12 +57,9 @@ def _validate(data, filename, converted=False):
         raise ValueError("se requiere WAV/AIFF PCM de 24 o 32 bits")
     if info.samplerate < 44100:
         raise ValueError("la frecuencia minima es 44.1 kHz")
-    if not 3 <= info.duration <= 5:
-        raise ValueError("la duracion debe estar entre 3 y 5 segundos")
+    if not 3 <= info.duration <= 12:
+        raise ValueError("la duracion debe estar entre 3 y 12 segundos")
     peak = float(abs(samples).max()) if samples.size else 0
-    peak_db = -120 if not peak else 20 * math.log10(peak)
-    if not -1.5 <= peak_db <= -0.5:
-        raise ValueError("el pico debe ser aproximadamente -1 dBFS")
     return info, peak
 
 

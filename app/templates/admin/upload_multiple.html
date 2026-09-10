@@ -22,7 +22,7 @@
       <div class="rounded-xl bg-gray-50 dark:bg-gray-700/40 p-4 text-sm text-gray-600 dark:text-gray-300">
         <p class="font-semibold mb-1">Nombre de cada archivo</p>
         <p><code>sol4.wav</code>, <code>re#3.wav</code>, <code>1.Do3.wma</code></p>
-        <p class="mt-2">El sistema detecta la nota dentro del nombre. WAV/AIFF se validan técnicamente; WMA se guarda con sus metadatos.</p>
+        <p class="mt-2">El sistema detecta la nota dentro del nombre. Se aceptan audios de 3 a 12 segundos; los WMA se convierten automáticamente a WAV.</p>
       </div>
       <div class="flex gap-3">
         <a href="{{ url_for('audio.manager') }}" class="btn-secondary px-5 py-2.5 text-sm">Cancelar</a>
