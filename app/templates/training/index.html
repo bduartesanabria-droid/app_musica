@@ -3,7 +3,7 @@
 {% block page_title %}Entrenamiento de intervalos{% endblock %}
 
 {% block content %}
-<div class="training-neumorphic min-h-full" x-data="{ instrument_id: '{{ selected_instrument_id }}', difficulty: 1, question_count: 10 }">
+<div class="training-neumorphic min-h-full" x-data="{ instrument_id: '{{ selected_instrument_id }}', scale_id: '', difficulty: 1, question_count: 10 }">
   <div class="training-shell">
     <header class="training-hero">
       <div>
@@ -18,7 +18,7 @@
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <input type="hidden" name="mode" value="intervalos">
 
-      <section class="training-panel">
+       <section class="training-panel" {% if selected_instrument_id %}x-show="!instrument_id"{% endif %}>
         <div class="panel-heading"><span class="step-number">01</span><div><h2>Elige tu instrumento</h2><p>Escucharás dos notas consecutivas del mismo instrumento.</p></div></div>
         <input type="hidden" name="instrument_id" x-model="instrument_id">
         <div class="instrument-choice-grid">
@@ -27,20 +27,28 @@
           <label class="choice-card"><input type="radio" name="_instrument" value="{{ instr.id }}" @change="instrument_id = '{{ instr.id }}'" :checked="instrument_id === '{{ instr.id }}'"><span class="choice-icon">{{ instr.emoji or '♪' }}</span><strong>{{ instr.name }}</strong><small>Sonido auténtico</small></label>
           {% endfor %}
         </div>
-      </section>
+       </section>
 
-      <section class="training-panel">
-        <div class="panel-heading"><span class="step-number">02</span><div><h2>Los cuatro intervalos</h2><p>Las opciones están acotadas para que avances de forma progresiva.</p></div></div>
-        <div class="interval-pills"><span>2ª mayor</span><span>3ª mayor</span><span>4ª justa</span><span>5ª justa</span></div>
-      </section>
+       <section class="training-panel">
+         <div class="panel-heading"><span class="step-number">02</span><div><h2>Elige la escala</h2><p>Usaremos esta referencia musical para organizar tu práctica.</p></div></div>
+         <select name="scale_id" x-model="scale_id" class="form-input max-w-md" required>
+           <option value="">Selecciona una escala</option>
+           {% for scale in scales %}<option value="{{ scale.id }}">{{ scale.name }}</option>{% endfor %}
+         </select>
+         <div class="interval-pills mt-4"><span>2ª mayor</span><span>3ª mayor</span><span>4ª justa</span><span>5ª justa</span></div>
+       </section>
 
-      <section class="training-panel settings-panel">
-        <div class="panel-heading"><span class="step-number">03</span><div><h2>Configura tu práctica</h2><p>Comienza con una sesión corta y enfócate en la escucha.</p></div></div>
-        <div class="settings-grid">
-          <label><span>Dificultad <b x-text="['', 'Inicial', 'Básica', 'Intermedia', 'Avanzada', 'Experta'][difficulty]"></b></span><input type="range" name="difficulty" x-model.number="difficulty" min="1" max="5"></label>
-          <label><span>Preguntas <b x-text="question_count"></b></span><input type="range" name="question_count" x-model.number="question_count" min="5" max="20" step="5"></label>
-        </div>
-      </section>
+       <section class="training-panel">
+         <div class="panel-heading"><span class="step-number">03</span><div><h2>Elige la dificultad</h2><p>Avanza de forma progresiva según tu nivel.</p></div></div>
+         <div class="settings-grid">
+           <label><span>Dificultad <b x-text="['', 'Inicial', 'Básica', 'Intermedia', 'Avanzada', 'Experta'][difficulty]"></b></span><input type="range" name="difficulty" x-model.number="difficulty" min="1" max="5"></label>
+         </div>
+       </section>
+
+       <section class="training-panel">
+         <div class="panel-heading"><span class="step-number">04</span><div><h2>¿Cuántas preguntas?</h2><p>Selecciona la duración de tu sesión.</p></div></div>
+         <label class="settings-grid"><span>Preguntas <b x-text="question_count"></b></span><input type="range" name="question_count" x-model.number="question_count" min="5" max="20" step="5"></label>
+       </section>
 
       <button type="submit" class="neumorphic-cta"><span>Comenzar entrenamiento</span><b>→</b></button>
     </form>

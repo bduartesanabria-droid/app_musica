@@ -6,6 +6,7 @@ from ..extensions import db
 from ..models.session import TrainingSession, Answer
 from ..models.question import Question, TRAINING_MODES
 from ..models.instrument import Instrument
+from ..models.instrument import Scale
 from ..models.progress import Progress, UserStatistics
 from ..models.gamification import UserGamification, Badge, UserBadge
 
@@ -35,6 +36,7 @@ def index():
         instruments=instruments,
         modes=TRAINING_MODES,
         selected_instrument_id=selected_id,
+        scales=Scale.query.order_by(Scale.name).all(),
     )
 
 

@@ -2,31 +2,63 @@
 {% block title %}Aprender{% endblock %}
 {% block page_title %}Aprender intervalos y escalas{% endblock %}
 {% block content %}
-<div class="learning-page max-w-5xl mx-auto space-y-6">
+<div class="learning-page max-w-5xl mx-auto space-y-6" x-data="scalePlayer({{ audio_catalog|safe }})">
   <section class="card">
-    <p class="eyebrow">Guía rápida</p>
-    <h1 class="text-2xl font-black text-white mt-2">Aprende antes de escuchar</h1>
-    <p class="text-sm mt-2 text-gray-400">Consulta los conceptos esenciales y luego practica con sonidos de Guitarra, Bandola, Requinto o Tiple.</p>
+    <p class="eyebrow">Guía auditiva</p>
+    <h1 class="text-2xl font-black text-white mt-2">Aprende escuchando</h1>
+    <p class="text-sm mt-2 text-gray-400">Selecciona un instrumento, una escala y una nota inicial. Escucha cada nota de la escala en secuencia.</p>
   </section>
+
+  <section class="card space-y-4">
+    <div class="grid sm:grid-cols-3 gap-3">
+      <label class="text-sm text-gray-500 dark:text-gray-300">Instrumento
+        <select x-model="instrument" @change="resetRoot()" class="form-input mt-1">
+          <option value="">Selecciona</option>
+          {% for name in ['Guitarra', 'Bandola', 'Requinto', 'Tiple'] %}<option value="{{ name }}">{{ name }}</option>{% endfor %}
+        </select>
+      </label>
+      <label class="text-sm text-gray-500 dark:text-gray-300">Escala
+        <select x-model="scaleIndex" @change="renderScale()" class="form-input mt-1">
+          {% for scale in scales %}<option value="{{ loop.index0 }}">{{ scale.name }}</option>{% endfor %}
+        </select>
+      </label>
+      <label class="text-sm text-gray-500 dark:text-gray-300">Nota inicial
+        <select x-model="rootMidi" @change="renderScale()" class="form-input mt-1">
+          <option value="">Selecciona instrumento primero</option>
+          <template x-for="note in availableRoots" :key="note.midi"><option :value="note.midi" x-text="note.name"></option></template>
+        </select>
+      </label>
+    </div>
+    <div class="flex flex-wrap items-center gap-3">
+      <button type="button" @click="playScale()" :disabled="!scaleNotes.length || playing" class="btn-sena"> <span x-text="playing ? 'Reproduciendo…' : 'Escuchar escala ▶'"></span></button>
+      <button type="button" @click="stop()" x-show="playing" class="btn-secondary">Detener</button>
+      <span class="text-sm text-gray-500 dark:text-gray-400" x-text="status"></span>
+    </div>
+    <div class="flex flex-wrap gap-2" x-show="scaleNotes.length">
+      <template x-for="(note, index) in scaleNotes" :key="index"><span class="rounded-full px-3 py-1.5 text-sm font-semibold bg-sena/10 text-sena" x-text="note.name"></span></template>
+    </div>
+  </section>
+
   <section>
     <h2 class="section-title mb-3">Intervalos</h2>
     <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-      {% for item in intervals %}
-      <article class="card">
-        <p class="text-sena font-bold">{{ item.name }}</p>
-        <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">{{ item.semitones }} semitonos · {{ item.consonance or 'distancia entre notas' }}</p>
-      </article>
-      {% endfor %}
+      {% for item in intervals %}<article class="card"><p class="text-sena font-bold">{{ item.name }}</p><p class="text-sm text-gray-500 dark:text-gray-400 mt-2">{{ item.semitones }} semitonos · {{ item.consonance or 'distancia entre notas' }}</p></article>{% endfor %}
     </div>
   </section>
-  <section>
-    <h2 class="section-title mb-3">Escalas</h2>
-    <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-      {% for item in scales %}
-      <article class="card"><p class="text-sena font-bold">{{ item.name }}</p><p class="text-sm text-gray-500 dark:text-gray-400 mt-2">{{ item.intervals_pattern }}</p></article>
-      {% endfor %}
-    </div>
-  </section>
-  <a href="{{ url_for('training.index') }}" class="btn-sena">Ir a practicar →</a>
+  <a href="{{ url_for('training.index') }}" class="btn-sena">Ir a practicar intervalos →</a>
 </div>
+{% endblock %}
+{% block scripts %}
+<script>
+function scalePlayer(catalog) {
+  const scaleData = [{% for scale in scales %}{name: {{ scale.name|tojson }}, pattern: {{ scale.intervals_pattern|tojson }}},{% endfor %}];
+  return {
+    catalog, scaleData, instrument: '', scaleIndex: '0', rootMidi: '', availableRoots: [], scaleNotes: [], playing: false, status: 'Selecciona las opciones para comenzar.', player: null, timer: null,
+    resetRoot() { this.availableRoots = (this.catalog[this.instrument] || []).filter(note => note.midi != null).sort((a, b) => a.midi - b.midi); this.rootMidi = this.availableRoots[0]?.midi || ''; this.renderScale(); },
+    renderScale() { const root = Number(this.rootMidi); const scale = this.scaleData[Number(this.scaleIndex)]; if (!root || !scale) { this.scaleNotes = []; return; } const steps = scale.pattern.split(',').map(Number); let midi = root; const notes = []; const source = this.catalog[this.instrument] || []; for (let i = 0; i <= steps.length; i++) { const note = source.find(item => item.midi === midi); if (!note) break; notes.push(note); if (i < steps.length) midi += steps[i]; } this.scaleNotes = notes; this.status = notes.length ? `${notes.length} notas disponibles` : 'No hay audios suficientes para esta escala.'; },
+    playScale() { if (!this.scaleNotes.length) return; this.stop(); this.playing = true; let index = 0; const next = () => { if (!this.playing || index >= this.scaleNotes.length) { this.stop(); return; } this.player = new Audio(this.scaleNotes[index++].url); this.player.onended = next; this.player.onerror = () => { this.status = 'No se pudo reproducir este audio.'; this.stop(); }; this.player.play().catch(() => { this.status = 'El navegador bloqueo la reproducción.'; this.stop(); }); }; next(); },
+    stop() { this.playing = false; if (this.player) { this.player.pause(); this.player = null; } clearTimeout(this.timer); }
+  };
+}
+</script>
 {% endblock %}

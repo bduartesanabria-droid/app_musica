@@ -1,15 +1,18 @@
 import os
 import uuid
+import json
 from flask import Blueprint, render_template, redirect, url_for, current_app
 from flask_login import login_required, current_user
 from ..models.progress import Progress, UserStatistics
 from ..models.gamification import UserGamification
 from ..models.instrument import Interval, Scale
+from ..models.audio import Audio
 from ..models.session import TrainingSession
 from ..models.gamification import Badge, UserBadge
 from ..extensions import db
 from datetime import datetime, timezone, timedelta
 from werkzeug.utils import secure_filename
+from sqlalchemy.orm import defer
 
 main_bp = Blueprint("main", __name__)
 
@@ -101,10 +104,22 @@ def dashboard():
 @main_bp.route("/learning")
 @login_required
 def learning():
+    allowed = {"guitarra", "bandola", "requinto", "tiple"}
+    catalog = {}
+    audios = Audio.query.options(defer(Audio.audio_data)).filter_by(is_active=True).all()
+    for audio in audios:
+        if not audio.instrument or not audio.note or audio.instrument.name.casefold() not in allowed:
+            continue
+        catalog.setdefault(audio.instrument.name, []).append({
+            "name": audio.note.display_name,
+            "midi": audio.note.midi_number,
+            "url": audio.stream_url,
+        })
     return render_template(
         "learning/index.html",
         intervals=Interval.query.order_by(Interval.semitones).all(),
         scales=Scale.query.order_by(Scale.name).all(),
+        audio_catalog=json.dumps(catalog),
     )
 
 
