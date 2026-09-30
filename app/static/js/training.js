@@ -4,10 +4,11 @@
  * Renders an AJAX-driven training session without full page reloads.
  * Called from training/session.html: trainingSession(questions, answerUrl, completeUrl)
  */
-function trainingSession(questions, answerUrl, completeUrl) {
+function trainingSession(questions, answerUrl, completeUrl, savedAnswers = []) {
   return {
     // State
     questions:       questions,
+    savedAnswers:    Object.fromEntries(savedAnswers.map(answer => [answer.index, answer])),
     currentIndex:    0,
     currentQ:        null,
     answered:        false,
@@ -25,7 +26,27 @@ function trainingSession(questions, answerUrl, completeUrl) {
 
     // Init (called by Alpine on mount)
     init() {
-      this.currentQ = this.questions[0] || null;
+      for (const answer of Object.values(this.savedAnswers)) {
+        if (answer.is_correct) this.correct++;
+        else this.wrong++;
+      }
+      const nextIndex = this.questions.findIndex(question => !this.savedAnswers[question.index]);
+      if (nextIndex === -1 && this.questions.length) {
+        this.currentIndex = this.questions.length - 1;
+        this.answered = true;
+        this.answerReady = true;
+        const previousAnswer = this.savedAnswers[this.questions[this.currentIndex].index];
+        this.selectedAnswer = previousAnswer.user_answer;
+        this.lastCorrect = previousAnswer.is_correct;
+      } else {
+        this.currentIndex = Math.max(nextIndex, 0);
+      }
+      this.currentQ = this.questions[this.currentIndex] || null;
+      const currentSavedAnswer = this.currentQ && this.savedAnswers[this.currentQ.index];
+      if (currentSavedAnswer) {
+        this.currentQ.correct_answer = currentSavedAnswer.correct_answer;
+        this.currentQ.explanation = currentSavedAnswer.explanation;
+      }
       this._questionStart = Date.now();
       this._timer = setInterval(() => { this.elapsed++; }, 1000);
       // Auto-play first audio
@@ -123,6 +144,13 @@ function trainingSession(questions, answerUrl, completeUrl) {
         if (data.explanation && this.currentQ) {
           this.currentQ.explanation = data.explanation;
         }
+        this.savedAnswers[this.currentQ.index] = {
+          index: this.currentQ.index,
+          user_answer: option,
+          is_correct: data.is_correct,
+          correct_answer: data.correct_answer,
+          explanation: data.explanation || '',
+        };
         this.answerReady = true;
 
       } catch (err) {
@@ -166,11 +194,7 @@ function trainingSession(questions, answerUrl, completeUrl) {
             'Content-Type': 'application/json',
             'X-CSRFToken':  this._csrfToken(),
           },
-          body: JSON.stringify({
-            correct:      this.correct,
-            wrong:        this.wrong,
-            total_time:   this.elapsed,
-          }),
+          body: JSON.stringify({}),
         });
 
         if (!res.ok) throw new Error('Complete request failed');

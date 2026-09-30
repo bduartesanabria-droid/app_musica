@@ -140,6 +140,15 @@ npm run dev
 
 ---
 
+## Política de finalización de sesiones
+
+Una sesión solo se completa cuando se han respondido todas sus preguntas. Si se
+intenta completar con respuestas pendientes, la sesión queda disponible para
+continuarla. Si se abandona sin responder ninguna, queda marcada como abandonada
+y no suma sesión, XP, monedas ni precisión.
+
+---
+
 ## 🔊 Banco Sonoro
 
 Los archivos de audio deben seguir el formato:

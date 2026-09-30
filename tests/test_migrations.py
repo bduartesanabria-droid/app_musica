@@ -13,3 +13,6 @@ def test_committed_initial_migration_upgrades_database(app):
             text("SELECT version_num FROM alembic_version")
         ).scalar_one()
         assert revision
+
+    result = app.test_cli_runner().invoke(args=["db", "check"])
+    assert result.exit_code == 0, result.output

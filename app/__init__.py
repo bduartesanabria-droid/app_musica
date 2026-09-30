@@ -58,7 +58,11 @@ def create_app(env=None):
         from flask_login import current_user
         if current_user.is_authenticated:
             from .models.gamification import UserGamification
+            from .utils.timezone import refresh_period_xp
+
             gami = UserGamification.query.filter_by(user_id=current_user.id).first()
+            if gami and refresh_period_xp(gami, current_user.id):
+                db.session.commit()
             return {"gamification": gami}
         return {"gamification": None}
 

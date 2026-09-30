@@ -33,3 +33,46 @@ def app(tmp_path, monkeypatch):
 @pytest.fixture
 def client(app):
     return app.test_client()
+
+
+@pytest.fixture
+def make_user(app):
+    def factory(role="aprendiz", username="test-user"):
+        from app.models.gamification import UserGamification
+        from app.models.progress import Progress, UserStatistics
+        from app.models.user import User
+
+        with app.app_context():
+            suffix = User.query.count()
+            user = User(
+                username=f"{username}-{suffix}",
+                email=f"{username}-{suffix}@example.test",
+                password_hash="unused-test-hash",
+                first_name="Test",
+                last_name="User",
+                role=role,
+                is_active=True,
+            )
+            db.session.add(user)
+            db.session.flush()
+            db.session.add_all([
+                Progress(user_id=user.id),
+                UserGamification(user_id=user.id),
+                UserStatistics(user_id=user.id),
+            ])
+            db.session.commit()
+            return user.id
+
+    return factory
+
+
+@pytest.fixture
+def login_client(client, make_user):
+    def login(role="aprendiz"):
+        user_id = make_user(role=role)
+        with client.session_transaction() as session:
+            session["_user_id"] = str(user_id)
+            session["_fresh"] = True
+        return client, user_id
+
+    return login

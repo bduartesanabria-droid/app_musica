@@ -13,6 +13,7 @@ from ..extensions import db
 from datetime import datetime, timezone, timedelta
 from werkzeug.utils import secure_filename
 from sqlalchemy.orm import defer
+from ..utils.timezone import BOGOTA, SPANISH_WEEKDAYS, bogota_date, local_day_start_utc
 
 main_bp = Blueprint("main", __name__)
 
@@ -42,26 +43,34 @@ def dashboard():
 
     # Actividad de los últimos 7 días
     # Actividad de los últimos 7 días — lista [{day, sessions}] para Chart.js
-    week_ago = datetime.now(timezone.utc) - timedelta(days=7)
+    local_now = datetime.now(BOGOTA)
+    today = local_now.date()
+    week_dates = [today - timedelta(days=6 - i) for i in range(7)]
+    week_start_utc = local_day_start_utc(week_dates[0])
+    now_utc = local_now.astimezone(timezone.utc).replace(tzinfo=None)
     weekly_sessions = (
         TrainingSession.query
         .filter(
             TrainingSession.user_id == current_user.id,
             TrainingSession.is_completed == True,
-            TrainingSession.completed_at >= week_ago,
+            TrainingSession.completed_at >= week_start_utc,
+            TrainingSession.completed_at <= now_utc,
         )
         .all()
     )
-    day_map = {}
-    for i in range(7):
-        day = (datetime.now(timezone.utc) - timedelta(days=6 - i)).strftime("%a")
-        day_map[day] = 0
+    day_map = {day: 0 for day in week_dates}
     for s in weekly_sessions:
         if s.completed_at:
-            label = s.completed_at.strftime("%a")
-            if label in day_map:
-                day_map[label] += 1
-    weekly_stats = [{"day": d, "sessions": c} for d, c in day_map.items()]
+            day = bogota_date(s.completed_at)
+            if day in day_map:
+                day_map[day] += 1
+    weekly_stats = [
+        {
+            "day": f"{SPANISH_WEEKDAYS[day.weekday()]} {day.day}",
+            "sessions": count,
+        }
+        for day, count in day_map.items()
+    ]
 
     # Insignias recientes
     user_badges = []
@@ -241,7 +250,12 @@ def statistics():
 
     by_mode = {}
     by_instrument = {}
-    daily = {}
+    today = bogota_date()
+    first_day = today - timedelta(days=29)
+    daily = {
+        (first_day + timedelta(days=offset)).isoformat(): 0
+        for offset in range(30)
+    }
 
     for s in sessions:
         # Por modo
@@ -258,12 +272,11 @@ def statistics():
             by_instrument[k]["questions"] += s.total_questions
             by_instrument[k]["correct"]   += s.correct_answers
 
-        # Por día (últimas 2 semanas)
+        # Sesiones por día durante los últimos 30 días.
         if s.completed_at:
-            day = s.completed_at.strftime("%Y-%m-%d")
-            daily.setdefault(day, {"sessions": 0, "xp": 0})
-            daily[day]["sessions"] += 1
-            daily[day]["xp"]       += s.xp_earned
+            day = bogota_date(s.completed_at).isoformat()
+            if day in daily:
+                daily[day] += 1
 
     # Calcular precisión por modo
     for m in by_mode.values():

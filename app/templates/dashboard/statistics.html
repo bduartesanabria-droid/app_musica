@@ -62,7 +62,7 @@
         {% for s in sessions %}
         {% set pct = (s.correct_answers / s.total_questions * 100) | round | int if s.total_questions else 0 %}
         <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-          <td class="py-3 text-gray-500">{{ s.created_at | timeago }}</td>
+          <td class="py-3 text-gray-500">{{ s.completed_at | timeago }}</td>
           <td class="py-3 font-medium text-gray-900 dark:text-white">{{ s.mode | mode_label }}</td>
           <td class="py-3 text-gray-500">{{ s.instrument.name if s.instrument else '—' }}</td>
           <td class="py-3 text-center">{{ s.correct_answers }}/{{ s.total_questions }}</td>
@@ -107,8 +107,8 @@ const makeBar = (id, labels, data, color) => {
   });
 };
 
-makeBar('modeChart',  Object.keys(byMode),  Object.values(byMode),  '#2563EB');
-makeBar('instrChart', Object.keys(byInstr), Object.values(byInstr), '#0EA5E9');
+makeBar('modeChart',  Object.keys(byMode),  Object.values(byMode).map(item => item.accuracy),  '#2563EB');
+makeBar('instrChart', Object.keys(byInstr), Object.values(byInstr).map(item => item.accuracy), '#0EA5E9');
 
 const dCtx = document.getElementById('dailyChart');
 if (dCtx && daily) {

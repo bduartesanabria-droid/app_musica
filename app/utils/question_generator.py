@@ -96,7 +96,6 @@ class QuestionGenerator:
         if not intervals:
             return []
 
-        interval_names = [i.name for i in intervals]
         audios = self._get_audios(instrument_id)
         audios = [a for a in audios if a.instrument and a.instrument.is_active]
         by_instrument_and_midi = {}
@@ -105,16 +104,22 @@ class QuestionGenerator:
                 key = (audio.instrument_id, audio.note.midi_number)
                 by_instrument_and_midi[key] = audio
 
-        questions = []
-        for _ in range(count):
-            interval = random.choice(intervals)
+        interval_pairs = []
+        for interval in intervals:
             pairs = []
             for (instrument, first_midi), first in by_instrument_and_midi.items():
                 second = by_instrument_and_midi.get((instrument, first_midi + interval.semitones))
                 if second:
                     pairs.append((first, second))
-            if not pairs:
-                continue
+            if pairs:
+                interval_pairs.append((interval, pairs))
+        if not interval_pairs:
+            return []
+
+        interval_names = [interval.name for interval, _ in interval_pairs]
+        questions = []
+        for _ in range(count):
+            interval, pairs = random.choice(interval_pairs)
             first, second = random.choice(pairs)
             correct  = interval.name
             options  = self._make_options(correct, pool=interval_names)
@@ -122,10 +127,11 @@ class QuestionGenerator:
                 mode="intervalos",
                 type="identificar_intervalo",
                 audio_id=first.id,
+                second_audio_id=second.id,
                 correct_answer=correct,
                 difficulty=difficulty,
                 instrument_id=first.instrument_id,
-                hint=f"Intervalo de {interval.semitones} semitonos.",
+                hint="Escucha la distancia entre las dos notas.",
             )
             q.options = options
             q._audio_stream_url = first.stream_url

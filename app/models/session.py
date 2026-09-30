@@ -19,9 +19,20 @@ class TrainingSession(db.Model):
     is_completed      = db.Column(db.Boolean, default=False)
     started_at        = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     completed_at      = db.Column(db.DateTime, nullable=True)
+    is_abandoned      = db.Column(
+        db.Boolean,
+        default=False,
+        server_default=db.false(),
+        nullable=False,
+    )
 
     user       = db.relationship("User",       back_populates="sessions")
     instrument = db.relationship("Instrument", foreign_keys=[instrument_id])
+    questions  = db.relationship(
+        "Question",
+        back_populates="session",
+        order_by="Question.position",
+    )
     answers    = db.relationship("Answer",     back_populates="session",
                                  lazy="dynamic", cascade="all, delete-orphan")
 
@@ -38,6 +49,9 @@ class TrainingSession(db.Model):
 
 class Answer(db.Model):
     __tablename__ = "answers"
+    __table_args__ = (
+        db.UniqueConstraint("session_id", "question_id", name="uq_answer_session_question"),
+    )
 
     id            = db.Column(db.Integer, primary_key=True)
     session_id    = db.Column(db.Integer, db.ForeignKey("training_sessions.id"), nullable=False, index=True)
