@@ -96,8 +96,6 @@ def _scales():
         {"name": "Menor melódica",  "intervals_pattern": "2,1,2,2,2,2,1",    "description": "Menor con sexta y séptima mayor al subir."},
         {"name": "Pentatónica mayor","intervals_pattern": "2,2,3,2,3",        "description": "Cinco notas, muy común en música andina."},
         {"name": "Pentatónica menor","intervals_pattern": "3,2,2,3,2",        "description": "Pentatónica con carácter menor."},
-        {"name": "Dórica",          "intervals_pattern": "2,1,2,2,2,1,2",    "description": "Modo menor con sexta mayor."},
-        {"name": "Mixolidia",       "intervals_pattern": "2,2,1,2,2,1,2",    "description": "Mayor con séptima menor, muy usada en bambuco."},
     ]
     count = 0
     for d in data:

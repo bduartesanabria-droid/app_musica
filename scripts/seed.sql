@@ -95,8 +95,6 @@ INSERT INTO scales (name, type, intervals_pattern) VALUES ('Menor armonica', 'de
 INSERT INTO scales (name, type, intervals_pattern) VALUES ('Menor melodica', 'default', '2,1,2,2,2,2,1');
 INSERT INTO scales (name, type, intervals_pattern) VALUES ('Pentatonica mayor', 'default', '2,2,3,2,3');
 INSERT INTO scales (name, type, intervals_pattern) VALUES ('Pentatonica menor', 'default', '3,2,2,3,2');
-INSERT INTO scales (name, type, intervals_pattern) VALUES ('Dorica', 'default', '2,1,2,2,2,1,2');
-INSERT INTO scales (name, type, intervals_pattern) VALUES ('Mixolidia', 'default', '2,2,1,2,2,1,2');
 
 -- Badges
 INSERT INTO badges (name, description, icon, requirement_type, requirement_value, xp_reward, coin_reward, is_active) VALUES ('Primera Nota', E'Completa tu primera sesion de entrenamiento.', '🎵', 'sessions', 1, 10, 5, TRUE);

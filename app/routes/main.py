@@ -9,7 +9,7 @@ from PIL import Image, UnidentifiedImageError
 from sqlalchemy.exc import IntegrityError
 from ..models.progress import Progress, UserStatistics
 from ..models.gamification import UserGamification
-from ..models.instrument import Interval, Scale
+from ..models.instrument import Interval, Scale, Instrument
 from ..models.audio import Audio
 from ..models.session import TrainingSession
 from ..models.gamification import UserBadge
@@ -164,6 +164,20 @@ def dashboard():
 @login_required
 def learning():
     allowed = {"guitarra", "bandola", "requinto", "tiple"}
+    excluded_scales = ["dórica", "dorica", "mixolidia", "mixolidio", "dórico", "dorico"]
+    scales = (
+        Scale.query.filter(~db.func.lower(Scale.name).in_(excluded_scales))
+        .order_by(Scale.name)
+        .all()
+    )
+    instruments = (
+        Instrument.query.filter(
+            Instrument.is_active == True,
+            db.func.lower(Instrument.name).in_(allowed),
+        )
+        .order_by(Instrument.name)
+        .all()
+    )
     catalog = {}
     audios = Audio.query.options(
         joinedload(Audio.instrument),
@@ -181,7 +195,8 @@ def learning():
     return render_template(
         "learning/index.html",
         intervals=Interval.query.order_by(Interval.semitones).all(),
-        scales=Scale.query.order_by(Scale.name).all(),
+        scales=scales,
+        instruments=instruments,
         audio_catalog=catalog,
     )
 

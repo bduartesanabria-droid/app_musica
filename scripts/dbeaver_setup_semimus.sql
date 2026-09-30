@@ -321,9 +321,7 @@ INSERT INTO scales (name, type, intervals_pattern) VALUES
 ('Menor armonica', 'default', '2,1,2,2,1,3,1'),
 ('Menor melodica', 'default', '2,1,2,2,2,2,1'),
 ('Pentatonica mayor', 'default', '2,2,3,2,3'),
-('Pentatonica menor', 'default', '3,2,2,3,2'),
-('Dorica', 'default', '2,1,2,2,2,1,2'),
-('Mixolidia', 'default', '2,2,1,2,2,1,2');
+('Pentatonica menor', 'default', '3,2,2,3,2');
 
 -- Badges
 INSERT INTO badges (name, description, icon, requirement_type, requirement_value, xp_reward, coin_reward, is_active) VALUES 

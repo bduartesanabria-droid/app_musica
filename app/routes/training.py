@@ -49,12 +49,18 @@ def index():
         (instrument.id for instrument in instruments if instrument.name.casefold() == selected_instrument),
         "",
     )
+    excluded_scales = ["dórica", "dorica", "mixolidia", "mixolidio", "dórico", "dorico"]
+    scales = (
+        Scale.query.filter(~db.func.lower(Scale.name).in_(excluded_scales))
+        .order_by(Scale.name)
+        .all()
+    )
     return render_template(
         "training/index.html",
         instruments=instruments,
         modes=TRAINING_MODES,
         selected_instrument_id=selected_id,
-        scales=Scale.query.order_by(Scale.name).all(),
+        scales=scales,
     )
 
 

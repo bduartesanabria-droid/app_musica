@@ -46,8 +46,6 @@ SCALES = [
     ("Menor melodica", "2,1,2,2,2,2,1"),
     ("Pentatonica mayor", "2,2,3,2,3"),
     ("Pentatonica menor", "3,2,2,3,2"),
-    ("Dorica", "2,1,2,2,2,1,2"),
-    ("Mixolidia", "2,2,1,2,2,1,2"),
 ]
 
 BADGES = [

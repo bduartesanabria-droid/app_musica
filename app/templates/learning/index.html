@@ -7,7 +7,7 @@
   <section class="card">
     <p class="eyebrow">Guía auditiva</p>
     <h1 class="text-2xl font-black text-white mt-2">Aprende escuchando</h1>
-    <p class="text-sm mt-2 text-gray-400">Selecciona un instrumento, una escala y una nota inicial. Escucha cada nota de la escala en secuencia.</p>
+    <p class="text-sm mt-2 text-gray-400">Selecciona un instrumento, una escala y una nota tónica. Escucha cada nota de la escala en secuencia.</p>
   </section>
 
   <section class="card space-y-4">
@@ -15,7 +15,11 @@
       <label class="text-sm text-gray-500 dark:text-gray-300">Instrumento
         <select x-model="instrument" @change="resetRoot()" class="form-input mt-1">
           <option value="">Selecciona</option>
-          {% for name in ['Guitarra', 'Bandola', 'Requinto', 'Tiple'] %}<option value="{{ name }}">{{ name }}</option>{% endfor %}
+          {% if instruments %}
+            {% for instr in instruments %}<option value="{{ instr.name }}">{{ instr.name }}</option>{% endfor %}
+          {% else %}
+            {% for name in ['Guitarra', 'Bandola', 'Requinto', 'Tiple'] %}<option value="{{ name }}">{{ name }}</option>{% endfor %}
+          {% endif %}
         </select>
       </label>
       <label class="text-sm text-gray-500 dark:text-gray-300">Escala
@@ -23,7 +27,7 @@
           {% for scale in scales %}<option value="{{ loop.index0 }}">{{ scale.name }}</option>{% endfor %}
         </select>
       </label>
-      <label class="text-sm text-gray-500 dark:text-gray-300">Nota inicial
+      <label class="text-sm text-gray-500 dark:text-gray-300">Nota tónica
         <select x-model="rootMidi" @change="renderScale()" class="form-input mt-1">
           <option value="">Selecciona instrumento primero</option>
           <template x-for="note in availableRoots" :key="note.midi"><option :value="note.midi" x-text="note.name"></option></template>
@@ -55,10 +59,80 @@ function scalePlayer(catalog) {
   const scaleData = [{% for scale in scales %}{name: {{ scale.name|tojson }}, pattern: {{ scale.intervals_pattern|tojson }}},{% endfor %}];
   return {
     catalog, scaleData, instrument: '', scaleIndex: '0', rootMidi: '', availableRoots: [], scaleNotes: [], playing: false, status: 'Selecciona las opciones para comenzar.', player: null, timer: null,
-    resetRoot() { this.availableRoots = (this.catalog[this.instrument] || []).filter(note => note.midi != null).sort((a, b) => a.midi - b.midi); this.rootMidi = this.availableRoots[0]?.midi || ''; this.renderScale(); },
-    renderScale() { const root = Number(this.rootMidi); const scale = this.scaleData[Number(this.scaleIndex)]; if (!root || !scale) { this.scaleNotes = []; return; } const steps = scale.pattern.split(',').map(Number); let midi = root; const notes = []; const source = this.catalog[this.instrument] || []; for (let i = 0; i <= steps.length; i++) { const note = source.find(item => item.midi === midi); if (!note) break; notes.push(note); if (i < steps.length) midi += steps[i]; } this.scaleNotes = notes; this.status = notes.length ? `${notes.length} notas disponibles` : 'No hay audios suficientes para esta escala.'; },
-    playScale() { if (!this.scaleNotes.length) return; this.stop(); this.playing = true; let index = 0; const next = () => { if (!this.playing || index >= this.scaleNotes.length) { this.status = 'Escala finalizada.'; this.stop(); return; } this.status = `Reproduciendo ${this.scaleNotes[index].name}`; this.player = new Audio(this.scaleNotes[index++].url); this.player.preload = 'auto'; this.player.onended = next; this.player.onerror = () => { this.status = 'No se pudo cargar este audio. Vuelve a cargarlo en formato WAV.'; this.stop(); }; this.player.play().catch(() => { this.status = 'El navegador bloqueo la reproducción.'; this.stop(); }); }; next(); },
-    stop() { this.playing = false; if (this.player) { this.player.pause(); this.player = null; } clearTimeout(this.timer); }
+    getCatalogNotes() {
+      if (!this.catalog || !this.instrument) return [];
+      const instLower = this.instrument.toLowerCase();
+      const matchedKey = Object.keys(this.catalog).find(k => k.toLowerCase() === instLower);
+      return (matchedKey && this.catalog[matchedKey]) ? this.catalog[matchedKey] : [];
+    },
+    resetRoot() {
+      const list = this.getCatalogNotes();
+      const seenMidi = new Set();
+      const unique = [];
+      for (const n of list) {
+        if (n.midi != null && !seenMidi.has(n.midi)) {
+          seenMidi.add(n.midi);
+          unique.push(n);
+        }
+      }
+      this.availableRoots = unique.sort((a, b) => a.midi - b.midi);
+      this.rootMidi = this.availableRoots[0]?.midi || '';
+      this.renderScale();
+    },
+    renderScale() {
+      const root = Number(this.rootMidi);
+      const scale = this.scaleData[Number(this.scaleIndex)];
+      if (!root || !scale) {
+        this.scaleNotes = [];
+        return;
+      }
+      const steps = scale.pattern.split(',').map(Number);
+      let midi = root;
+      const notes = [];
+      const source = this.getCatalogNotes();
+      for (let i = 0; i <= steps.length; i++) {
+        const note = source.find(item => item.midi === midi);
+        if (!note) break;
+        notes.push(note);
+        if (i < steps.length) midi += steps[i];
+      }
+      this.scaleNotes = notes;
+      this.status = notes.length ? `${notes.length} notas disponibles` : 'No hay audios suficientes para esta escala.';
+    },
+    playScale() {
+      if (!this.scaleNotes.length) return;
+      this.stop();
+      this.playing = true;
+      let index = 0;
+      const next = () => {
+        if (!this.playing || index >= this.scaleNotes.length) {
+          this.status = 'Escala finalizada.';
+          this.stop();
+          return;
+        }
+        this.status = `Reproduciendo ${this.scaleNotes[index].name}`;
+        this.player = new Audio(this.scaleNotes[index++].url);
+        this.player.preload = 'auto';
+        this.player.onended = next;
+        this.player.onerror = () => {
+          this.status = 'No se pudo cargar este audio. Vuelve a cargarlo en formato WAV.';
+          this.stop();
+        };
+        this.player.play().catch(() => {
+          this.status = 'El navegador bloqueo la reproducción.';
+          this.stop();
+        });
+      };
+      next();
+    },
+    stop() {
+      this.playing = false;
+      if (this.player) {
+        this.player.pause();
+        this.player = null;
+      }
+      clearTimeout(this.timer);
+    }
   };
 }
 </script>
