@@ -1,9 +1,9 @@
 # 🎵 SEMIMUS — Sistema de Entrenamiento Melódico Musical
 
-> Plataforma PWA para el entrenamiento del oído musical con instrumentos andinos colombianos: **Tiple**, **Requinto** y **Bandola**.
+> Plataforma web para el entrenamiento del oído musical con instrumentos andinos colombianos: **Tiple**, **Requinto** y **Bandola**.
 
 ![Stack](https://img.shields.io/badge/Backend-Flask%203.0%20%2B%20PostgreSQL-blue)
-![Stack](https://img.shields.io/badge/Frontend-React%2018%20%2B%20Vite%20%2B%20TailwindCSS-cyan)
+![Stack](https://img.shields.io/badge/Frontend-Jinja%20%2B%20Alpine%20%2B%20TailwindCSS-cyan)
 ![Stack](https://img.shields.io/badge/Deploy-Docker%20%2B%20Coolify-purple)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
@@ -20,13 +20,8 @@ semimus/
 │   │   └── utils/         # Generador de preguntas, procesamiento de audio
 │   ├── storage/audio/     # Archivos WAV/MP3 (volumen Docker)
 │   └── Dockerfile
-├── frontend/              # React + Vite PWA
-│   ├── src/
-│   │   ├── pages/         # Login, Dashboard, Training, Admin...
-│   │   ├── components/    # Layout, Audio Player, UI components
-│   │   ├── store/         # Zustand (auth, theme)
-│   │   └── services/      # Axios API client
-│   └── Dockerfile
+├── app/templates/          # Vistas server-rendered con Jinja
+├── app/static/             # JavaScript y CSS compilado
 ├── nginx/                 # Reverse proxy
 ├── .github/workflows/     # CI/CD GitHub Actions
 └── docker-compose.yml
@@ -113,13 +108,11 @@ flask db upgrade
 el esquema. No lo uses sobre una base vacía ni sobre una base cuyo esquema no
 coincida con la migración.
 
-### Frontend
+### Compilar los recursos CSS y JavaScript
 
 ```bash
-cd frontend
-npm install
-npm run dev
-# → http://localhost:5173
+npm ci
+npm run build
 ```
 
 ---
@@ -275,14 +268,9 @@ users ──────────── progress (1:1)
 - librosa + soundfile (análisis de audio)
 
 **Frontend:**
-- React 18 + Vite 5
-- TailwindCSS 3
-- React Query (caché de datos)
-- Zustand (estado global)
-- Framer Motion (animaciones)
-- Recharts (gráficas)
-- WaveSurfer.js (visualización de audio)
-- PWA (Service Workers, offline, instalable)
+- Jinja templates + Alpine.js
+- TailwindCSS 3 compilado
+- Chart.js
 
 **DevOps:**
 - Docker + Docker Compose

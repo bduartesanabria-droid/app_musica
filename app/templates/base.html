@@ -9,33 +9,9 @@
   <meta name="csrf-token" content="{{ csrf_token() }}">
   <title>{% block title %}SEMIMUS{% endblock %} — Entrenamiento Musical</title>
 
-  <!-- TailwindCSS CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          colors: {
-            sena:    { DEFAULT: '#39A900', light: '#4ADE80', dark: '#2d8a00', 50: '#f0fff0', 100: '#dcfce7' },
-            accent:  { DEFAULT: '#FFC107', 400: '#FBBF24', 500: '#FFC107', 600: '#D97706' },
-            dark:    { bg: '#0B0F14', card: '#111827' },
-          },
-          fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
-        }
-      }
-    }
-  </script>
-
-  <!-- Google Fonts: Inter -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-
-  <!-- Alpine.js -->
-  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-
-  <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/tailwind.css') }}">
+  <script defer src="{{ url_for('static', filename='vendor/alpine-3.14.9.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='vendor/chart-4.4.9.umd.js') }}"></script>
 
   <!-- CSS propio -->
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">

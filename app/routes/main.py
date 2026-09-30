@@ -1,6 +1,5 @@
 import os
 import uuid
-import json
 import io
 from urllib.parse import urlsplit
 
@@ -183,7 +182,7 @@ def learning():
         "learning/index.html",
         intervals=Interval.query.order_by(Interval.semitones).all(),
         scales=Scale.query.order_by(Scale.name).all(),
-        audio_catalog=json.dumps(catalog),
+        audio_catalog=catalog,
     )
 
 

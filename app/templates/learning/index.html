@@ -2,7 +2,8 @@
 {% block title %}Aprender{% endblock %}
 {% block page_title %}Aprender intervalos y escalas{% endblock %}
 {% block content %}
-<div class="learning-page max-w-5xl mx-auto space-y-6" x-data="scalePlayer({{ audio_catalog|safe }})">
+<div class="learning-page max-w-5xl mx-auto space-y-6" x-data="scalePlayer(JSON.parse(document.getElementById('audio-catalog').textContent))">
+  <script id="audio-catalog" type="application/json">{{ audio_catalog|tojson }}</script>
   <section class="card">
     <p class="eyebrow">Guía auditiva</p>
     <h1 class="text-2xl font-black text-white mt-2">Aprende escuchando</h1>
