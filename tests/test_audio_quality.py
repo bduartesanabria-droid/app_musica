@@ -27,6 +27,10 @@ def test_note_parser_normalizes_flats_and_preserves_sharps():
         "Fab4": "MI4",
         "Dob4": "SI3",
         "RE#3": "RE#3",
+        "1. Mi2.wma": "MI2",
+        "10. do#3.wma": "DO#3",
+        "11. re3.wma": "RE3",
+        "8..la3.wma": "LA3",
     }
 
     for source, canonical in expected.items():

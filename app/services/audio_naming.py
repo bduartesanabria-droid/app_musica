@@ -26,9 +26,8 @@ def find_note(value):
     """Find a note token in a filename and normalize it to a sharp spelling."""
     if not value:
         return None
-    filename = str(value).replace("\\", "/").rsplit("/", 1)[-1]
-    stem = os.path.splitext(filename)[0]
-    match = NOTE_PATTERN.search(stem)
+    raw_str = str(value).replace("\\", "/").rsplit("/", 1)[-1]
+    match = NOTE_PATTERN.search(raw_str)
     if not match:
         return None
 
