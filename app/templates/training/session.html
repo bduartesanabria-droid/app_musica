@@ -10,9 +10,10 @@
     <button @click="playAudio()" :disabled="isPlaying" class="session-play" :class="isPlaying ? 'is-playing' : ''"><span x-show="!isPlaying">▶</span><span x-show="isPlaying" x-cloak>Ⅱ</span></button>
      <p class="play-state" x-text="isPlaying ? 'Reproduciendo las dos notas…' : 'Escuchar intervalo'"></p>
      <div class="session-options" x-show="currentQ"><template x-for="(opt, i) in (currentQ ? currentQ.options : [])" :key="i"><button type="button" @click="submitAnswer(opt)" :disabled="answered" :class="{'correct': answerReady && opt === currentQ.correct_answer, 'wrong': answerReady && opt === selectedAnswer && opt !== currentQ.correct_answer}" class="interval-option"><span class="option-key" x-text="i + 1"></span><span x-text="opt"></span></button></template></div>
-     <div x-show="answered && answerReady" x-cloak class="answer-feedback" :class="lastCorrect ? 'is-correct' : 'is-wrong'" role="status" aria-live="polite">
-       <span class="feedback-mark" aria-hidden="true" x-text="lastCorrect ? '✓' : '✕'"></span>
-       <div><strong x-show="lastCorrect">¡Respuesta correcta! Muy bien escuchado.</strong><strong x-show="!lastCorrect" x-cloak>Respuesta incorrecta. La correcta es: <span x-text="currentQ ? currentQ.correct_answer : ''"></span>.</strong>
+      <div x-show="answered && answerReady" x-cloak class="answer-feedback" :class="lastCorrect ? 'is-correct' : 'is-wrong'" role="status" aria-live="polite">
+        <span class="feedback-mark" aria-hidden="true" x-text="lastCorrect ? '✓' : '✕'"></span>
+        <img class="feedback-character" :src="lastCorrect ? '{{ url_for('static', filename='img/niños_acertaste.png') }}' : '{{ url_for('static', filename='img/niños_tristes.png') }}'" :alt="lastCorrect ? 'Celebración de respuesta correcta' : 'Respuesta incorrecta'">
+        <div><strong x-show="lastCorrect">¡Respuesta correcta! Muy bien escuchado.</strong><strong x-show="!lastCorrect" x-cloak>Respuesta incorrecta. La correcta es: <span x-text="currentQ ? currentQ.correct_answer : ''"></span>.</strong>
          <p x-show="!lastCorrect && currentQ && currentQ.explanation" x-text="currentQ && currentQ.explanation ? currentQ.explanation : ''"></p>
        </div>
      </div>

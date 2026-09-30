@@ -73,3 +73,14 @@ def test_training_player_precaches_each_question_audio():
     assert "new Audio(url)" in source
     assert "this._playCached(this.currentQ.audio_url" in source
     assert "this._playCached(this.currentQ.second_audio_url" in source
+
+
+def test_layout_and_training_include_companion_states(client):
+    layout = client.get("/auth/login").get_data(as_text=True)
+    assert "/static/img/ni%C3%B1os_traje.png" in layout
+    assert "/static/img/ni%C3%B1os_acertaste.png" in layout
+    assert "/static/img/ni%C3%B1os_tristes.png" in layout
+
+    source = open("app/static/js/training.js", encoding="utf-8").read()
+    assert "this._setCompanion('correct')" in source
+    assert "this._setCompanion('wrong')" in source

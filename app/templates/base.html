@@ -18,10 +18,30 @@
 
   {% block head %}{% endblock %}
 </head>
-<body class="h-full font-sans antialiased" style="background:#0B0F14;color:#fff;"
+<body class="h-full font-sans antialiased" x-data="{ companionState: 'idle' }"
+      @semimus-companion.window="companionState = $event.detail.state"
+      style="background:#0B0F14;color:#fff;"
       :style="darkMode ? 'background:#0B0F14;color:#fff' : 'background:#F8FAFC;color:#111827'">
 
 {% block body %}{% endblock %}
+
+<div class="site-companion" aria-live="polite">
+  <span class="site-companion-label" x-text="companionState === 'correct' ? '¡Muy bien!' : companionState === 'wrong' ? 'Sigue intentando' : 'Tu equipo musical'"></span>
+  <img
+    x-show="companionState === 'idle'"
+    src="{{ url_for('static', filename='img/niños_traje.png') }}"
+    alt="Niños con traje tradicional que acompañan tu aprendizaje">
+  <img
+    x-show="companionState === 'correct'"
+    x-cloak
+    src="{{ url_for('static', filename='img/niños_acertaste.png') }}"
+    alt="Niños celebrando una respuesta correcta">
+  <img
+    x-show="companionState === 'wrong'"
+    x-cloak
+    src="{{ url_for('static', filename='img/niños_tristes.png') }}"
+    alt="Niños tristes por una respuesta incorrecta">
+</div>
 
 <!-- Toast -->
 {% with messages = get_flashed_messages(with_categories=true) %}

@@ -51,6 +51,7 @@ function trainingSession(questions, answerUrl, completeUrl, savedAnswers = []) {
         this.currentQ.explanation = currentSavedAnswer.explanation;
       }
       this._questionStart = Date.now();
+      this._setCompanion('idle');
       this._preloadAllQuestions();
       this._timer = setInterval(() => { this.elapsed++; }, 1000);
       // Auto-play first audio
@@ -166,10 +167,12 @@ function trainingSession(questions, answerUrl, completeUrl, savedAnswers = []) {
 
         if (data.is_correct) {
           this.correct++;
+          this._setCompanion('correct');
           // Correct answer sound cue (visual flash)
           this._flashFeedback('correct');
         } else {
           this.wrong++;
+          this._setCompanion('wrong');
           // Update correct_answer in case server provides canonical value
           if (data.correct_answer) {
             this.currentQ.correct_answer = data.correct_answer;
@@ -195,6 +198,7 @@ function trainingSession(questions, answerUrl, completeUrl, savedAnswers = []) {
         this.answered = false;
         this.selectedAnswer = null;
         this.answerError = 'No se pudo comprobar la respuesta. Revisa tu conexión e inténtalo de nuevo.';
+        this._setCompanion('idle');
       }
     },
 
@@ -216,6 +220,7 @@ function trainingSession(questions, answerUrl, completeUrl, savedAnswers = []) {
       this.lastCorrect     = false;
       this.showHint        = false;
       this._questionStart  = Date.now();
+      this._setCompanion('idle');
 
       // Auto-play next audio
       this.$nextTick(() => this.playAudio());
@@ -290,6 +295,10 @@ function trainingSession(questions, answerUrl, completeUrl, savedAnswers = []) {
       // Try cookie
       const match = document.cookie.match(/csrf_token=([^;]+)/);
       return match ? match[1] : '';
+    },
+
+    _setCompanion(state) {
+      window.dispatchEvent(new CustomEvent('semimus-companion', { detail: { state } }));
     },
 
     _flashFeedback(type) {
