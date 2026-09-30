@@ -9,17 +9,19 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app import create_app
 from app.extensions import db
+from flask_migrate import upgrade
 from app.models.user import User
 from app.models.instrument import Instrument, Note, Interval, Scale
 from app.models.progress import Progress, UserStatistics
 from app.models.gamification import UserGamification, Badge
+from app.utils.validation import valid_email, valid_password, valid_username
 
 app = create_app(os.getenv("FLASK_ENV", "development"))
 
 
 def seed():
     with app.app_context():
-        db.create_all()
+        upgrade()
         _instruments()
         _notes()
         _intervals()
@@ -127,57 +129,33 @@ def _badges():
 
 
 def _admin_user():
-    # 1. Super Admin
-    super_email = os.getenv("SUPERADMIN_EMAIL", "superadmin@semimus.app")
-    super_username = os.getenv("SUPERADMIN_USERNAME", "superadmin")
-    super_password = os.getenv("SUPERADMIN_PASSWORD", "Semimus2026!SuperAdmin")
+    username = os.getenv("SUPERADMIN_USERNAME")
+    email = os.getenv("SUPERADMIN_EMAIL")
+    password = os.getenv("SUPERADMIN_PASSWORD")
+    if not all((username, email, password)):
+        return
+    if not valid_username(username) or not valid_email(email) or not valid_password(password):
+        return
+    if User.query.filter_by(role="superadmin").first():
+        return
+    if User.query.filter((User.email == email) | (User.username == username)).first():
+        return
 
-    super_user = User.query.filter((User.email == super_email) | (User.username == super_username)).first()
-    if not super_user:
-        super_user = User(
-            username=super_username,
-            email=super_email,
-            first_name="Super",
-            last_name="Admin",
-            role="superadmin",
-            is_active=True,
-            is_verified=True,
-        )
-        super_user.set_password(super_password)
-        db.session.add(super_user)
-        db.session.flush()
-        db.session.add(Progress(user_id=super_user.id))
-        db.session.add(UserStatistics(user_id=super_user.id))
-        db.session.add(UserGamification(user_id=super_user.id))
-        print(f"  [OK] Super Admin creado: {super_email} / {super_username}")
-    else:
-        print(f"  [OK] Super Admin ya existe ({super_email})")
-
-    # 2. Admin Estándar
-    admin_email = os.getenv("ADMIN_EMAIL", "admin@semimus.app")
-    admin_username = os.getenv("ADMIN_USERNAME", "admin")
-    admin_password = os.getenv("ADMIN_PASSWORD", "Semimus2026!")
-
-    admin_user = User.query.filter((User.email == admin_email) | (User.username == admin_username)).first()
-    if not admin_user:
-        admin_user = User(
-            username=admin_username,
-            email=admin_email,
-            first_name="Admin",
-            last_name="SEMIMUS",
-            role="admin",
-            is_active=True,
-            is_verified=True,
-        )
-        admin_user.set_password(admin_password)
-        db.session.add(admin_user)
-        db.session.flush()
-        db.session.add(Progress(user_id=admin_user.id))
-        db.session.add(UserStatistics(user_id=admin_user.id))
-        db.session.add(UserGamification(user_id=admin_user.id))
-        print(f"  [OK] Admin creado: {admin_email} / {admin_username}")
-    else:
-        print(f"  [OK] Admin ya existe ({admin_email})")
+    user = User(
+        username=username,
+        email=email,
+        first_name="Super",
+        last_name="Admin",
+        role="superadmin",
+        is_active=True,
+        is_verified=True,
+    )
+    user.set_password(password)
+    db.session.add(user)
+    db.session.flush()
+    db.session.add(Progress(user_id=user.id))
+    db.session.add(UserStatistics(user_id=user.id))
+    db.session.add(UserGamification(user_id=user.id))
 
 
 if __name__ == "__main__":

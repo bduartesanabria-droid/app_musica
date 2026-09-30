@@ -9,7 +9,7 @@
 DO $$
 BEGIN
     IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'semimus') THEN
-        CREATE ROLE semimus WITH LOGIN PASSWORD 'semimus123';
+        RAISE EXCEPTION 'Crea el rol semimus con una contraseña segura antes de ejecutar este script.';
     END IF;
 END
 $$;
@@ -276,16 +276,6 @@ INSERT INTO badges (name, description, requirement_type, requirement_value, xp_r
     ('Decena', 'Completa 10 sesiones de intervalos.', 'sessions', 10, 50, 20),
     ('Precision', 'Alcanza 80 por ciento de aciertos.', 'accuracy', 80, 25, 10),
     ('Racha', 'Mantiene una racha de 7 dias.', 'streak', 7, 100, 40);
-
--- Usuario inicial: admin / Semimus2026!
-INSERT INTO users (username, email, password_hash, first_name, last_name, role, is_active, is_verified)
-VALUES ('admin', 'admin@semimus.app',
-        '$2b$12$LYkYBg4Y7kIGp2umpzUavexlGAOLDO2Vd9wTgBUXaVzp9AIb5VoMm',
-        'Admin', 'SEMIMUS', 'admin', TRUE, TRUE);
-
-INSERT INTO progress (user_id) SELECT id FROM users WHERE username = 'admin';
-INSERT INTO user_statistics (user_id) SELECT id FROM users WHERE username = 'admin';
-INSERT INTO user_gamification (user_id) SELECT id FROM users WHERE username = 'admin';
 
 COMMIT;
 

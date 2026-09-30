@@ -33,9 +33,18 @@ class User(UserMixin, db.Model):
         return str(self.id)
 
     def set_password(self, password):
+        if len(password.encode("utf-8")) > 72:
+            raise ValueError("La contraseña supera el límite de 72 bytes.")
         self.password_hash = bcrypt.generate_password_hash(password).decode("utf-8")
 
     def check_password(self, password):
+        if not isinstance(password, str):
+            return False
+        try:
+            if len(password.encode("utf-8")) > 72:
+                return False
+        except UnicodeEncodeError:
+            return False
         return bcrypt.check_password_hash(self.password_hash, password)
 
     @property

@@ -160,6 +160,7 @@ def _store_audio(file, instrument_id, note_id, tags, description, uploaded_by, i
 
 
 @audio_bp.route("/stream/<path:filename>")
+@login_required
 def stream(filename):
     audio = Audio.query.filter_by(filename=filename).first()
     if audio and audio.audio_data:

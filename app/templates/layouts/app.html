@@ -157,17 +157,20 @@
       </div>
 
       <!-- Logout -->
-      <a href="{{ url_for('auth.logout') }}"
-         class="flex items-center gap-2.5 p-2 rounded-xl transition-all text-sm font-medium"
-         style="color:rgba(255,255,255,0.45)"
-         onmouseover="this.style.background='rgba(239,68,68,0.1)';this.style.color='#FCA5A5'"
-         onmouseout="this.style.background='transparent';this.style.color='rgba(255,255,255,0.45)'">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-          <polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
-        </svg>
-        Cerrar sesión
-      </a>
+      <form method="POST" action="{{ url_for('auth.logout') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit"
+                class="w-full flex items-center gap-2.5 p-2 rounded-xl transition-all text-sm font-medium"
+                style="color:rgba(255,255,255,0.45)"
+                onmouseover="this.style.background='rgba(239,68,68,0.1)';this.style.color='#FCA5A5'"
+                onmouseout="this.style.background='transparent';this.style.color='rgba(255,255,255,0.45)'">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+            <polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+          Cerrar sesión
+        </button>
+      </form>
     </div>
   </aside>
 

@@ -1,8 +1,13 @@
 import os
 import uuid
 import json
-from flask import Blueprint, render_template, redirect, url_for, current_app
+import io
+from urllib.parse import urlsplit
+
+from flask import Blueprint, render_template, redirect, url_for, current_app, request, flash, send_from_directory, abort
 from flask_login import login_required, current_user
+from PIL import Image, UnidentifiedImageError
+from sqlalchemy.exc import IntegrityError
 from ..models.progress import Progress, UserStatistics
 from ..models.gamification import UserGamification
 from ..models.instrument import Interval, Scale
@@ -11,11 +16,57 @@ from ..models.session import TrainingSession
 from ..models.gamification import Badge, UserBadge
 from ..extensions import db
 from datetime import datetime, timezone, timedelta
-from werkzeug.utils import secure_filename
 from sqlalchemy.orm import defer
 from ..utils.timezone import BOGOTA, SPANISH_WEEKDAYS, bogota_date, local_day_start_utc
+from ..utils.validation import valid_password
 
 main_bp = Blueprint("main", __name__)
+AVATAR_FORMAT_EXTENSIONS = {"JPEG": ".jpg", "PNG": ".png", "WEBP": ".webp"}
+
+
+def _read_avatar(upload):
+    max_bytes = current_app.config["MAX_AVATAR_SIZE_BYTES"]
+    content = upload.stream.read(max_bytes + 1)
+    if len(content) > max_bytes:
+        raise ValueError("La imagen de perfil no puede superar 2 MB.")
+    try:
+        image = Image.open(io.BytesIO(content))
+    except (UnidentifiedImageError, OSError, Image.DecompressionBombError, SyntaxError, ValueError) as exc:
+        raise ValueError("El archivo no contiene una imagen válida.") from exc
+    image_format = image.format
+    if image_format not in AVATAR_FORMAT_EXTENSIONS:
+        raise ValueError("La imagen debe ser JPG, PNG o WEBP.")
+    if image.width * image.height > 20_000_000:
+        raise ValueError("La resolución de la imagen es demasiado grande.")
+    try:
+        image.verify()
+    except (OSError, Image.DecompressionBombError, SyntaxError, ValueError) as exc:
+        raise ValueError("El archivo no contiene una imagen válida.") from exc
+    return content, AVATAR_FORMAT_EXTENSIONS[image_format]
+
+
+def _delete_previous_avatar(avatar_url):
+    if not avatar_url:
+        return
+    filename = os.path.basename(urlsplit(avatar_url).path)
+    if not filename:
+        return
+    directories = (
+        current_app.config["AVATAR_STORAGE_PATH"],
+        os.path.join(current_app.static_folder, "uploads", "avatars"),
+    )
+    for directory in directories:
+        path = os.path.abspath(os.path.join(directory, filename))
+        if os.path.commonpath((os.path.abspath(directory), path)) == os.path.abspath(directory):
+            if os.path.isfile(path):
+                os.remove(path)
+
+
+@main_bp.route("/uploads/avatars/<path:filename>")
+def avatar(filename):
+    if os.path.basename(filename) != filename:
+        abort(404)
+    return send_from_directory(current_app.config["AVATAR_STORAGE_PATH"], filename)
 
 
 @main_bp.route("/")
@@ -186,8 +237,6 @@ def rankings():
 @main_bp.route("/profile", methods=["GET", "POST"])
 @login_required
 def profile():
-    from flask import request, flash
-
     progress     = Progress.query.filter_by(user_id=current_user.id).first()
     gamification = UserGamification.query.filter_by(user_id=current_user.id).first()
 
@@ -199,8 +248,8 @@ def profile():
             new_pw     = request.form.get("new_password", "")
             if not current_user.check_password(current_pw):
                 flash("Contraseña actual incorrecta.", "danger")
-            elif len(new_pw) < 8:
-                flash("La nueva contraseña debe tener al menos 8 caracteres.", "danger")
+            elif not valid_password(new_pw):
+                flash("La nueva contraseña debe tener al menos 8 caracteres y no superar 72 bytes.", "danger")
             else:
                 current_user.set_password(new_pw)
                 db.session.commit()
@@ -211,22 +260,41 @@ def profile():
             bio        = request.form.get("bio", "").strip()
             if not first_name or not last_name:
                 flash("Nombre y apellido son obligatorios.", "danger")
+            elif len(first_name) > 80 or len(last_name) > 80:
+                flash("El nombre y el apellido no pueden superar 80 caracteres.", "danger")
+            elif len(bio) > 500:
+                flash("La biografía no puede superar 500 caracteres.", "danger")
             else:
                 avatar = request.files.get("avatar")
+                new_avatar_path = None
+                old_avatar_url = current_user.avatar_url
                 if avatar and avatar.filename:
-                    extension = os.path.splitext(secure_filename(avatar.filename))[1].lower()
-                    if extension not in {".jpg", ".jpeg", ".png", ".webp"}:
-                        flash("La imagen debe ser JPG, PNG o WEBP.", "danger")
+                    try:
+                        avatar_data, extension = _read_avatar(avatar)
+                    except ValueError as exc:
+                        flash(str(exc), "danger")
                         return redirect(url_for("main.profile"))
-                    avatar_dir = os.path.join(current_app.static_folder, "uploads", "avatars")
+
+                    avatar_dir = current_app.config["AVATAR_STORAGE_PATH"]
                     os.makedirs(avatar_dir, exist_ok=True)
                     filename = f"{uuid.uuid4().hex}{extension}"
-                    avatar.save(os.path.join(avatar_dir, filename))
-                    current_user.avatar_url = url_for("static", filename=f"uploads/avatars/{filename}")
+                    new_avatar_path = os.path.join(avatar_dir, filename)
+                    with open(new_avatar_path, "xb") as avatar_file:
+                        avatar_file.write(avatar_data)
+                    current_user.avatar_url = url_for("main.avatar", filename=filename)
                 current_user.first_name = first_name
                 current_user.last_name  = last_name
                 current_user.bio        = bio
-                db.session.commit()
+                try:
+                    db.session.commit()
+                except IntegrityError:
+                    db.session.rollback()
+                    if new_avatar_path and os.path.isfile(new_avatar_path):
+                        os.remove(new_avatar_path)
+                    flash("No se pudieron guardar los cambios del perfil.", "danger")
+                    return redirect(url_for("main.profile"))
+                if new_avatar_path:
+                    _delete_previous_avatar(old_avatar_url)
                 flash("Perfil actualizado.", "success")
 
         return redirect(url_for("main.profile"))

@@ -64,6 +64,16 @@ def toggle_user(user_id):
     if user.id == current_user.id:
         flash("No puedes desactivar tu propia cuenta.", "warning")
         return redirect(url_for("admin.users"))
+    if user.role in ("admin", "superadmin") and not current_user.is_superadmin:
+        flash("Solo un superadministrador puede desactivar administradores.", "danger")
+        return redirect(url_for("admin.users"))
+    if (
+        user.role == "superadmin"
+        and user.is_active
+        and User.query.filter_by(role="superadmin", is_active=True).count() <= 1
+    ):
+        flash("No puedes desactivar al último superadministrador activo.", "danger")
+        return redirect(url_for("admin.users"))
     user.is_active = not user.is_active
     db.session.commit()
     estado = "activado" if user.is_active else "desactivado"
@@ -82,6 +92,20 @@ def change_role(user_id):
         return redirect(url_for("admin.users"))
     if user.id == current_user.id:
         flash("No puedes cambiar tu propio rol.", "warning")
+        return redirect(url_for("admin.users"))
+    elevated_roles = {"admin", "superadmin"}
+    if not current_user.is_superadmin and (
+        user.role in elevated_roles or new_role in elevated_roles
+    ):
+        flash("Solo un superadministrador puede asignar o retirar roles administrativos.", "danger")
+        return redirect(url_for("admin.users"))
+    if (
+        user.role == "superadmin"
+        and new_role != "superadmin"
+        and user.is_active
+        and User.query.filter_by(role="superadmin", is_active=True).count() <= 1
+    ):
+        flash("No puedes retirar el rol al último superadministrador activo.", "danger")
         return redirect(url_for("admin.users"))
     user.role = new_role
     db.session.commit()

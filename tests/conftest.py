@@ -18,6 +18,11 @@ def app(tmp_path, monkeypatch):
         "AUDIO_STORAGE_PATH",
         str(tmp_path / "audio-test-storage"),
     )
+    monkeypatch.setattr(
+        TestingConfig,
+        "AVATAR_STORAGE_PATH",
+        str(tmp_path / "avatar-test-storage"),
+    )
     monkeypatch.setattr(app_module, "_ensure_superadmin_from_env", lambda: None)
 
     flask_app = app_module.create_app("testing")
@@ -37,7 +42,7 @@ def client(app):
 
 @pytest.fixture
 def make_user(app):
-    def factory(role="aprendiz", username="test-user"):
+    def factory(role="aprendiz", username="test-user", password=None):
         from app.models.gamification import UserGamification
         from app.models.progress import Progress, UserStatistics
         from app.models.user import User
@@ -53,6 +58,8 @@ def make_user(app):
                 role=role,
                 is_active=True,
             )
+            if password:
+                user.set_password(password)
             db.session.add(user)
             db.session.flush()
             db.session.add_all([
@@ -68,8 +75,8 @@ def make_user(app):
 
 @pytest.fixture
 def login_client(client, make_user):
-    def login(role="aprendiz"):
-        user_id = make_user(role=role)
+    def login(role="aprendiz", password=None):
+        user_id = make_user(role=role, password=password)
         with client.session_transaction() as session:
             session["_user_id"] = str(user_id)
             session["_fresh"] = True

@@ -1,5 +1,11 @@
 import os
-from flask import Flask
+import secrets
+
+from flask import Flask, current_app, request
+from sqlalchemy import inspect
+from sqlalchemy.exc import IntegrityError
+from werkzeug.middleware.proxy_fix import ProxyFix
+
 from config import config_map
 from .extensions import db, migrate, login_manager, bcrypt, mail, csrf, limiter
 
@@ -10,10 +16,32 @@ def create_app(env=None):
 
     app = Flask(__name__, instance_relative_config=False)
     app.config.from_object(config_map.get(env, config_map["default"]))
-    if env == "production" and not app.config.get("SQLALCHEMY_DATABASE_URI"):
-        raise RuntimeError("DATABASE_URL es obligatorio cuando FLASK_ENV=production.")
+    secret_key = app.config.get("SECRET_KEY")
+    if env == "production":
+        placeholder_markers = ("change-me", "cambia_esta", "replace-me", "not-for-production")
+        if (
+            not secret_key
+            or len(secret_key) < 32
+            or any(marker in secret_key.casefold() for marker in placeholder_markers)
+        ):
+            raise RuntimeError(
+                "En producción debes configurar SECRET_KEY con al menos 32 caracteres aleatorios."
+            )
+    elif not secret_key:
+        app.config["SECRET_KEY"] = secrets.token_urlsafe(48)
+
+    if not app.config.get("SQLALCHEMY_DATABASE_URI"):
+        raise RuntimeError("DATABASE_URL es obligatorio para conectar la base de datos.")
 
     os.makedirs(app.config["AUDIO_STORAGE_PATH"], exist_ok=True)
+
+    proxy_settings = {
+        "x_for": app.config["PROXY_FIX_X_FOR"],
+        "x_proto": app.config["PROXY_FIX_X_PROTO"],
+        "x_host": app.config["PROXY_FIX_X_HOST"],
+    }
+    if any(proxy_settings.values()):
+        app.wsgi_app = ProxyFix(app.wsgi_app, **proxy_settings)
 
     # Extensiones
     db.init_app(app)
@@ -32,7 +60,10 @@ def create_app(env=None):
     @login_manager.user_loader
     def load_user(user_id):
         from .models.user import User
-        return User.query.get(int(user_id))
+        try:
+            return db.session.get(User, int(user_id))
+        except (TypeError, ValueError):
+            return None
 
     # Importar modelos (necesario para migraciones)
     from .models import user, instrument, audio, question, session, progress, gamification  # noqa
@@ -74,6 +105,21 @@ def create_app(env=None):
     from .routes.errors import register_errors
     register_errors(app)
 
+    @app.after_request
+    def add_security_headers(response):
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        response.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
+        response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+        response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+        response.headers.setdefault(
+            "Content-Security-Policy-Report-Only",
+            "default-src 'self' https: data: blob: 'unsafe-inline' 'unsafe-eval'; "
+            "object-src 'none'; base-uri 'self'; frame-ancestors 'self'",
+        )
+        if request.is_secure:
+            response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+        return response
+
     with app.app_context():
         try:
             _ensure_superadmin_from_env()
@@ -87,16 +133,32 @@ def _ensure_superadmin_from_env():
     from .models.user import User
     from .models.progress import Progress, UserStatistics
     from .models.gamification import UserGamification
+    from .utils.validation import valid_email, valid_password, valid_username
 
-    username = os.getenv("SUPERADMIN_USERNAME", "superadmin")
-    email = os.getenv("SUPERADMIN_EMAIL", "superadmin@semimus.app")
-    password = os.getenv("SUPERADMIN_PASSWORD", "SuperAdminPass2026!")
-
-    if not username or not email or not password:
+    username = os.getenv("SUPERADMIN_USERNAME")
+    email = os.getenv("SUPERADMIN_EMAIL")
+    password = os.getenv("SUPERADMIN_PASSWORD")
+    if not all((username, email, password)):
+        return
+    if not valid_username(username) or not valid_email(email) or not valid_password(password):
+        current_app.logger.error("Superadmin bootstrap skipped because its environment values are invalid.")
         return
 
-    user = User.query.filter((User.email == email) | (User.username == username)).first()
-    if not user:
+    try:
+        if not inspect(db.engine).has_table("users"):
+            return
+        if User.query.filter_by(role="superadmin").first():
+            return
+
+        identity_conflict = User.query.filter(
+            (User.email == email) | (User.username == username)
+        ).first()
+        if identity_conflict:
+            current_app.logger.error(
+                "Superadmin bootstrap skipped because the configured identity already belongs to another account."
+            )
+            return
+
         user = User(
             username=username,
             email=email,
@@ -113,16 +175,11 @@ def _ensure_superadmin_from_env():
         db.session.add(UserStatistics(user_id=user.id))
         db.session.add(UserGamification(user_id=user.id))
         db.session.commit()
-    else:
-        changed = False
-        if user.role != "superadmin":
-            user.role = "superadmin"
-            changed = True
-        if not user.is_active:
-            user.is_active = True
-            changed = True
-        if not user.check_password(password):
-            user.set_password(password)
-            changed = True
-        if changed:
-            db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        if User.query.filter_by(role="superadmin").first():
+            return
+        raise
+    except Exception:
+        db.session.rollback()
+        raise

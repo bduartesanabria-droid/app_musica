@@ -61,11 +61,6 @@ BADGES = [
     ("Explorador", "Entrena con los 3 instrumentos principales.", "🗺", "instruments", 3, 75, 30),
 ]
 
-# Aviso: este hash es el de la contrasena por defecto del admin.
-# La contrasena del admin es: Semimus2026!  (la cambiaremos en el seed dinámico)
-ADMIN_PASSWORD_HASH = "ADMIN_HASH_GENERADO"
-
-
 def generate():
     now = datetime.now(timezone.utc).isoformat()
     L = []

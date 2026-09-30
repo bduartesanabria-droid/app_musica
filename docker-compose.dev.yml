@@ -12,7 +12,6 @@ services:
     environment:
       FLASK_ENV:   development
       FLASK_DEBUG: "1"
-      SECRET_KEY:  dev-secret-key-not-for-production
     volumes:
       - .:/app
       - /app/__pycache__

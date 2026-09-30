@@ -336,12 +336,4 @@ INSERT INTO badges (name, description, icon, requirement_type, requirement_value
 ('Perfeccion', E'Logra 100% de precision en una sesion de 10+.', '⭐', 'perfect', 1, 150, 60, TRUE),
 ('Explorador', E'Entrena con los 3 instrumentos principales.', '🗺', 'instruments', 3, 75, 30, TRUE);
 
--- Usuario admin (Contraseña inicial: Semimus2026!)
-INSERT INTO users (username, email, password_hash, first_name, last_name, role, is_active, is_verified, created_at) VALUES 
-('admin', 'admin@semimus.app', '$2b$12$LYkYBg4Y7kIGp2umpzUavexlGAOLDO2Vd9wTgBUXaVzp9AIb5VoMm', 'Admin', 'SEMIMUS', 'admin', TRUE, TRUE, CURRENT_TIMESTAMP);
-
-INSERT INTO progress (user_id) VALUES ((SELECT id FROM users WHERE email='admin@semimus.app'));
-INSERT INTO user_statistics (user_id) VALUES ((SELECT id FROM users WHERE email='admin@semimus.app'));
-INSERT INTO user_gamification (user_id) VALUES ((SELECT id FROM users WHERE email='admin@semimus.app'));
-
 COMMIT;

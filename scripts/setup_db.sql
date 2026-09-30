@@ -2,18 +2,18 @@
 -- SEMIMUS - Setup completo de base de datos (PostgreSQL)
 -- Ejecutar COMO superusuario postgres:
 --   psql -U postgres -h localhost -f scripts/setup_db.sql
--- Crea el rol, la base de datos, todas las tablas y los datos iniciales.
+-- Requiere un rol semimus previamente creado con una contraseña segura.
+-- Crea la base de datos, las tablas y los datos iniciales.
 -- ===============================================================
 
--- 1) Rol de aplicacion
+-- 1) Verificar rol de aplicacion
 DO $$
 BEGIN
    IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'semimus') THEN
-      CREATE ROLE semimus WITH LOGIN PASSWORD 'semimus123';
+      RAISE EXCEPTION 'Crea el rol semimus con una contraseña segura antes de ejecutar este script.';
    END IF;
 END
 $$;
-ALTER ROLE semimus CREATEDB;
 
 -- 2) Base de datos (no se puede crear dentro de una transaccion)
 SELECT 'CREATE DATABASE semimus_dev OWNER semimus'
@@ -419,12 +419,6 @@ INSERT INTO badges (name, description, icon, requirement_type, requirement_value
 INSERT INTO badges (name, description, icon, requirement_type, requirement_value, xp_reward, coin_reward, is_active) VALUES ('Maestra Andina', E'Completa 50 sesiones de entrenamiento.', '🏆', 'sessions', 50, 200, 80, TRUE);
 INSERT INTO badges (name, description, icon, requirement_type, requirement_value, xp_reward, coin_reward, is_active) VALUES ('Perfeccion', E'Logra 100% de precision en una sesion de 10+.', '⭐', 'perfect', 1, 150, 60, TRUE);
 INSERT INTO badges (name, description, icon, requirement_type, requirement_value, xp_reward, coin_reward, is_active) VALUES ('Explorador', E'Entrena con los 3 instrumentos principales.', '🗺', 'instruments', 3, 75, 30, TRUE);
-
--- Usuario admin (password por defecto: Semimus2026!)
-INSERT INTO users (username, email, password_hash, first_name, last_name, role, is_active, is_verified, created_at) VALUES ('admin', 'admin@semimus.app', '$2b$12$LYkYBg4Y7kIGp2umpzUavexlGAOLDO2Vd9wTgBUXaVzp9AIb5VoMm', 'Admin', 'SEMIMUS', 'admin', TRUE, TRUE, CURRENT_TIMESTAMP);
-INSERT INTO progress (user_id) VALUES ((SELECT id FROM users WHERE email='admin@semimus.app'));
-INSERT INTO user_statistics (user_id) VALUES ((SELECT id FROM users WHERE email='admin@semimus.app'));
-INSERT INTO user_gamification (user_id) VALUES ((SELECT id FROM users WHERE email='admin@semimus.app'));
 
 COMMIT;
 

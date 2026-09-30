@@ -15,7 +15,7 @@ def _database_uri():
 
 
 class Config:
-    SECRET_KEY = os.environ.get("SECRET_KEY", "semimus-dev-secret-2024")
+    SECRET_KEY = os.environ.get("SECRET_KEY")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = {"pool_pre_ping": True, "pool_recycle": 300}
 
@@ -35,9 +35,16 @@ class Config:
     # Almacenamiento de audio
     _audio_path = os.environ.get("AUDIO_STORAGE_PATH", os.path.join(BASE_DIR, "storage", "audio"))
     AUDIO_STORAGE_PATH = _audio_path if os.path.isabs(_audio_path) else os.path.join(BASE_DIR, _audio_path)
+    _avatar_path = os.environ.get("AVATAR_STORAGE_PATH", os.path.join(BASE_DIR, "instance", "avatars"))
+    AVATAR_STORAGE_PATH = _avatar_path if os.path.isabs(_avatar_path) else os.path.join(BASE_DIR, _avatar_path)
+    MAX_AVATAR_SIZE_BYTES = 2 * 1024 * 1024
     MAX_AUDIO_SIZE_MB     = int(os.environ.get("MAX_AUDIO_SIZE_MB", 50))
     MAX_CONTENT_LENGTH    = int(os.environ.get("MAX_UPLOAD_MB", 200)) * 1024 * 1024
     ALLOWED_AUDIO_EXTENSIONS = {"wav", "aiff", "aif", "mp3", "ogg", "flac"}
+
+    PROXY_FIX_X_FOR = int(os.environ.get("PROXY_FIX_X_FOR", 0))
+    PROXY_FIX_X_PROTO = int(os.environ.get("PROXY_FIX_X_PROTO", 0))
+    PROXY_FIX_X_HOST = int(os.environ.get("PROXY_FIX_X_HOST", 0))
 
     # Rate limiting — usa Redis si está disponible, memory como fallback
     RATELIMIT_STORAGE_URI = os.environ.get(
@@ -51,10 +58,7 @@ class Config:
 
 class DevelopmentConfig(Config):
     DEBUG = True
-    SQLALCHEMY_DATABASE_URI = os.environ.get(
-        "DATABASE_URL",
-        "postgresql://semimus:semimus123@localhost:5432/semimus_dev"
-    )
+    SQLALCHEMY_DATABASE_URI = _database_uri()
 
 
 class ProductionConfig(Config):
@@ -66,7 +70,7 @@ class ProductionConfig(Config):
 class TestingConfig(Config):
     TESTING = True
     WTF_CSRF_ENABLED = False
-    SQLALCHEMY_DATABASE_URI = "postgresql://semimus:semimus123@localhost:5432/semimus_test"
+    SQLALCHEMY_DATABASE_URI = os.environ.get("TEST_DATABASE_URL") or _database_uri() or "sqlite://"
 
 
 config_map = {

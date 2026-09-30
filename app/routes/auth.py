@@ -1,17 +1,32 @@
-import secrets
+import hashlib
+import hmac
 import logging
+import secrets
 from datetime import datetime, timezone, timedelta
-from flask import Blueprint, render_template, redirect, url_for, flash, request, session, current_app
+from urllib.parse import urlsplit
+from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_user, logout_user, login_required, current_user
 from flask_mail import Message
+from sqlalchemy.exc import IntegrityError
 from ..extensions import db, limiter, mail
 from ..models.user import User
 from ..models.progress import Progress, UserStatistics
 from ..models.gamification import UserGamification
+from ..utils.validation import valid_email, valid_password, valid_username
 
 log = logging.getLogger(__name__)
 
 auth_bp = Blueprint("auth", __name__)
+
+
+def _safe_next_url(target):
+    if not target or not target.startswith("/") or target.startswith("//") or "\\" in target:
+        return False
+    try:
+        parsed = urlsplit(target)
+    except ValueError:
+        return False
+    return not parsed.scheme and not parsed.netloc
 
 
 def _create_user_records(user):
@@ -50,7 +65,7 @@ def login():
 
         next_page = request.args.get("next")
         flash(f"¡Bienvenido, {user.first_name}!", "success")
-        return redirect(next_page or url_for("main.dashboard"))
+        return redirect(next_page if _safe_next_url(next_page) else url_for("main.dashboard"))
 
     return render_template("auth/login.html")
 
@@ -74,8 +89,20 @@ def register():
             flash("Todos los campos son obligatorios.", "danger")
             return render_template("auth/register.html")
 
-        if len(password) < 8:
-            flash("La contraseña debe tener al menos 8 caracteres.", "danger")
+        if len(first_name) > 80 or len(last_name) > 80:
+            flash("El nombre y el apellido no pueden superar 80 caracteres.", "danger")
+            return render_template("auth/register.html")
+
+        if not valid_username(username):
+            flash("El usuario debe tener entre 3 y 50 caracteres: letras, números, punto, guion o guion bajo.", "danger")
+            return render_template("auth/register.html")
+
+        if not valid_email(email):
+            flash("Ingresa un correo electrónico válido.", "danger")
+            return render_template("auth/register.html")
+
+        if not valid_password(password):
+            flash("La contraseña debe tener al menos 8 caracteres y no superar 72 bytes.", "danger")
             return render_template("auth/register.html")
 
         if password != confirm:
@@ -97,10 +124,15 @@ def register():
             email=email,
         )
         user.set_password(password)
-        db.session.add(user)
-        db.session.flush()
-        _create_user_records(user)
-        db.session.commit()
+        try:
+            db.session.add(user)
+            db.session.flush()
+            _create_user_records(user)
+            db.session.commit()
+        except IntegrityError:
+            db.session.rollback()
+            flash("El correo o el nombre de usuario ya está en uso.", "danger")
+            return render_template("auth/register.html")
 
         login_user(user)
         flash(f"¡Bienvenido a SEMIMUS, {first_name}!", "success")
@@ -109,7 +141,7 @@ def register():
     return render_template("auth/register.html")
 
 
-@auth_bp.route("/logout")
+@auth_bp.route("/logout", methods=["POST"])
 @login_required
 def logout():
     logout_user()
@@ -124,11 +156,12 @@ def forgot_password():
         email = request.form.get("email", "").lower().strip()
         user  = User.query.filter_by(email=email).first()
         if user:
-            user.reset_token = secrets.token_urlsafe(32)
+            raw_token = secrets.token_urlsafe(32)
+            user.reset_token = hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
             user.reset_token_expires = datetime.now(timezone.utc) + timedelta(hours=2)
             db.session.commit()
             try:
-                reset_url = url_for("auth.reset_password", token=user.reset_token, _external=True)
+                reset_url = url_for("auth.reset_password", token=raw_token, _external=True)
                 msg = Message(
                     subject="Recuperación de contraseña – SEMIMUS",
                     recipients=[user.email],
@@ -147,21 +180,28 @@ def forgot_password():
 
 
 @auth_bp.route("/reset-password/<token>", methods=["GET", "POST"])
+@limiter.limit("5 per hour", methods=["POST"])
 def reset_password(token):
-    user = User.query.filter_by(reset_token=token).first()
+    token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+    user = User.query.filter_by(reset_token=token_hash).first()
+    if user and not hmac.compare_digest(user.reset_token, token_hash):
+        user = None
     if not user or not user.reset_token_expires:
         flash("Token inválido o expirado.", "danger")
         return redirect(url_for("auth.login"))
 
-    if datetime.now(timezone.utc) > user.reset_token_expires.replace(tzinfo=timezone.utc):
+    expires = user.reset_token_expires
+    if expires.tzinfo is None:
+        expires = expires.replace(tzinfo=timezone.utc)
+    if datetime.now(timezone.utc) > expires:
         flash("El enlace de recuperación ha expirado.", "danger")
         return redirect(url_for("auth.forgot_password"))
 
     if request.method == "POST":
         password = request.form.get("password", "")
         confirm  = request.form.get("confirm_password", "")
-        if len(password) < 8:
-            flash("La contraseña debe tener al menos 8 caracteres.", "danger")
+        if not valid_password(password):
+            flash("La contraseña debe tener al menos 8 caracteres y no superar 72 bytes.", "danger")
             return render_template("auth/reset_password.html", token=token)
         if password != confirm:
             flash("Las contraseñas no coinciden.", "danger")

@@ -10,17 +10,27 @@ from app.extensions import db
 from app.models import User
 from app.models.progress import Progress, UserStatistics
 from app.models.gamification import UserGamification
+from app.utils.validation import valid_email, valid_password, valid_username
 
 
-def create_or_update_superadmin():
+def create_superadmin():
+    username = os.getenv("SUPERADMIN_USERNAME")
+    email = os.getenv("SUPERADMIN_EMAIL")
+    password = os.getenv("SUPERADMIN_PASSWORD")
+    if not all((username, email, password)):
+        raise RuntimeError("Define SUPERADMIN_USERNAME, SUPERADMIN_EMAIL y SUPERADMIN_PASSWORD.")
+    if not valid_username(username) or not valid_email(email) or not valid_password(password):
+        raise RuntimeError("Las credenciales iniciales de superadmin no cumplen el formato requerido.")
+
     app = create_app(os.getenv("FLASK_ENV", "development"))
     with app.app_context():
-        username = os.getenv("SUPERADMIN_USERNAME", "superadmin")
-        email    = os.getenv("SUPERADMIN_EMAIL", "superadmin@semimus.app")
-        password = os.getenv("SUPERADMIN_PASSWORD", "SuperAdminPass2026!")
+        try:
+            if User.query.filter_by(role="superadmin").first():
+                print("Ya existe un superadministrador; no se modificó ninguna cuenta.")
+                return
+            if User.query.filter((User.email == email) | (User.username == username)).first():
+                raise RuntimeError("El usuario o correo configurado ya pertenece a otra cuenta.")
 
-        user = User.query.filter((User.email == email) | (User.username == username)).first()
-        if not user:
             user = User(
                 username=username,
                 email=email,
@@ -38,21 +48,11 @@ def create_or_update_superadmin():
             db.session.add(UserStatistics(user_id=user.id))
             db.session.add(UserGamification(user_id=user.id))
             db.session.commit()
-            print(f"[OK] Super Admin creado exitosamente:")
-            print(f"     * Usuario:  {username}")
-            print(f"     * Email:    {email}")
-            print(f"     * Rol:      superadmin")
-        else:
-            user.role = "superadmin"
-            user.is_active = True
-            user.is_verified = True
-            user.set_password(password)
-            db.session.commit()
-            print(f"[OK] Super Admin actualizado exitosamente:")
-            print(f"     * Usuario:  {username}")
-            print(f"     * Email:    {email}")
-            print(f"     * Rol:      superadmin")
+            print("Superadministrador creado.")
+        except Exception:
+            db.session.rollback()
+            raise
 
 
 if __name__ == "__main__":
-    create_or_update_superadmin()
+    create_superadmin()

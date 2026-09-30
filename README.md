@@ -69,9 +69,9 @@ docker compose exec web flask db upgrade
 | API | http://localhost/api |
 | Health | http://localhost/api/health |
 
-**Credenciales por defecto:**
-- Email: `admin@semimus.app`
-- Contraseña: `Admin123!`
+Configura las credenciales iniciales de superadministrador mediante las variables
+`SUPERADMIN_USERNAME`, `SUPERADMIN_EMAIL` y `SUPERADMIN_PASSWORD`; el bootstrap
+solo crea la cuenta si todavía no existe ningún superadministrador.
 
 ---
 
