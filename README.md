@@ -55,11 +55,10 @@ cp .env.example .env
 docker-compose up -d
 ```
 
-### 3. Inicializar base de datos
+### 3. Aplicar migraciones
 
 ```bash
-docker exec semimus_backend flask db upgrade
-docker exec semimus_backend python scripts/seed.py
+docker compose exec web flask db upgrade
 ```
 
 ### 4. Acceder
@@ -89,9 +88,7 @@ pip install -r requirements.txt
 # Configura PostgreSQL local y crea .env
 cp ../.env.example .env
 
-# Migraciones
-flask db init
-flask db migrate -m "initial"
+# Aplica las migraciones versionadas en el repositorio
 flask db upgrade
 
 # Seed
@@ -100,6 +97,21 @@ python scripts/seed.py
 # Servidor
 python run.py
 ```
+
+#### Adoptar una base de datos de producción ya existente
+
+Antes de adoptar migraciones, realiza una copia de seguridad y comprueba que el
+esquema existente coincide con los modelos de esta versión. Solo entonces marca
+la revisión inicial como aplicada, sin recrear ni borrar tablas:
+
+```bash
+flask db stamp head
+flask db upgrade
+```
+
+`stamp head` solo registra la revisión actual en `alembic_version`; no modifica
+el esquema. No lo uses sobre una base vacía ni sobre una base cuyo esquema no
+coincida con la migración.
 
 ### Frontend
 

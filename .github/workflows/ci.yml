@@ -41,7 +41,7 @@ jobs:
           cache: "pip"
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: pip install -r requirements.txt pytest ruff pip-audit
 
       - name: Check syntax (py_compile)
         run: |
@@ -56,16 +56,22 @@ jobs:
           python -m py_compile app/routes/admin.py app/routes/api.py
           python -m py_compile app/utils/filters.py app/utils/question_generator.py
 
-      - name: Initialize and migrate DB
+      - name: Lint
+        run: ruff check app tests config.py run.py
+
+      - name: Security audit
+        run: pip-audit
+
+      - name: Tests
+        run: pytest
+
+      - name: Apply committed migrations
         env:
           FLASK_APP:    run.py
           FLASK_ENV:    testing
           DATABASE_URL: postgresql://semimus:semimus123@localhost:5432/semimus_test
           SECRET_KEY:   test-secret-key-32chars-minimum!!
-        run: |
-          flask db init
-          flask db migrate -m "initial"
-          flask db upgrade
+        run: flask db upgrade
 
   # ── 2. Build Docker (solo en main) ─────────────────────────────────────────
   docker-build:
