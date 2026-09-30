@@ -21,6 +21,9 @@ function trainingSession(questions, answerUrl, completeUrl, savedAnswers = []) {
     correct:         0,
     wrong:           0,
     elapsed:         0,
+    audioCache:      new Map(),
+    activeAudio:     null,
+    audioGeneration: 0,
     _timer:          null,
     _questionStart:  0,
 
@@ -48,6 +51,7 @@ function trainingSession(questions, answerUrl, completeUrl, savedAnswers = []) {
         this.currentQ.explanation = currentSavedAnswer.explanation;
       }
       this._questionStart = Date.now();
+      this._preloadAllQuestions();
       this._timer = setInterval(() => { this.elapsed++; }, 1000);
       // Auto-play first audio
       this.$nextTick(() => this.playAudio());
@@ -56,41 +60,74 @@ function trainingSession(questions, answerUrl, completeUrl, savedAnswers = []) {
     // Cleanup
     destroy() {
       clearInterval(this._timer);
+      this._stopAudio();
+      this.audioCache.clear();
     },
 
     // ── Audio ──────────────────────────────────────────────────────────────
-    playAudio() {
-      if (!this.currentQ || !this.currentQ.audio_url) return;
-      const player = document.getElementById('audioPlayer');
-      if (!player) return;
-
-      if (!player.paused && player.src.endsWith(this.currentQ.audio_url)) {
-        player.pause();
-        player.currentTime = 0;
+    _preloadAllQuestions() {
+      for (const question of this.questions) {
+        this._preloadAudio(question.audio_url);
+        this._preloadAudio(question.second_audio_url);
       }
+    },
 
-      player.src = this.currentQ.audio_url;
+    _preloadAudio(url) {
+      if (!url || this.audioCache.has(url)) return;
+      const audio = new Audio(url);
+      audio.preload = 'auto';
+      audio.load();
+      this.audioCache.set(url, audio);
+    },
+
+    _stopAudio() {
+      this.audioGeneration++;
+      if (this.activeAudio) {
+        this.activeAudio.pause();
+        this.activeAudio.currentTime = 0;
+        this.activeAudio.onended = null;
+        this.activeAudio.onerror = null;
+        this.activeAudio = null;
+      }
+      this.isPlaying = false;
+      const btn = document.querySelector('.session-play');
+      if (btn) btn.classList.remove('audio-playing');
+    },
+
+    async _playCached(url, generation) {
+      if (!url || generation !== this.audioGeneration) return;
+      const audio = this.audioCache.get(url);
+      if (!audio) return;
+      this.activeAudio = audio;
+      audio.currentTime = 0;
+      const ended = new Promise((resolve, reject) => {
+        audio.onended = resolve;
+        audio.onerror = reject;
+      });
+      await audio.play();
+      if (generation !== this.audioGeneration) return;
+      await ended;
+    },
+
+    async playAudio() {
+      if (!this.currentQ || !this.currentQ.audio_url) return;
+      this._stopAudio();
+      const generation = this.audioGeneration;
       this.isPlaying = true;
-
       const btn = document.querySelector('.session-play');
       if (btn) btn.classList.add('audio-playing');
-
-      player.play()
-        .catch(err => { console.warn('Audio playback error:', err); this.isPlaying = false; });
-
-      player.onended = () => {
-        if (this.currentQ.second_audio_url && player.src.endsWith(this.currentQ.audio_url)) {
-          player.src = this.currentQ.second_audio_url;
-          player.play().catch(() => { this.isPlaying = false; });
-          return;
+      try {
+        await this._playCached(this.currentQ.audio_url, generation);
+        if (this.currentQ.second_audio_url) {
+          await this._playCached(this.currentQ.second_audio_url, generation);
         }
-        this.isPlaying = false;
-        if (btn) btn.classList.remove('audio-playing');
-      };
-      player.onerror = () => {
-        this.isPlaying = false;
-        console.error('Audio load error');
-      };
+      } catch (error) {
+        if (generation === this.audioGeneration) {
+          console.warn('Audio playback error:', error);
+        }
+      } finally {
+        if (generation === this.audioGeneration) this._stopAudio();
+      }
     },
 
     // ── Answer ─────────────────────────────────────────────────────────────

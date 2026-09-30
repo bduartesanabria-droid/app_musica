@@ -3,7 +3,7 @@ import io
 import uuid
 from types import SimpleNamespace
 from pathlib import Path
-from flask import Blueprint, render_template, request, redirect, url_for, flash, send_from_directory, send_file, current_app, jsonify, abort
+from flask import Blueprint, render_template, request, redirect, url_for, flash, send_file, current_app, jsonify, abort
 from flask_login import login_required, current_user
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import joinedload
@@ -142,15 +142,27 @@ def _store_audio(file, instrument_id, note_id, tags, description, uploaded_by, i
 @login_required
 def stream(filename):
     audio = Audio.query.filter_by(filename=filename).first()
+    mimetypes = {
+        "wav": "audio/wav",
+        "mp3": "audio/mpeg",
+        "ogg": "audio/ogg",
+        "flac": "audio/flac",
+        "wma": "audio/x-ms-wma",
+    }
+    extension = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+
+    # Audio uploads are already persisted in the volume. Avoid loading the
+    # deferred PostgreSQL BLOB on the hot playback path.
+    if audio and audio.file_path and os.path.isfile(audio.file_path):
+        return send_file(
+            audio.file_path,
+            mimetype=mimetypes.get(extension, "application/octet-stream"),
+            download_name=audio.original_filename,
+            max_age=3600,
+        )
+
+    # Compatibility fallback for records whose volume file is unavailable.
     if audio and audio.audio_data:
-        mimetypes = {
-            "wav": "audio/wav",
-            "mp3": "audio/mpeg",
-            "ogg": "audio/ogg",
-            "flac": "audio/flac",
-            "wma": "audio/x-ms-wma",
-        }
-        extension = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
         audio_data = audio.audio_data
         if extension == "wma":
             try:
@@ -162,12 +174,8 @@ def stream(filename):
             io.BytesIO(audio_data),
             mimetype=mimetypes.get(extension, "application/octet-stream"),
             download_name=audio.original_filename,
+            max_age=3600,
         )
-
-    # Compatibility with audio records created before binary storage was enabled.
-    path = current_app.config["AUDIO_STORAGE_PATH"]
-    if audio and audio.file_path and os.path.isfile(audio.file_path):
-        return send_from_directory(path, filename)
     abort(404)
 
 

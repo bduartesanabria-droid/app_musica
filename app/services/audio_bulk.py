@@ -10,7 +10,7 @@ from ..extensions import db
 from ..models.audio import Audio
 from ..models.instrument import Instrument, Note
 from .audio_naming import find_note
-from .audio_validation import convert_wma, transcode_audio, validate_audio_data
+from .audio_validation import transcode_audio, validate_audio_data
 
 
 TECHNIQUES = {"pua", "pulsacion", "pluctuacion", "natural", "guabina"}

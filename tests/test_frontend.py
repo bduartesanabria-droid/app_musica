@@ -63,3 +63,13 @@ def test_base_layout_uses_local_compiled_and_pinned_assets(client):
     assert "/static/vendor/chart-4.4.9.umd.js" in html
     assert "cdn.tailwindcss.com" not in html
     assert "cdn.jsdelivr.net" not in html
+
+
+def test_training_player_precaches_each_question_audio():
+    source = open("app/static/js/training.js", encoding="utf-8").read()
+
+    assert "audioCache:      new Map()" in source
+    assert "this._preloadAllQuestions()" in source
+    assert "new Audio(url)" in source
+    assert "this._playCached(this.currentQ.audio_url" in source
+    assert "this._playCached(this.currentQ.second_audio_url" in source

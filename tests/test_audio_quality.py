@@ -1,4 +1,5 @@
 import io
+from pathlib import Path
 
 import numpy as np
 import soundfile as sf
@@ -146,6 +147,27 @@ def test_single_upload_rejects_existing_instrument_note_pair(app, login_client):
     assert response.status_code == 302
     with app.app_context():
         assert Audio.query.filter_by(instrument_id=instrument_id, note_id=note_id).count() == 1
+
+
+def test_stream_prefers_volume_file_without_loading_blob(app, login_client):
+    client, _ = login_client()
+    audio_path = Path(app.config["AUDIO_STORAGE_PATH"]) / "fast.wav"
+    audio_path.parent.mkdir(parents=True, exist_ok=True)
+    audio_path.write_bytes(b"volume-audio")
+    with app.app_context():
+        db.session.add(Audio(
+            filename="fast.wav",
+            original_filename="Fast.wav",
+            file_path=str(audio_path),
+            audio_data=b"database-blob",
+            difficulty="inicial",
+        ))
+        db.session.commit()
+
+    response = client.get("/audio/stream/fast.wav")
+
+    assert response.status_code == 200
+    assert response.data == b"volume-audio"
 
 
 def test_bulk_import_uses_shared_validation_and_rejects_duplicate_pair(app):
