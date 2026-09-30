@@ -10,7 +10,7 @@ from ..extensions import db
 from ..models.audio import Audio
 from ..models.instrument import Instrument, Note
 from .audio_naming import find_note
-from .audio_validation import convert_wma, validate_audio_data
+from .audio_validation import convert_wma, transcode_audio, validate_audio_data
 
 
 TECHNIQUES = {"pua", "pulsacion", "pluctuacion", "natural", "guabina"}
@@ -90,9 +90,16 @@ def import_files(files, instrument_id, uploaded_by=None):
             data = file.read(current_app.config["MAX_AUDIO_SIZE_MB"] * 1024 * 1024 + 1)
             if len(data) > current_app.config["MAX_AUDIO_SIZE_MB"] * 1024 * 1024:
                 raise ValueError("el archivo supera el tamaño máximo permitido")
-            converted = extension == ".wma"
-            if converted:
-                data = convert_wma(data)
+            
+            needs_transcode = extension not in {".wav", ".flac", ".ogg"}
+            converted = False
+            if needs_transcode:
+                try:
+                    data = transcode_audio(data, suffix=extension)
+                    converted = True
+                except Exception:
+                    pass
+
             analysis = _validate(data, "converted.wav" if converted else original, converted=converted)
             note = _get_or_create_note(parsed_note.display_name)
             duplicate = Audio.query.filter_by(
@@ -103,7 +110,7 @@ def import_files(files, instrument_id, uploaded_by=None):
             if duplicate or (instrument.id, note.id) in seen_notes:
                 errors.append(f"{original}: ya existe un audio activo para este instrumento y nota")
                 continue
-            stored_name = f"{uuid.uuid4().hex}.wav" if original.casefold().endswith(".wma") else f"{uuid.uuid4().hex}{Path(original).suffix.lower()}"
+            stored_name = f"{uuid.uuid4().hex}.wav" if (converted or extension == ".wma") else f"{uuid.uuid4().hex}{Path(original).suffix.lower()}"
             path = destination / stored_name
             path.write_bytes(data)
             created.append(path)

@@ -13,7 +13,7 @@ from ..models.audio import Audio
 from ..models.instrument import Instrument, Note
 from ..services.audio_bulk import import_files
 from ..services.audio_naming import find_note
-from ..services.audio_validation import convert_wma, validate_audio_data
+from ..services.audio_validation import convert_wma, transcode_audio, validate_audio_data
 
 audio_bp = Blueprint("audio", __name__)
 
@@ -90,10 +90,11 @@ def _store_audio(file, instrument_id, note_id, tags, description, uploaded_by, i
     data = file.stream.read(max_bytes + 1)
     if len(data) > max_bytes:
         return None, f"'{original_name}' supera el límite permitido de {current_app.config['MAX_AUDIO_SIZE_MB']} MB."
-    converted = ext == "wma"
-    if converted:
+    converted = False
+    if ext in {"wma", "m4a", "aac", "webm", "opus", "mp4", "caf", "3gp", "weba"}:
         try:
-            data = convert_wma(data)
+            data = transcode_audio(data, suffix=f".{ext}")
+            converted = True
         except ValueError as exc:
             return None, exc.args[0] if exc.args else "No se pudo convertir el audio."
     try:
