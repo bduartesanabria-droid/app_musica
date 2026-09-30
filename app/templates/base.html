@@ -25,23 +25,23 @@
 
 {% block body %}{% endblock %}
 
-<div class="site-companion" aria-live="polite">
-  <span class="site-companion-label" x-text="companionState === 'correct' ? '¡Muy bien!' : companionState === 'wrong' ? 'Sigue intentando' : 'Tu equipo musical'"></span>
+<a class="site-companion" href="{{ url_for('main.learning') }}" aria-label="Ir a Aprender" aria-live="polite">
+  <span class="site-companion-label" x-text="companionState === 'correct' ? '¡Muy bien!' : companionState === 'wrong' ? 'Sigue intentando' : 'Aprender juntos'">Aprender juntos</span>
   <img
     x-show="companionState === 'idle'"
     src="{{ url_for('static', filename='img/niños_traje.png') }}"
-    alt="Niños con traje tradicional que acompañan tu aprendizaje">
+    alt="Niños con traje tradicional. Toca para ir a Aprender">
   <img
     x-show="companionState === 'correct'"
     x-cloak
     src="{{ url_for('static', filename='img/niños_acertaste.png') }}"
-    alt="Niños celebrando una respuesta correcta">
+    alt="Niños celebrando una respuesta correcta. Toca para ir a Aprender">
   <img
     x-show="companionState === 'wrong'"
     x-cloak
     src="{{ url_for('static', filename='img/niños_tristes.png') }}"
-    alt="Niños tristes por una respuesta incorrecta">
-</div>
+    alt="Niños tristes por una respuesta incorrecta. Toca para ir a Aprender">
+</a>
 
 <!-- Toast -->
 {% with messages = get_flashed_messages(with_categories=true) %}

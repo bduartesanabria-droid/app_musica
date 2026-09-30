@@ -77,6 +77,8 @@ def test_training_player_precaches_each_question_audio():
 
 def test_layout_and_training_include_companion_states(client):
     layout = client.get("/auth/login").get_data(as_text=True)
+    assert 'class="site-companion"' in layout
+    assert 'href="/learning"' in layout
     assert "/static/img/ni%C3%B1os_traje.png" in layout
     assert "/static/img/ni%C3%B1os_acertaste.png" in layout
     assert "/static/img/ni%C3%B1os_tristes.png" in layout
