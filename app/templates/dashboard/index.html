@@ -50,10 +50,10 @@
     </div>
     <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
       {% set instrument_cards = [
-        ('Tiple', 'tiple', 'tiple.jpg', '#FFC107'),
-        ('Requinto', 'requinto', 'requinto.jpg', '#39A900'),
-        ('Bandola', 'bandola', 'bandola.jpg', '#60A5FA'),
-        ('Guitarra', 'guitarra', 'guitarra.jpg', '#A78BFA')
+        ('Tiple', 'tiple', 'tiple.jpeg', '#FFC107'),
+        ('Requinto', 'requinto', 'requinto.jpeg', '#39A900'),
+        ('Bandola', 'bandola', 'bandola.jpeg', '#60A5FA'),
+        ('Guitarra', 'guitarra', 'guitarra.jpeg', '#A78BFA')
       ] %}
       {% for label, slug, image, color in instrument_cards %}
       <a href="{{ url_for('training.index') }}?instrument={{ slug }}" class="instrument-card hover:-translate-y-1 transition-transform">

@@ -22,9 +22,25 @@
         <div class="panel-heading"><span class="step-number">01</span><div><h2>Elige tu instrumento</h2><p>Escucharás dos notas consecutivas del mismo instrumento.</p></div></div>
         <input type="hidden" name="instrument_id" x-model="instrument_id">
         <div class="instrument-choice-grid">
-          <label class="choice-card"><input type="radio" name="_instrument" value="" @change="instrument_id = ''" :checked="instrument_id === ''"><span class="choice-icon">◎</span><strong>Todos</strong><small>Mezcla andina</small></label>
+          <label class="choice-card">
+            <input type="radio" name="_instrument" value="" @change="instrument_id = ''" :checked="instrument_id === ''">
+            <div class="choice-visual"><span class="choice-icon">◎</span></div>
+            <strong>Todos</strong>
+            <small>Mezcla andina</small>
+          </label>
           {% for instr in instruments %}
-          <label class="choice-card"><input type="radio" name="_instrument" value="{{ instr.id }}" @change="instrument_id = '{{ instr.id }}'" :checked="instrument_id === '{{ instr.id }}'"><span class="choice-icon">{{ instr.emoji or '♪' }}</span><strong>{{ instr.name }}</strong><small>Sonido auténtico</small></label>
+          <label class="choice-card">
+            <input type="radio" name="_instrument" value="{{ instr.id }}" @change="instrument_id = '{{ instr.id }}'" :checked="instrument_id === '{{ instr.id }}'">
+            <div class="choice-visual">
+              {% if instr.name.lower() in ['guitarra', 'bandola', 'requinto', 'tiple'] %}
+                <img src="{{ url_for('static', filename='img/' ~ instr.name.lower() ~ '.jpeg') }}" alt="{{ instr.name }}" class="choice-thumb">
+              {% else %}
+                <span class="choice-icon">{{ instr.emoji or '♪' }}</span>
+              {% endif %}
+            </div>
+            <strong>{{ instr.name }}</strong>
+            <small>Sonido auténtico</small>
+          </label>
           {% endfor %}
         </div>
        </section>
