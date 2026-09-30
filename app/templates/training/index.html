@@ -47,7 +47,13 @@
           <div class="range-field">
             <div class="range-heading"><label for="difficulty">Nivel de dificultad</label><output for="difficulty" x-text="['', 'Inicial', 'Básica', 'Intermedia', 'Avanzada', 'Experta'][difficulty]"></output></div>
             <input id="difficulty" type="range" name="difficulty" x-model.number="difficulty" min="1" max="5" step="1">
-            <div class="range-ticks" aria-hidden="true"><span>Inicial</span><span>Básica</span><span>Intermedia</span><span>Avanzada</span><span>Experta</span></div>
+            <div class="range-ticks">
+              <button type="button" class="range-tick-btn" :class="{ 'is-active': difficulty === 1 }" @click="difficulty = 1" style="--tick-p: 0">Inicial</button>
+              <button type="button" class="range-tick-btn" :class="{ 'is-active': difficulty === 2 }" @click="difficulty = 2" style="--tick-p: 0.25">Básica</button>
+              <button type="button" class="range-tick-btn" :class="{ 'is-active': difficulty === 3 }" @click="difficulty = 3" style="--tick-p: 0.5">Intermedia</button>
+              <button type="button" class="range-tick-btn" :class="{ 'is-active': difficulty === 4 }" @click="difficulty = 4" style="--tick-p: 0.75">Avanzada</button>
+              <button type="button" class="range-tick-btn" :class="{ 'is-active': difficulty === 5 }" @click="difficulty = 5" style="--tick-p: 1">Experta</button>
+            </div>
           </div>
         </section>
 
@@ -56,7 +62,12 @@
           <div class="range-field">
             <div class="range-heading"><label for="question_count">Preguntas por sesión</label><output for="question_count"><span x-text="question_count"></span> preguntas</output></div>
             <input id="question_count" type="range" name="question_count" x-model.number="question_count" min="5" max="20" step="5">
-            <div class="range-ticks range-ticks-questions" aria-hidden="true"><span>5</span><span>10</span><span>15</span><span>20</span></div>
+            <div class="range-ticks range-ticks-questions">
+              <button type="button" class="range-tick-btn" :class="{ 'is-active': question_count === 5 }" @click="question_count = 5" style="--tick-p: 0">5</button>
+              <button type="button" class="range-tick-btn" :class="{ 'is-active': question_count === 10 }" @click="question_count = 10" style="--tick-p: 0.33333">10</button>
+              <button type="button" class="range-tick-btn" :class="{ 'is-active': question_count === 15 }" @click="question_count = 15" style="--tick-p: 0.66667">15</button>
+              <button type="button" class="range-tick-btn" :class="{ 'is-active': question_count === 20 }" @click="question_count = 20" style="--tick-p: 1">20</button>
+            </div>
           </div>
         </section>
 
