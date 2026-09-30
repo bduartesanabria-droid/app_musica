@@ -162,10 +162,19 @@ Ejemplos:
 
 **Especificaciones técnicas:**
 - Formato: WAV (recomendado), MP3, OGG, FLAC
-- Bit depth: 24 bits
-- Sample rate: 44.1 kHz
-- Normalización: -1 dB
-- Duración: 3-5 segundos
+- También se aceptan AIFF/AIF y WMA (WMA se convierte a WAV al importar).
+- Frecuencia de muestreo mínima: 44.1 kHz.
+- Duración aceptada: 3–12 segundos (recomendado: 3–5 segundos).
+- Tamaño máximo por archivo: `MAX_AUDIO_SIZE_MB` (50 MB por defecto).
+
+### Almacenamiento de audio: decisión pendiente
+
+Actualmente los archivos se duplican en `Audio.audio_data` (PostgreSQL) y en
+`AUDIO_STORAGE_PATH`. Recomiendo conservar el archivo en un volumen persistente
+(o almacenamiento de objetos) y dejar en PostgreSQL solo sus metadatos y la ruta;
+así se evita duplicar espacio y crecer las copias de seguridad de la base. No se
+ha cambiado el almacenamiento existente. Antes de migrar o eliminar los BLOB,
+confirma si apruebas esta recomendación.
 
 ---
 

@@ -1,21 +1,18 @@
-import io
 import os
 import re
-import subprocess
-import tempfile
 import uuid
 from pathlib import Path
 
-import soundfile as sf
 from flask import current_app
 from sqlalchemy import func
 
 from ..extensions import db
 from ..models.audio import Audio
 from ..models.instrument import Instrument, Note
+from .audio_naming import find_note
+from .audio_validation import convert_wma, validate_audio_data
 
 
-EXTENSIONS = {".wav", ".aif", ".aiff", ".wma"}
 TECHNIQUES = {"pua", "pulsacion", "pluctuacion", "natural", "guabina"}
 INTERVALS = {
     "2m": "Segunda menor", "2mayor": "Segunda mayor",
@@ -24,64 +21,32 @@ INTERVALS = {
     "5j": "Quinta justa", "5justa": "Quinta justa",
     "5tajusta": "Quinta justa", "octava": "Octava",
 }
-NOTE_RE = re.compile(r"^(do|re|mi|fa|sol|la|si)(#|b)?([0-8])$", re.I)
-
-
 def _clean(value):
     return re.sub(r"[^a-z0-9#]", "", value.casefold())
 
 
 def _parse_name(filename):
-    stem = Path(filename).stem
-    match = re.search(r"(do|re|mi|fa|sol|la|si)(#|b)?([0-8])", stem, re.I)
-    if not match:
+    stem = Path(filename.replace("\\", "/")).stem
+    parsed_note = find_note(stem)
+    if not parsed_note:
         raise ValueError("no se encontro una nota como Do3 o Re#4")
-    note_name = match.group(1).upper()
-    accidental = (match.group(2) or "").upper()
-    if accidental == "B":
-        note_name = {"RE": "DO#", "MI": "RE#", "SOL": "FA#", "LA": "SOL#", "SI": "LA#"}.get(note_name, note_name)
-    note = f"{note_name}{match.group(3)}"
-    descriptor = _clean(stem[match.end():].replace(".", "_"))
+    note = parsed_note.display_name
+    descriptor = _clean(stem[parsed_note.end:].replace(".", "_"))
     interval = INTERVALS.get(descriptor)
     technique = descriptor if descriptor in TECHNIQUES else None
     return note, interval, technique
 
 
 def _validate(data, filename, converted=False):
-    try:
-        info = sf.info(io.BytesIO(data))
-        samples, _ = sf.read(io.BytesIO(data), dtype="float32")
-    except Exception as exc:
-        raise ValueError(f"audio invalido: {exc}") from exc
-    if not converted and (info.format not in {"WAV", "AIFF"} or info.subtype not in {"PCM_16", "PCM_24", "PCM_32"}):
-        raise ValueError("se requiere WAV/AIFF PCM de 24 o 32 bits")
-    if info.samplerate < 44100:
-        raise ValueError("la frecuencia minima es 44.1 kHz")
-    if not 3 <= info.duration <= 12:
-        raise ValueError("la duracion debe estar entre 3 y 12 segundos")
-    peak = float(abs(samples).max()) if samples.size else 0
-    return info, peak
-
-
-def convert_wma(data):
-    with tempfile.TemporaryDirectory() as directory:
-        source = Path(directory) / "source.wma"
-        target = Path(directory) / "converted.wav"
-        source.write_bytes(data)
-        result = subprocess.run(
-            ["ffmpeg", "-y", "-i", str(source), "-ar", "44100", "-ac", "1", "-c:a", "pcm_s24le", str(target)],
-            capture_output=True,
-            text=True,
-            timeout=60,
-        )
-        if result.returncode != 0 or not target.exists():
-            raise ValueError("no se pudo convertir el WMA a WAV")
-        return target.read_bytes()
+    return validate_audio_data(data, filename, converted=converted)
 
 
 def _get_or_create_note(note_name):
-    name = note_name[:-1].upper()
-    octave = int(note_name[-1])
+    parsed = find_note(note_name)
+    if not parsed:
+        raise ValueError("no se encontró una nota válida")
+    name = parsed.name
+    octave = parsed.octave
     note = Note.query.filter(
         func.upper(Note.name) == name,
         Note.octave == octave,
@@ -89,9 +54,7 @@ def _get_or_create_note(note_name):
     if note:
         return note
 
-    semitone = {"DO": 0, "DO#": 1, "RE": 2, "RE#": 3, "MI": 4, "FA": 5,
-                "FA#": 6, "SOL": 7, "SOL#": 8, "LA": 9, "LA#": 10, "SI": 11}[name]
-    midi = (octave + 1) * 12 + semitone
+    midi = parsed.midi_number
     note = Note(
         name=name,
         octave=octave,
@@ -112,25 +75,39 @@ def import_files(files, instrument_id, uploaded_by=None):
     destination = Path(current_app.config.get("AUDIO_STORAGE_PATH", Path(current_app.static_folder) / "audio_samples"))
     destination.mkdir(parents=True, exist_ok=True)
     pending, errors, created = [], [], []
+    seen_notes = set()
     for file in files:
         if not file or not file.filename:
             continue
-        original = Path(file.filename).name
-        if Path(original).suffix.casefold() not in EXTENSIONS:
-            errors.append(f"{original}: solo se aceptan WAV, AIFF o WMA")
+        original = Path(file.filename.replace("\\", "/")).name
+        extension = Path(original).suffix.casefold()
+        if extension.lstrip(".") not in current_app.config["ALLOWED_AUDIO_EXTENSIONS"]:
+            errors.append(f"{original}: formato de audio no permitido")
             continue
         try:
             note_name, interval, technique = _parse_name(original)
-            note = _get_or_create_note(note_name)
-            data = file.read()
-            converted = Path(original).suffix.casefold() == ".wma"
+            parsed_note = find_note(original)
+            data = file.read(current_app.config["MAX_AUDIO_SIZE_MB"] * 1024 * 1024 + 1)
+            if len(data) > current_app.config["MAX_AUDIO_SIZE_MB"] * 1024 * 1024:
+                raise ValueError("el archivo supera el tamaño máximo permitido")
+            converted = extension == ".wma"
             if converted:
                 data = convert_wma(data)
-            info, peak = _validate(data, "converted.wav" if converted else original, converted=converted)
+            analysis = _validate(data, "converted.wav" if converted else original, converted=converted)
+            note = _get_or_create_note(parsed_note.display_name)
+            duplicate = Audio.query.filter_by(
+                instrument_id=instrument.id,
+                note_id=note.id,
+                is_active=True,
+            ).first()
+            if duplicate or (instrument.id, note.id) in seen_notes:
+                errors.append(f"{original}: ya existe un audio activo para este instrumento y nota")
+                continue
             stored_name = f"{uuid.uuid4().hex}.wav" if original.casefold().endswith(".wma") else f"{uuid.uuid4().hex}{Path(original).suffix.lower()}"
             path = destination / stored_name
             path.write_bytes(data)
             created.append(path)
+            seen_notes.add((instrument.id, note.id))
             pending.append(Audio(
                 filename=stored_name,
                 original_filename=original,
@@ -138,11 +115,6 @@ def import_files(files, instrument_id, uploaded_by=None):
                 audio_data=data,
                 instrument_id=instrument.id,
                 note_id=note.id,
-                duration=info.duration if info else None,
-                sample_rate=info.samplerate if info else None,
-                bit_depth=int(info.subtype.rsplit("_", 1)[1]) if info else None,
-                channels=info.channels if info else None,
-                peak_amplitude=peak,
                 file_size=len(data),
                 difficulty="intermedio",
                 technique=technique,
@@ -151,9 +123,11 @@ def import_files(files, instrument_id, uploaded_by=None):
                 uploaded_by=uploaded_by,
                 tags=f"instrumento={instrument.name},nota={note_name},intervalo={interval or ''}",
                 description=interval or technique or "",
+                **analysis,
             ))
         except ValueError as exc:
-            errors.append(f"{original}: {exc}")
+            message = exc.args[0] if exc.args else "el archivo no cumple los requisitos de audio"
+            errors.append(f"{original}: {message}")
 
     try:
         db.session.add_all(pending)

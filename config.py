@@ -40,7 +40,7 @@ class Config:
     MAX_AVATAR_SIZE_BYTES = 2 * 1024 * 1024
     MAX_AUDIO_SIZE_MB     = int(os.environ.get("MAX_AUDIO_SIZE_MB", 50))
     MAX_CONTENT_LENGTH    = int(os.environ.get("MAX_UPLOAD_MB", 200)) * 1024 * 1024
-    ALLOWED_AUDIO_EXTENSIONS = {"wav", "aiff", "aif", "mp3", "ogg", "flac"}
+    ALLOWED_AUDIO_EXTENSIONS = {"wav", "aiff", "aif", "mp3", "ogg", "flac", "wma"}
 
     PROXY_FIX_X_FOR = int(os.environ.get("PROXY_FIX_X_FOR", 0))
     PROXY_FIX_X_PROTO = int(os.environ.get("PROXY_FIX_X_PROTO", 0))

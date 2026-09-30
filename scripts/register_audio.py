@@ -8,7 +8,6 @@ Uso:
     python scripts/register_audio.py
 """
 import os
-import re
 import sys
 import json
 
@@ -21,8 +20,9 @@ from app import create_app
 from app.extensions import db
 from app.models.audio import Audio
 from app.models.instrument import Instrument, Note
+from app.services.audio_naming import NOTE_NAMES, find_note
+from sqlalchemy.orm import joinedload
 
-RE_FILE = re.compile(r"^([A-Za-zÁÉÍÓÚñ]+)_(DO#?|RE#?|MI|FA#?|SOL#?|LA#?|SI)(\d+)\.wav$")
 EXPECTED_OCTAVES = {
     # Only compare the documented recording ranges, not notes outside each
     # instrument's physical/source coverage.
@@ -31,7 +31,6 @@ EXPECTED_OCTAVES = {
     "Bandola": ((3, 0, 11), (4, 0, 11), (5, 0, 11), (6, 0, 7)),
     "Guitarra": ((2, 4, 11), (3, 0, 11), (4, 0, 11), (5, 0, 11)),
 }
-NOTE_NAMES = ["DO", "DO#", "RE", "RE#", "MI", "FA", "FA#", "SOL", "SOL#", "LA", "LA#", "SI"]
 
 
 def _analyze(filepath):
@@ -82,16 +81,24 @@ def main():
             print(f"ERROR: Faltan instrumentos {sorted(missing)}. Ejecuta primero el seed.")
             return
 
-        existing = {a.filename for a in Audio.query.filter_by(is_active=True).all()}
+        existing_audios = Audio.query.filter_by(is_active=True).all()
+        existing = {audio.filename for audio in existing_audios}
+        existing_pairs = {
+            (audio.instrument_id, audio.note_id)
+            for audio in existing_audios
+            if audio.note_id is not None
+        }
         created = 0
         for fname in sorted(os.listdir(AUDIO_STORAGE)):
             if not fname.lower().endswith(".wav"):
                 continue
-            m = RE_FILE.match(fname)
-            if not m:
+            stem = os.path.splitext(fname)[0]
+            instr_name, separator, note_token = stem.partition("_")
+            parsed_note = find_note(note_token) if separator else None
+            if not parsed_note:
                 print(f"  [warn] nombre no reconocido: {fname}")
                 continue
-            instr_name, note_name, octave = m.group(1), m.group(2), int(m.group(3))
+            note_name, octave = parsed_note.name, parsed_note.octave
 
             instrument = instruments.get(instr_name)
             note       = notes.get((note_name, octave))
@@ -103,6 +110,9 @@ def main():
                 continue
             if fname in existing:
                 print(f"  [skip] ya registrado: {fname}")
+                continue
+            if (instrument.id, note.id) in existing_pairs:
+                print(f"  [skip] ya existe un audio para {instr_name} / {note_name}{octave}")
                 continue
 
             filepath = os.path.join(AUDIO_STORAGE, fname)
@@ -121,6 +131,7 @@ def main():
                 **analysis,
             )
             db.session.add(audio)
+            existing_pairs.add((instrument.id, note.id))
             created += 1
             print(f"  [OK] {fname} -> {instr_name} / {note_name}{octave}")
 
@@ -133,7 +144,7 @@ def main():
             instrument = instruments[instrument_name]
             registered = {
                 (audio.note.name, audio.note.octave)
-                for audio in Audio.query.filter_by(
+                for audio in Audio.query.options(joinedload(Audio.note)).filter_by(
                     instrument_id=instrument.id, is_active=True
                 ).all()
                 if audio.note

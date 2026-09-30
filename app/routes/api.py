@@ -2,6 +2,7 @@
 from flask import Blueprint, current_app, jsonify, request
 from flask_login import login_required, current_user
 from sqlalchemy import text
+from sqlalchemy.orm import joinedload
 from ..models.audio import Audio
 from ..models.instrument import Instrument, Note
 from ..models.gamification import UserGamification
@@ -42,14 +43,37 @@ def get_notes():
 @login_required
 def audio_list():
     instrument_id = request.args.get("instrument_id", type=int)
-    page          = request.args.get("page", 1, type=int)
-    per_page      = min(request.args.get("per_page", 50, type=int), 200)
+    page = max(1, request.args.get("page", 1, type=int))
+    per_page = min(max(request.args.get("per_page", 50, type=int), 1), 200)
 
-    q = Audio.query.filter_by(is_active=True)
+    q = Audio.query.options(
+        joinedload(Audio.instrument),
+        joinedload(Audio.note),
+    ).filter_by(is_active=True)
     if instrument_id:
         q = q.filter_by(instrument_id=instrument_id)
 
-    pagination = q.order_by(Audio.id).paginate(page=page, per_page=per_page, error_out=False)
+    total = q.order_by(None).with_entities(db.func.count(Audio.id)).scalar() or 0
+    pages = (total + per_page - 1) // per_page
+    page = min(page, max(pages, 1))
+    audio_ids = [
+        row[0]
+        for row in (
+            q.order_by(None)
+            .with_entities(Audio.id)
+            .order_by(Audio.id)
+            .offset((page - 1) * per_page)
+            .limit(per_page)
+            .all()
+        )
+    ]
+    items = (
+        Audio.query.options(joinedload(Audio.instrument), joinedload(Audio.note))
+        .filter(Audio.id.in_(audio_ids))
+        .order_by(Audio.id)
+        .all()
+        if audio_ids else []
+    )
     return jsonify({
         "items": [
             {
@@ -59,10 +83,10 @@ def audio_list():
                 "note":       a.note.display_name if a.note else None,
                 "instrument": a.instrument.name  if a.instrument else None,
             }
-            for a in pagination.items
+            for a in items
         ],
-        "total": pagination.total,
-        "pages": pagination.pages,
+        "total": total,
+        "pages": pages,
         "page":  page,
     })
 

@@ -16,7 +16,7 @@ from ..models.session import TrainingSession
 from ..models.gamification import Badge, UserBadge
 from ..extensions import db
 from datetime import datetime, timezone, timedelta
-from sqlalchemy.orm import defer
+from sqlalchemy.orm import joinedload
 from ..utils.timezone import BOGOTA, SPANISH_WEEKDAYS, bogota_date, local_day_start_utc
 from ..utils.validation import valid_password
 
@@ -166,7 +166,10 @@ def dashboard():
 def learning():
     allowed = {"guitarra", "bandola", "requinto", "tiple"}
     catalog = {}
-    audios = Audio.query.options(defer(Audio.audio_data)).filter_by(is_active=True).all()
+    audios = Audio.query.options(
+        joinedload(Audio.instrument),
+        joinedload(Audio.note),
+    ).filter_by(is_active=True).all()
     for audio in audios:
         if (not audio.instrument or not audio.note
                 or audio.instrument.name.casefold() not in allowed):
@@ -219,12 +222,14 @@ def rankings():
         )
     ]
 
+    current_gami = UserGamification.query.filter_by(user_id=current_user.id).first()
     user_rank = None
-    all_gami = UserGamification.query.order_by(desc(UserGamification.total_xp)).all()
-    for i, g in enumerate(all_gami, start=1):
-        if g.user_id == current_user.id:
-            user_rank = i
-            break
+    if current_gami:
+        current_xp = current_gami.total_xp or 0
+        users_ahead = db.session.query(db.func.count(UserGamification.id)).filter(
+            UserGamification.total_xp > current_xp
+        ).scalar()
+        user_rank = users_ahead + 1
 
     return render_template(
         "rankings/index.html",

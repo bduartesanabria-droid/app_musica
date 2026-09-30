@@ -1,5 +1,6 @@
 import random
 import json
+from sqlalchemy.orm import joinedload
 from ..models.audio import Audio
 from ..models.question import Question
 from ..models.instrument import Note, Interval, Scale, Instrument
@@ -24,7 +25,10 @@ class QuestionGenerator:
         return questions[:count]
 
     def _get_audios(self, instrument_id=None):
-        q = Audio.query.filter_by(is_active=True)
+        q = Audio.query.options(
+            joinedload(Audio.instrument),
+            joinedload(Audio.note),
+        ).filter_by(is_active=True)
         if instrument_id:
             q = q.filter_by(instrument_id=instrument_id)
         return q.all()

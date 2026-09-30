@@ -1,22 +1,21 @@
 import os
-import re
-import uuid
-import json
 import io
+import uuid
+from types import SimpleNamespace
+from pathlib import Path
 from flask import Blueprint, render_template, request, redirect, url_for, flash, send_from_directory, send_file, current_app, jsonify, abort
 from flask_login import login_required, current_user
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import joinedload
 from werkzeug.utils import secure_filename
 from ..extensions import db
 from ..models.audio import Audio
 from ..models.instrument import Instrument, Note
-from ..services.audio_bulk import import_files, convert_wma
+from ..services.audio_bulk import import_files
+from ..services.audio_naming import find_note
+from ..services.audio_validation import convert_wma, validate_audio_data
 
 audio_bp = Blueprint("audio", __name__)
-
-ALLOWED = {"wav", "aiff", "aif", "mp3", "ogg", "flac"}
-NOTE_RE = re.compile(r"(?i)(do|re|mi|fa|sol|la|si)(#|b)?([0-8])")
-FLAT_TO_SHARP = {"reb": "DO#", "mib": "RE#", "solb": "FA#", "lab": "SOL#", "sib": "LA#"}
-
 
 def _require_instructor():
     if not current_user.is_authenticated or not current_user.is_instructor:
@@ -52,43 +51,8 @@ def _available_instruments():
 
 
 def _allowed(filename):
-    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED
-
-
-def _analyze(filepath):
-    try:
-        import soundfile as sf
-        import numpy as np
-        info     = sf.info(filepath)
-        data, sr = sf.read(filepath)
-        duration = round(len(data) / sr, 2)
-        channels = 1 if data.ndim == 1 else data.shape[1]
-        mono     = np.mean(data, axis=1) if data.ndim > 1 else data
-        peak     = float(np.max(np.abs(mono))) if len(mono) else 0.0
-        down     = max(1, len(mono) // 300)
-        waveform = [round(float(x), 4) for x in mono[::down].tolist()[:300]]
-
-        subtype   = getattr(info, "subtype", "")
-        bit_depth = None
-        if "PCM_16" in subtype:
-            bit_depth = 16
-        elif "PCM_24" in subtype:
-            bit_depth = 24
-        elif "PCM_32" in subtype or "FLOAT" in subtype:
-            bit_depth = 32
-        elif "DOUBLE" in subtype:
-            bit_depth = 64
-
-        return {
-            "duration":       duration,
-            "sample_rate":    sr,
-            "bit_depth":      bit_depth,
-            "channels":       channels,
-            "peak_amplitude": round(peak, 4),
-            "waveform_data":  json.dumps(waveform),
-        }
-    except Exception:
-        return {}
+    extension = Path(filename).suffix.casefold().lstrip(".")
+    return extension in current_app.config["ALLOWED_AUDIO_EXTENSIONS"]
 
 
 def _detect_metadata(filename, instruments, notes):
@@ -98,60 +62,81 @@ def _detect_metadata(filename, instruments, notes):
         (item for item in instruments if item.name.casefold() in normalized),
         None,
     )
-    match = NOTE_RE.search(os.path.basename(filename))
-    note = None
-    if match:
-        name = match.group(1).upper()
-        accidental = match.group(2) or ""
-        token = name + accidental.upper()
-        if accidental.lower() == "b":
-            token = FLAT_TO_SHARP.get(name + "b", token)
-        note = notes.get((token, int(match.group(3))))
+    parsed_note = find_note(filename)
+    note = notes.get((parsed_note.name, parsed_note.octave)) if parsed_note else None
     return instrument, note
 
 
 def _store_audio(file, instrument_id, note_id, tags, description, uploaded_by, instruments, notes):
     """Persist one uploaded audio and return (Audio, error_message)."""
     if not file or not file.filename or not _allowed(file.filename):
-        return None, "Formato no permitido. Use: WAV, AIFF, MP3, OGG o FLAC."
+        return None, "Formato no permitido. Use: WAV, AIFF, MP3, OGG, FLAC o WMA."
+
+    try:
+        instrument = db.session.get(Instrument, int(instrument_id)) if instrument_id else None
+    except (TypeError, ValueError):
+        return None, "El instrumento seleccionado no es válido."
+    try:
+        note = db.session.get(Note, int(note_id)) if note_id else None
+    except (TypeError, ValueError):
+        return None, "La nota seleccionada no es válida."
+    if instrument_id and not instrument:
+        return None, "El instrumento seleccionado no existe."
+    if note_id and not note:
+        return None, "La nota seleccionada no existe."
 
     detected_instrument, detected_note = _detect_metadata(file.filename, instruments, notes)
-    instrument = Instrument.query.get(int(instrument_id)) if instrument_id else detected_instrument
-    note = Note.query.get(int(note_id)) if note_id else detected_note
+    instrument = instrument or detected_instrument
+    note = note or detected_note
     if not instrument:
         return None, f"No se pudo detectar el instrumento en '{file.filename}'."
 
-    original_name = secure_filename(os.path.basename(file.filename))
-    ext = original_name.rsplit(".", 1)[1].lower()
-    storage_path = current_app.config["AUDIO_STORAGE_PATH"]
-    filepath = os.path.join(storage_path, f"{uuid.uuid4().hex}.{ext}")
-    file.save(filepath)
-
-    file_size = os.path.getsize(filepath)
+    original_name = secure_filename(Path(file.filename.replace("\\", "/")).name)
+    ext = Path(original_name).suffix.casefold().lstrip(".")
     max_bytes = current_app.config["MAX_AUDIO_SIZE_MB"] * 1024 * 1024
-    if file_size > max_bytes:
-        os.remove(filepath)
-        return None, f"'{original_name}' supera el límite de {current_app.config['MAX_AUDIO_SIZE_MB']} MB."
+    data = file.stream.read(max_bytes + 1)
+    if len(data) > max_bytes:
+        return None, f"'{original_name}' supera el límite permitido de {current_app.config['MAX_AUDIO_SIZE_MB']} MB."
+    converted = ext == "wma"
+    if converted:
+        try:
+            data = convert_wma(data)
+        except ValueError as exc:
+            return None, exc.args[0] if exc.args else "No se pudo convertir el audio."
+    try:
+        analysis = validate_audio_data(
+            data,
+            "converted.wav" if converted else original_name,
+            converted=converted,
+            max_bytes=max_bytes,
+        )
+    except ValueError as exc:
+        return None, exc.args[0] if exc.args else "El archivo no cumple los requisitos de audio."
 
-    analysis = _analyze(filepath)
-    if analysis.get("duration", 0) > 300:
-        os.remove(filepath)
-        return None, f"'{original_name}' supera los 5 minutos permitidos."
+    if note and Audio.query.filter_by(
+        instrument_id=instrument.id,
+        note_id=note.id,
+        is_active=True,
+    ).first():
+        return None, f"Ya existe un audio activo para {instrument.name} y {note.display_name}."
 
-    with open(filepath, "rb") as stored_file:
-        audio_data = stored_file.read()
+    storage_path = current_app.config["AUDIO_STORAGE_PATH"]
+    os.makedirs(storage_path, exist_ok=True)
+    stored_ext = "wav" if converted else ext
+    filepath = os.path.join(storage_path, f"{uuid.uuid4().hex}.{stored_ext}")
+    Path(filepath).write_bytes(data)
 
     audio = Audio(
         filename=os.path.basename(filepath),
         original_filename=original_name,
         file_path=filepath,
-        audio_data=audio_data,
+        audio_data=data,
         instrument_id=instrument.id,
         note_id=note.id if note else None,
         difficulty="intermedio",
         description=description or "",
         tags=tags or f"{instrument.name},{note.display_name if note else ''}",
-        file_size=file_size,
+        file_size=len(data),
         uploaded_by=uploaded_by,
         **analysis,
     )
@@ -204,7 +189,10 @@ def manager():
     instr_id    = request.args.get("instrument_id", type=int)
     difficulty  = request.args.get("difficulty", "")
 
-    q = Audio.query.filter_by(is_active=True)
+    q = Audio.query.options(
+        joinedload(Audio.instrument),
+        joinedload(Audio.note),
+    ).filter_by(is_active=True)
     if instr_id:
         q = q.filter_by(instrument_id=instr_id)
     if difficulty:
@@ -218,7 +206,39 @@ def manager():
             )
         )
 
-    pagination  = q.order_by(Audio.created_at.desc()).paginate(page=page, per_page=12)
+    per_page = 12
+    page = max(1, page)
+    total = q.order_by(None).with_entities(db.func.count(Audio.id)).scalar() or 0
+    pages = (total + per_page - 1) // per_page
+    page = min(page, max(pages, 1))
+    audio_ids = [
+        row[0]
+        for row in (
+            q.order_by(None)
+            .with_entities(Audio.id)
+            .order_by(Audio.created_at.desc(), Audio.id.desc())
+            .offset((page - 1) * per_page)
+            .limit(per_page)
+            .all()
+        )
+    ]
+    items = (
+        Audio.query.options(joinedload(Audio.instrument), joinedload(Audio.note))
+        .filter(Audio.id.in_(audio_ids))
+        .order_by(Audio.created_at.desc(), Audio.id.desc())
+        .all()
+        if audio_ids else []
+    )
+    pagination = SimpleNamespace(
+        items=items,
+        total=total,
+        page=page,
+        pages=pages,
+        has_prev=page > 1,
+        prev_num=page - 1,
+        has_next=page < pages,
+        next_num=page + 1,
+    )
     instruments = _available_instruments()
     notes       = Note.query.order_by(Note.octave, Note.id).all()
 
@@ -247,13 +267,13 @@ def upload_multiple():
                 request.form.get("instrument_id", type=int),
                 current_user.id,
             )
-        except ValueError as exc:
-            flash(str(exc), "danger")
+        except ValueError:
+            flash("Selecciona un instrumento válido y archivos compatibles para importar.", "danger")
             return render_template("admin/upload_multiple.html", instruments=instruments)
-        except Exception as exc:
+        except Exception:
             db.session.rollback()
             current_app.logger.exception("Error importando audios")
-            flash(f"No se pudieron procesar los audios: {exc}", "danger")
+            flash("No se pudieron procesar los audios. Revisa los archivos e inténtalo de nuevo.", "danger")
             return render_template("admin/upload_multiple.html", instruments=instruments)
 
         if imported:
@@ -283,7 +303,21 @@ def upload():
     if error:
         flash(error, "danger")
         return redirect(url_for("audio.manager"))
-    db.session.commit()
+    try:
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        if os.path.isfile(audio_obj.file_path):
+            os.remove(audio_obj.file_path)
+        flash("Ya existe un audio registrado para este instrumento y nota.", "warning")
+        return redirect(url_for("audio.manager"))
+    except Exception:
+        db.session.rollback()
+        if os.path.isfile(audio_obj.file_path):
+            os.remove(audio_obj.file_path)
+        current_app.logger.exception("Error guardando audio")
+        flash("No se pudo guardar el audio. Inténtalo de nuevo.", "danger")
+        return redirect(url_for("audio.manager"))
     flash(f"Audio '{file.filename}' subido correctamente.", "success")
     return redirect(url_for("audio.manager"))
 
@@ -301,21 +335,38 @@ def upload_folder():
     selected_instrument = request.form.get("instrument_id") or None
     tags = request.form.get("tags", "")
     uploaded = 0
+    stored_paths = []
     errors = []
     for file in files:
-        _, error = _store_audio(
+        audio_obj, error = _store_audio(
             file, selected_instrument, None, tags, "", current_user.id, instruments, notes,
         )
         if error:
             errors.append(error)
         else:
             uploaded += 1
+            stored_paths.append(audio_obj.file_path)
 
     if uploaded:
-        db.session.commit()
-        flash(f"{uploaded} audios de la carpeta fueron cargados correctamente.", "success")
+        try:
+            db.session.commit()
+            flash(f"{uploaded} audios de la carpeta fueron cargados correctamente.", "success")
+        except IntegrityError:
+            db.session.rollback()
+            for path in stored_paths:
+                if os.path.isfile(path):
+                    os.remove(path)
+            uploaded = 0
+            flash("No se guardaron los audios porque existe un duplicado instrumento/nota.", "warning")
+        except Exception:
+            db.session.rollback()
+            for path in stored_paths:
+                if os.path.isfile(path):
+                    os.remove(path)
+            uploaded = 0
+            current_app.logger.exception("Error guardando carpeta de audios")
+            flash("No se pudieron guardar los audios. Inténtalo de nuevo.", "danger")
     if errors:
-        db.session.rollback()
         flash(f"{len(errors)} archivos no se cargaron. Revisa que incluyan instrumento y nota.", "warning")
     if not files:
         flash("Selecciona una carpeta que contenga archivos de audio.", "warning")

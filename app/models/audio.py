@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from urllib.parse import quote
+from sqlalchemy.orm import deferred
 from ..extensions import db
 
 
@@ -10,7 +11,7 @@ class Audio(db.Model):
     filename          = db.Column(db.String(255), nullable=False)
     original_filename = db.Column(db.String(255), nullable=False)
     file_path         = db.Column(db.String(500), nullable=False)
-    audio_data        = db.Column(db.LargeBinary, nullable=True)
+    audio_data        = deferred(db.Column(db.LargeBinary, nullable=True))
     instrument_id     = db.Column(db.Integer, db.ForeignKey("instruments.id"), nullable=True, index=True)
     note_id           = db.Column(db.Integer, db.ForeignKey("notes.id"), nullable=True, index=True)
     duration          = db.Column(db.Float, nullable=True)
