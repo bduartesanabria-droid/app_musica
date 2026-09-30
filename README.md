@@ -42,6 +42,20 @@ La aplicación queda en `http://localhost:6000`; salud en `/api/health`. El
 override de desarrollo crea un PostgreSQL aislado para la red local de Docker y
 el servicio web aplica las migraciones antes de arrancar.
 
+Para ejecutar la aplicación localmente con SQLite en vez de Docker/PostgreSQL,
+usa una base de pruebas separada:
+
+```powershell
+$env:FLASK_ENV = "testing"
+$env:TEST_DATABASE_URL = "sqlite:///semimus-test.db"
+$env:FLASK_APP = "run.py"
+flask db upgrade
+python run.py
+```
+
+La base local se guarda bajo `instance/` y está excluida de Git. Esta
+configuración no sustituye ni migra la base PostgreSQL de producción.
+
 ## Configuración de producción
 
 Configura las variables en Coolify; no uses contraseñas de ejemplo:

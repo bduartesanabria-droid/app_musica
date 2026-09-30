@@ -81,7 +81,7 @@ jobs:
         env:
           FLASK_APP:    run.py
           FLASK_ENV:    testing
-          DATABASE_URL: postgresql://semimus:${{ github.run_id }}@localhost:5432/semimus_test
+          TEST_DATABASE_URL: postgresql://semimus:${{ github.run_id }}@localhost:5432/semimus_test
           SECRET_KEY:   ${{ github.run_id }}-${{ github.run_attempt }}-ci-test-key-material-long-enough-32
         run: flask db upgrade
 

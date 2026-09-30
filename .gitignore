@@ -12,6 +12,8 @@ build/
 .eggs/
 *.log
 *.zip
+semimus-test.db
+semimus-test.db-*
 
 # Flask
 instance/
