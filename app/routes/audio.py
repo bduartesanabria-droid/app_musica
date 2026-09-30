@@ -17,13 +17,6 @@ from ..services.audio_validation import convert_wma, validate_audio_data
 
 audio_bp = Blueprint("audio", __name__)
 
-def _require_instructor():
-    if not current_user.is_authenticated or not current_user.is_instructor:
-        flash("Sin permisos para acceder.", "danger")
-        return redirect(url_for("main.dashboard"))
-    return None
-
-
 def _available_instruments():
     allowed = ("Guitarra", "Bandola", "Requinto", "Tiple")
     existing = {
@@ -378,7 +371,7 @@ def upload_folder():
 def delete_audio(audio_id):
     if not current_user.is_instructor:
         return jsonify({"error": "Sin permisos"}), 403
-    audio_obj = Audio.query.get_or_404(audio_id)
+    audio_obj = db.get_or_404(Audio, audio_id)
     audio_obj.is_active = False
     db.session.commit()
     flash("Audio eliminado.", "success")
@@ -390,9 +383,9 @@ def delete_audio(audio_id):
 def update_note(audio_id):
     if not current_user.is_instructor:
         return jsonify({"error": "Sin permisos"}), 403
-    audio = Audio.query.get_or_404(audio_id)
+    audio = db.get_or_404(Audio, audio_id)
     note_id = request.form.get("note_id", type=int)
-    note = Note.query.get(note_id) if note_id else None
+    note = db.session.get(Note, note_id) if note_id else None
     if not note:
         flash("Selecciona una nota válida.", "danger")
     else:

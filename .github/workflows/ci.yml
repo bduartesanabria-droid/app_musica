@@ -69,7 +69,7 @@ jobs:
           python -m py_compile app/utils/filters.py app/utils/question_generator.py
 
       - name: Lint
-        run: ruff check app tests config.py run.py
+        run: ruff check --select F app tests scripts config.py run.py
 
       - name: Security audit
         run: pip-audit
@@ -82,7 +82,7 @@ jobs:
           FLASK_APP:    run.py
           FLASK_ENV:    testing
           DATABASE_URL: postgresql://semimus:${{ github.run_id }}@localhost:5432/semimus_test
-          SECRET_KEY:   ${{ github.run_id }}-${{ github.run_attempt }}-ci-only-key-material
+          SECRET_KEY:   ${{ github.run_id }}-${{ github.run_attempt }}-ci-test-key-material-long-enough-32
         run: flask db upgrade
 
   # ── 2. Build Docker (solo en main) ─────────────────────────────────────────

@@ -60,7 +60,7 @@ def users():
 @login_required
 @require_admin
 def toggle_user(user_id):
-    user = User.query.get_or_404(user_id)
+    user = db.get_or_404(User, user_id)
     if user.id == current_user.id:
         flash("No puedes desactivar tu propia cuenta.", "warning")
         return redirect(url_for("admin.users"))
@@ -85,7 +85,7 @@ def toggle_user(user_id):
 @login_required
 @require_admin
 def change_role(user_id):
-    user = User.query.get_or_404(user_id)
+    user = db.get_or_404(User, user_id)
     new_role = request.form.get("role")
     if new_role not in ("superadmin", "admin", "instructor", "aprendiz"):
         flash("Rol inválido.", "danger")
@@ -117,7 +117,7 @@ def change_role(user_id):
 @login_required
 @require_instructor
 def user_detail(user_id):
-    user_obj = User.query.get_or_404(user_id)
+    user_obj = db.get_or_404(User, user_id)
     progress_obj = Progress.query.filter_by(user_id=user_obj.id).first()
     gamification_obj = UserGamification.query.filter_by(user_id=user_obj.id).first()
     from ..models.session import TrainingSession
@@ -163,7 +163,7 @@ def create_instrument():
 @login_required
 @require_admin
 def toggle_instrument(instr_id):
-    inst = Instrument.query.get_or_404(instr_id)
+    inst = db.get_or_404(Instrument, instr_id)
     inst.is_active = not inst.is_active
     db.session.commit()
     flash(f"Instrumento {inst.name} actualizado.", "success")

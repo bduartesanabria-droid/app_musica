@@ -1,286 +1,128 @@
-# 🎵 SEMIMUS — Sistema de Entrenamiento Melódico Musical
+# SEMIMUS
 
-> Plataforma web para el entrenamiento del oído musical con instrumentos andinos colombianos: **Tiple**, **Requinto** y **Bandola**.
+Aplicación web para entrenar el oído musical con instrumentos andinos colombianos. El backend y las vistas usan **Flask 3, SQLAlchemy, PostgreSQL y Jinja**; Alpine.js añade interacciones en el navegador.
 
-![Stack](https://img.shields.io/badge/Backend-Flask%203.0%20%2B%20PostgreSQL-blue)
-![Stack](https://img.shields.io/badge/Frontend-Jinja%20%2B%20Alpine%20%2B%20TailwindCSS-cyan)
-![Stack](https://img.shields.io/badge/Deploy-Docker%20%2B%20Coolify-purple)
-![License](https://img.shields.io/badge/License-MIT-green)
+## Arquitectura
 
----
+- `app/routes/`: autenticación, entrenamiento, administración y API.
+- `app/models/`: entidades SQLAlchemy.
+- `app/templates/`: páginas Jinja.
+- `app/static/`: estilos compilados, JavaScript y recursos locales.
+- `migrations/`: migraciones Alembic versionadas.
+- `storage/audio/`: archivos de audio en el volumen persistente configurado.
+- `docker-compose.yml`: servicio Flask para Coolify/producción.
 
-## 🏗️ Arquitectura
+## Desarrollo local
 
-```
-semimus/
-├── backend/               # Flask API REST
-│   ├── app/
-│   │   ├── models/        # SQLAlchemy models (Users, Audio, Sessions...)
-│   │   ├── api/           # Blueprints de la API REST
-│   │   └── utils/         # Generador de preguntas, procesamiento de audio
-│   ├── storage/audio/     # Archivos WAV/MP3 (volumen Docker)
-│   └── Dockerfile
-├── app/templates/          # Vistas server-rendered con Jinja
-├── app/static/             # JavaScript y CSS compilado
-├── nginx/                 # Reverse proxy
-├── .github/workflows/     # CI/CD GitHub Actions
-└── docker-compose.yml
-```
+Requisitos: Python 3.12, Node.js 22+, Docker Compose y Git.
 
----
+1. Copia `.env.example` a `.env`. Define un `SECRET_KEY` propio. Si necesitas el
+   usuario inicial superadministrador, define también `SUPERADMIN_USERNAME`,
+   `SUPERADMIN_EMAIL` y `SUPERADMIN_PASSWORD`.
+2. Compila los recursos locales del frontend:
 
-## 🚀 Inicio Rápido
+   ```bash
+   npm ci
+   npm run build
+   ```
 
-### Requisitos
-- Docker Desktop
-- Git
-
-### 1. Clonar y configurar
+3. Inicia la aplicación y PostgreSQL de desarrollo:
 
 ```bash
-git clone <repo-url> semimus
-cd semimus
-cp .env.example .env
-# Edita .env con tus valores
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 ```
 
-### 2. Levantar con Docker
+En otra terminal, carga los catálogos iniciales una sola vez:
 
 ```bash
-docker-compose up -d
+docker compose -f docker-compose.yml -f docker-compose.dev.yml exec web python scripts/seed.py
 ```
 
-### 3. Aplicar migraciones
+La aplicación queda en `http://localhost:6000`; salud en `/api/health`. El
+override de desarrollo crea un PostgreSQL aislado para la red local de Docker y
+el servicio web aplica las migraciones antes de arrancar.
+
+## Configuración de producción
+
+Configura las variables en Coolify; no uses contraseñas de ejemplo:
+
+| Variable | Uso |
+|---|---|
+| `FLASK_ENV=production` | Activa configuración de producción. |
+| `SECRET_KEY` | Obligatoria; mínimo 32 caracteres aleatorios. |
+| `DATABASE_URL` | Obligatoria; URL de conexión PostgreSQL. |
+| `SUPERADMIN_USERNAME`, `SUPERADMIN_EMAIL`, `SUPERADMIN_PASSWORD` | Opcionales; se crea la cuenta solo si las tres existen y aún no hay superadministrador. Nunca se modifica una cuenta existente durante el arranque. |
+| `AUDIO_STORAGE_PATH` | Volumen persistente de archivos de audio. |
+| `AVATAR_STORAGE_PATH` | Volumen persistente de avatares. |
+| `PROXY_FIX_X_FOR`, `PROXY_FIX_X_PROTO`, `PROXY_FIX_X_HOST` | Número de proxies de confianza por cabecera `X-Forwarded-*`; configura los saltos reales de tu instalación. |
+| `RATELIMIT_STORAGE_URI` | `memory://` por defecto; usa una URL Redis para compartir límites entre workers. |
+| `GUNICORN_WORKERS`, `GUNICORN_THREADS`, `GUNICORN_TIMEOUT` | Configuración del servidor (por defecto 2, 2 y 180 segundos). |
+| `MAX_AUDIO_SIZE_MB`, `MAX_UPLOAD_MB` | Límites de audio por archivo y petición. |
+
+La aplicación detiene el arranque en producción si falta `SECRET_KEY` o es un
+valor de ejemplo. Los recursos Alpine.js 3.14.9, Chart.js 4.4.9 y TailwindCSS 3
+se sirven desde el repositorio; no dependen de CDN en tiempo de ejecución.
+
+## Migraciones
+
+Las migraciones se crean y revisan durante el desarrollo, se guardan en el
+repositorio y se aplican con:
 
 ```bash
-docker compose exec web flask db upgrade
-```
-
-### 4. Acceder
-
-| Servicio | URL |
-|----------|-----|
-| Frontend | http://localhost |
-| API | http://localhost/api |
-| Health | http://localhost/api/health |
-
-Configura las credenciales iniciales de superadministrador mediante las variables
-`SUPERADMIN_USERNAME`, `SUPERADMIN_EMAIL` y `SUPERADMIN_PASSWORD`; el bootstrap
-solo crea la cuenta si todavía no existe ningún superadministrador.
-
----
-
-## 💻 Desarrollo Local
-
-### Backend
-
-```bash
-cd backend
-python -m venv venv
-venv\Scripts\activate   # Windows
-pip install -r requirements.txt
-
-# Configura PostgreSQL local y crea .env
-cp ../.env.example .env
-
-# Aplica las migraciones versionadas en el repositorio
 flask db upgrade
-
-# Seed
-python scripts/seed.py
-
-# Servidor
-python run.py
 ```
 
-#### Adoptar una base de datos de producción ya existente
-
-Antes de adoptar migraciones, realiza una copia de seguridad y comprueba que el
-esquema existente coincide con los modelos de esta versión. Solo entonces marca
-la revisión inicial como aplicada, sin recrear ni borrar tablas:
+El entrypoint ejecuta ese comando antes de iniciar Gunicorn. Para adoptar una
+base de datos existente, realiza primero una copia de seguridad y verifica que
+su esquema corresponde exactamente a la revisión que vas a marcar. En la
+primera entrega, cuando la migración inicial era `head`, se usaba:
 
 ```bash
 flask db stamp head
 flask db upgrade
 ```
 
-`stamp head` solo registra la revisión actual en `alembic_version`; no modifica
-el esquema. No lo uses sobre una base vacía ni sobre una base cuyo esquema no
-coincida con la migración.
-
-### Compilar los recursos CSS y JavaScript
+La revisión inicial de este repositorio es `b7d5683b9277`. Como ya existen
+migraciones posteriores, una base antigua que solo coincide con el esquema
+inicial debe marcar esa revisión explícitamente y después avanzar:
 
 ```bash
-npm ci
-npm run build
+flask db stamp b7d5683b9277
+flask db upgrade
 ```
 
----
+`stamp` solo registra una revisión en `alembic_version`; no crea, altera ni
+borra tablas. No marques `head` si el esquema no incluye todos los cambios hasta
+esa revisión.
 
-## 🎯 Modos de Entrenamiento
+## Entrenamiento y audio
 
-| Modo | Descripción |
-|------|-------------|
-| **Notas** | Identificación de notas DO, RE, MI, FA, SOL, LA, SI |
-| **Intervalos** | Reconocimiento de 2das, 3ras, 4tas, 5tas, octavas |
-| **Escalas** | Mayor, menor, pentatónica, armónica |
-| **Dictado Melódico** | Transcripción de frases musicales |
-| **Patrones Andinos** | Ritmos y motivos de la música andina colombiana |
-| **Guabina** | Entrenamiento con ritmo de guabina |
-| **Tiple** | Específico para el Tiple colombiano |
-| **Requinto** | Específico para el Requinto |
-| **Bandola** | Específico para la Bandola |
+- Las preguntas quedan asociadas a la sesión y se restauran al refrescar.
+- Para completar la sesión hay que responder todas las preguntas planificadas.
+  Una sesión sin respuestas queda abandonada y no suma XP, monedas ni progreso;
+  una sesión parcial permanece disponible para continuar.
+- La carga de audio acepta WAV, AIFF/AIF, MP3, OGG, FLAC y WMA. WMA se convierte
+  a WAV. Los archivos deben durar entre 3 y 12 segundos, tener al menos 44.1 kHz
+  y respetar `MAX_AUDIO_SIZE_MB` (50 MB por defecto).
+- Las cargas nuevas rechazan un segundo audio activo para el mismo
+  instrumento/nota. Los audios ya existentes no se eliminan.
 
----
+### Almacenamiento de audio: pendiente de aprobación
 
-## Política de finalización de sesiones
+Actualmente el contenido se guarda tanto en `Audio.audio_data` (PostgreSQL)
+como en `AUDIO_STORAGE_PATH`. Recomiendo guardar los archivos en un volumen
+persistente o almacenamiento de objetos y mantener en PostgreSQL solo sus
+metadatos y ubicación, para evitar duplicar almacenamiento y copias de
+seguridad. **No cambié la estrategia actual**; la migración a una sola ubicación
+requiere tu aprobación antes de mover datos o retirar los BLOB existentes.
 
-Una sesión solo se completa cuando se han respondido todas sus preguntas. Si se
-intenta completar con respuestas pendientes, la sesión queda disponible para
-continuarla. Si se abandona sin responder ninguna, queda marcada como abandonada
-y no suma sesión, XP, monedas ni precisión.
+## Comprobaciones
 
----
-
-## 🔊 Banco Sonoro
-
-Los archivos de audio deben seguir el formato:
-```
-{Instrumento}_{Nota}{Octava}.wav
-Ejemplos:
-  Tiple_DO4.wav
-  Requinto_LA3.wav
-  Bandola_SOL5.wav
+```bash
+python -m pytest
+ruff check --select F app tests scripts config.py run.py
+python -m pip_audit -r requirements.txt
 ```
 
-**Especificaciones técnicas:**
-- Formato: WAV (recomendado), MP3, OGG, FLAC
-- También se aceptan AIFF/AIF y WMA (WMA se convierte a WAV al importar).
-- Frecuencia de muestreo mínima: 44.1 kHz.
-- Duración aceptada: 3–12 segundos (recomendado: 3–5 segundos).
-- Tamaño máximo por archivo: `MAX_AUDIO_SIZE_MB` (50 MB por defecto).
-
-### Almacenamiento de audio: decisión pendiente
-
-Actualmente los archivos se duplican en `Audio.audio_data` (PostgreSQL) y en
-`AUDIO_STORAGE_PATH`. Recomiendo conservar el archivo en un volumen persistente
-(o almacenamiento de objetos) y dejar en PostgreSQL solo sus metadatos y la ruta;
-así se evita duplicar espacio y crecer las copias de seguridad de la base. No se
-ha cambiado el almacenamiento existente. Antes de migrar o eliminar los BLOB,
-confirma si apruebas esta recomendación.
-
----
-
-## 🎮 Sistema de Gamificación
-
-| Elemento | Descripción |
-|----------|-------------|
-| **XP** | 10 XP/pregunta correcta + bonos por precisión |
-| **Monedas** | 5 por sesión + 15 si precisión ≥ 80% |
-| **Niveles** | Principiante → Aprendiz → Estudiante → Músico → Intérprete → Maestro → Virtuoso → Gran Maestro |
-| **Insignias** | Primera Nota, Racha 7 días, Oído Perfecto... |
-| **Rankings** | Global, semanal, mensual, por precisión |
-| **Desafíos** | Reto diario con XP/monedas extras |
-
----
-
-## 📡 API REST
-
-```
-POST   /api/auth/register          Registro de usuario
-POST   /api/auth/login             Login + JWT
-POST   /api/auth/refresh           Renovar access token
-GET    /api/auth/me                Datos del usuario autenticado
-
-GET    /api/instruments/           Listar instrumentos
-GET    /api/instruments/notes      Listar notas
-GET    /api/instruments/intervals  Listar intervalos
-
-GET    /api/audio/                 Listar audios (paginado)
-POST   /api/audio/upload           Subir audio (admin/instructor)
-GET    /api/audio/stream/{file}    Streaming de audio
-
-POST   /api/questions/generate     Generar preguntas estocásticas
-POST   /api/sessions/              Crear sesión de entrenamiento
-POST   /api/sessions/{id}/answer   Enviar respuesta
-POST   /api/sessions/{id}/complete Completar sesión + gamificación
-
-GET    /api/progress/me            Progreso personal
-GET    /api/statistics/me          Estadísticas detalladas
-GET    /api/rankings/global        Ranking global/semanal/mensual
-```
-
----
-
-## 🔐 Roles y Permisos
-
-| Rol | Permisos |
-|-----|----------|
-| **Aprendiz** | Entrenar, ver sus estadísticas y rankings |
-| **Instructor** | + Subir/gestionar audios, ver estadísticas de aprendices |
-| **Admin** | + Gestionar usuarios, roles, configuraciones |
-
----
-
-## 🐳 Despliegue en Coolify
-
-1. Conecta tu repositorio GitHub en Coolify
-2. Configura las variables de entorno del `.env.example`
-3. Selecciona `docker-compose.yml` como archivo de despliegue
-4. El webhook de GitHub Actions dispara el redespliegue automático
-
-**Variables de entorno requeridas en producción:**
-```
-SECRET_KEY=<cadena aleatoria de 64 caracteres>
-JWT_SECRET_KEY=<cadena aleatoria de 64 caracteres>
-DATABASE_URL=postgresql://user:pass@host:5432/semimus
-POSTGRES_PASSWORD=<contraseña segura>
-FRONTEND_URL=https://tu-dominio.com
-CORS_ORIGINS=https://tu-dominio.com
-```
-
----
-
-## 📊 Diagrama ER (Simplificado)
-
-```
-users ──────────── progress (1:1)
-  │              ├── user_gamification (1:1)
-  │              └── user_statistics (1:1)
-  │
-  └── training_sessions ─── answers ─── questions
-                                            │
-                                         audios
-                                            │
-                                    instruments ── notes
-```
-
----
-
-## 🛠️ Tecnologías
-
-**Backend:**
-- Python 3.12 + Flask 3.0
-- PostgreSQL 16 + SQLAlchemy + Flask-Migrate
-- JWT (Flask-JWT-Extended)
-- Redis (rate limiting)
-- Gunicorn (producción)
-- librosa + soundfile (análisis de audio)
-
-**Frontend:**
-- Jinja templates + Alpine.js
-- TailwindCSS 3 compilado
-- Chart.js
-
-**DevOps:**
-- Docker + Docker Compose
-- Nginx (reverse proxy)
-- GitHub Actions (CI/CD)
-- Coolify (deployment)
-- Let's Encrypt (SSL)
-
----
-
-## 📄 Licencia
-
-MIT License — Desarrollado con ❤️ para la música andina colombiana.
+GitHub Actions aplica las migraciones guardadas en PostgreSQL, compila los
+recursos web y ejecuta Ruff, pytest y pip-audit.

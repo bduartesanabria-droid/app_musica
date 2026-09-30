@@ -12,7 +12,7 @@ from ..models.gamification import UserGamification
 from ..models.instrument import Interval, Scale
 from ..models.audio import Audio
 from ..models.session import TrainingSession
-from ..models.gamification import Badge, UserBadge
+from ..models.gamification import UserBadge
 from ..extensions import db
 from datetime import datetime, timezone, timedelta
 from sqlalchemy.orm import joinedload

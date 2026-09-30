@@ -107,7 +107,7 @@ def session_view(session_id):
     if not questions:
         planned_count = sess.total_questions or requested_count
         count = _bounded_int(planned_count, requested_count, 5, 20)
-        questions = QuestionGenerator(user_id=current_user.id).generate(
+        questions = QuestionGenerator().generate(
             mode=sess.mode,
             instrument_id=sess.instrument_id,
             difficulty=_bounded_int(sess.difficulty_level, 1, 1, 5),

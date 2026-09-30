@@ -5,21 +5,55 @@
 services:
 
   db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: semimus_dev
+      POSTGRES_USER: semimus
+      POSTGRES_HOST_AUTH_METHOD: trust
+    volumes:
+      - dev_postgres_data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U semimus -d semimus_dev"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - coolify
 
   web:
     environment:
       FLASK_ENV:   development
       FLASK_DEBUG: "1"
+      DATABASE_URL: postgresql://semimus@db:5432/semimus_dev
+      PROXY_FIX_X_FOR: "0"
+      PROXY_FIX_X_PROTO: "0"
+      PROXY_FIX_X_HOST: "0"
+    depends_on:
+      db:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c"]
     volumes:
       - .:/app
       - /app/__pycache__
-    command: >
-      flask run
-      --host=0.0.0.0
-      --port=6000
-      --debug
-      --reload
+    command: "flask db upgrade && exec flask run --host=0.0.0.0 --port=6000 --debug --reload"
     ports:
       - "6000:6000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:6000/api/health', timeout=5)"]
+      interval: 30s
+      timeout: 8s
+      retries: 3
+      start_period: 60s
+    networks:
+      - coolify
+
+volumes:
+  dev_postgres_data:
+
+networks:
+  coolify:
+    external: false
+    name: semimus-dev
