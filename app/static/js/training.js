@@ -11,6 +11,8 @@ function trainingSession(questions, answerUrl, completeUrl) {
     currentIndex:    0,
     currentQ:        null,
     answered:        false,
+    answerReady:     false,
+    answerError:     '',
     selectedAnswer:  null,
     lastCorrect:     false,
     isPlaying:       false,
@@ -74,6 +76,8 @@ function trainingSession(questions, answerUrl, completeUrl) {
     async submitAnswer(option) {
       if (this.answered || !this.currentQ) return;
       this.answered       = true;
+      this.answerReady    = false;
+      this.answerError    = '';
       this.selectedAnswer = option;
       this.showHint       = false;
 
@@ -98,6 +102,9 @@ function trainingSession(questions, answerUrl, completeUrl) {
 
         const data = await res.json();
         this.lastCorrect = data.is_correct;
+        if (data.correct_answer) {
+          this.currentQ.correct_answer = data.correct_answer;
+        }
 
         if (data.is_correct) {
           this.correct++;
@@ -116,13 +123,13 @@ function trainingSession(questions, answerUrl, completeUrl) {
         if (data.explanation && this.currentQ) {
           this.currentQ.explanation = data.explanation;
         }
+        this.answerReady = true;
 
       } catch (err) {
         console.error('Answer submission error:', err);
-        // Offline fallback: evaluate locally
-        this.lastCorrect = (option === this.currentQ.correct_answer);
-        if (this.lastCorrect) this.correct++; else this.wrong++;
-        this._flashFeedback(this.lastCorrect ? 'correct' : 'wrong');
+        this.answered = false;
+        this.selectedAnswer = null;
+        this.answerError = 'No se pudo comprobar la respuesta. Revisa tu conexión e inténtalo de nuevo.';
       }
     },
 
@@ -138,6 +145,8 @@ function trainingSession(questions, answerUrl, completeUrl) {
       this.currentIndex++;
       this.currentQ        = this.questions[this.currentIndex];
       this.answered        = false;
+      this.answerReady     = false;
+      this.answerError     = '';
       this.selectedAnswer  = null;
       this.lastCorrect     = false;
       this.showHint        = false;

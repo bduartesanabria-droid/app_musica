@@ -7,6 +7,13 @@ load_dotenv()
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
 
+def _database_uri():
+    uri = os.environ.get("DATABASE_URL")
+    if uri and uri.startswith("postgres://"):
+        return "postgresql://" + uri[len("postgres://"):]
+    return uri
+
+
 class Config:
     SECRET_KEY = os.environ.get("SECRET_KEY", "semimus-dev-secret-2024")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
@@ -52,7 +59,7 @@ class DevelopmentConfig(Config):
 
 class ProductionConfig(Config):
     DEBUG = False
-    SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL")
+    SQLALCHEMY_DATABASE_URI = _database_uri()
     SESSION_COOKIE_SECURE = True
 
 

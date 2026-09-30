@@ -29,26 +29,36 @@
         </div>
        </section>
 
-       <section class="training-panel">
-         <div class="panel-heading"><span class="step-number">02</span><div><h2>Elige la escala</h2><p>Usaremos esta referencia musical para organizar tu práctica.</p></div></div>
-         <select name="scale_id" x-model="scale_id" class="form-input max-w-md" required>
-           <option value="">Selecciona una escala</option>
-           {% for scale in scales %}<option value="{{ scale.id }}">{{ scale.name }}</option>{% endfor %}
-         </select>
-         <div class="interval-pills mt-4"><span>2ª mayor</span><span>3ª mayor</span><span>4ª justa</span><span>5ª justa</span></div>
-       </section>
+        <section class="training-panel">
+          <div class="panel-heading"><span class="step-number">02</span><div><h2>Elige la escala</h2><p>Usaremos esta referencia musical para organizar tu práctica.</p></div></div>
+          <label class="control-label" for="scale_id">Escala musical</label>
+          <select id="scale_id" name="scale_id" x-model="scale_id" class="training-select" required>
+            <option value="">Selecciona una escala</option>
+            {% for scale in scales %}<option value="{{ scale.id }}">{{ scale.name }}</option>{% endfor %}
+          </select>
+          <div class="interval-list-wrap">
+            <p class="control-label">Intervalos que practicarás</p>
+            <ul class="interval-pills"><li>2ª mayor</li><li>3ª mayor</li><li>4ª justa</li><li>5ª justa</li></ul>
+          </div>
+        </section>
 
-       <section class="training-panel">
-         <div class="panel-heading"><span class="step-number">03</span><div><h2>Elige la dificultad</h2><p>Avanza de forma progresiva según tu nivel.</p></div></div>
-         <div class="settings-grid">
-           <label><span>Dificultad <b x-text="['', 'Inicial', 'Básica', 'Intermedia', 'Avanzada', 'Experta'][difficulty]"></b></span><input type="range" name="difficulty" x-model.number="difficulty" min="1" max="5"></label>
-         </div>
-       </section>
+        <section class="training-panel">
+          <div class="panel-heading"><span class="step-number">03</span><div><h2>Elige la dificultad</h2><p>Avanza de forma progresiva según tu nivel.</p></div></div>
+          <div class="range-field">
+            <div class="range-heading"><label for="difficulty">Nivel de dificultad</label><output for="difficulty" x-text="['', 'Inicial', 'Básica', 'Intermedia', 'Avanzada', 'Experta'][difficulty]"></output></div>
+            <input id="difficulty" type="range" name="difficulty" x-model.number="difficulty" min="1" max="5" step="1">
+            <div class="range-ticks" aria-hidden="true"><span>Inicial</span><span>Básica</span><span>Intermedia</span><span>Avanzada</span><span>Experta</span></div>
+          </div>
+        </section>
 
-       <section class="training-panel">
-         <div class="panel-heading"><span class="step-number">04</span><div><h2>¿Cuántas preguntas?</h2><p>Selecciona la duración de tu sesión.</p></div></div>
-         <label class="settings-grid"><span>Preguntas <b x-text="question_count"></b></span><input type="range" name="question_count" x-model.number="question_count" min="5" max="20" step="5"></label>
-       </section>
+        <section class="training-panel">
+          <div class="panel-heading"><span class="step-number">04</span><div><h2>¿Cuántas preguntas?</h2><p>Selecciona la duración de tu sesión.</p></div></div>
+          <div class="range-field">
+            <div class="range-heading"><label for="question_count">Preguntas por sesión</label><output for="question_count"><span x-text="question_count"></span> preguntas</output></div>
+            <input id="question_count" type="range" name="question_count" x-model.number="question_count" min="5" max="20" step="5">
+            <div class="range-ticks range-ticks-questions" aria-hidden="true"><span>5</span><span>10</span><span>15</span><span>20</span></div>
+          </div>
+        </section>
 
       <button type="submit" class="neumorphic-cta"><span>Comenzar entrenamiento</span><b>→</b></button>
     </form>

@@ -1,4 +1,5 @@
 import json
+import math
 from flask import Blueprint, render_template, redirect, url_for, request, flash, jsonify, session as flask_session
 from flask_login import login_required, current_user
 from datetime import datetime, timezone
@@ -140,13 +141,31 @@ def submit_answer(session_id):
     if sess.is_completed:
         return jsonify({"error": "Sesión ya completada"}), 400
 
-    data           = request.get_json()
-    question_index = str(data.get("question_index", 0))
-    user_answer    = (data.get("answer") or "").strip()
-    response_time  = float(data.get("response_time", 0))
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"error": "Se esperaba una respuesta JSON válida."}), 400
+
+    try:
+        question_index = str(int(data.get("question_index", 0)))
+    except (TypeError, ValueError):
+        return jsonify({"error": "El número de pregunta no es válido."}), 400
+
+    user_answer = data.get("answer")
+    if not isinstance(user_answer, str) or not user_answer.strip():
+        return jsonify({"error": "La respuesta no es válida."}), 400
+    user_answer = user_answer.strip()
+
+    try:
+        response_time = float(data.get("response_time", 0))
+    except (TypeError, ValueError):
+        return jsonify({"error": "El tiempo de respuesta no es válido."}), 400
+    if not math.isfinite(response_time) or response_time < 0:
+        return jsonify({"error": "El tiempo de respuesta no es válido."}), 400
 
     server_answers = flask_session.get(f"training_{session_id}", {})
     q_data         = server_answers.get(question_index, {})
+    if not q_data:
+        return jsonify({"error": "La pregunta ya no está disponible."}), 400
     correct_answer = q_data.get("correct_answer", "")
     explanation    = q_data.get("explanation", "")
     question_id    = q_data.get("question_id")

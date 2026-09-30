@@ -1,6 +1,7 @@
 """Endpoints JSON para llamadas AJAX desde el frontend."""
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, current_app, jsonify, request
 from flask_login import login_required, current_user
+from sqlalchemy import text
 from ..models.audio import Audio
 from ..models.instrument import Instrument, Note
 from ..models.gamification import UserGamification
@@ -11,6 +12,12 @@ api_bp = Blueprint("api", __name__)
 
 @api_bp.route("/health")
 def health():
+    try:
+        db.session.execute(text("SELECT 1"))
+    except Exception:
+        db.session.rollback()
+        current_app.logger.exception("Health check falló al consultar la base de datos.")
+        return jsonify({"status": "error", "service": "SEMIMUS", "database": "unavailable"}), 503
     return jsonify({"status": "ok", "service": "SEMIMUS"})
 
 

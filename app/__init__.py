@@ -10,6 +10,8 @@ def create_app(env=None):
 
     app = Flask(__name__, instance_relative_config=False)
     app.config.from_object(config_map.get(env, config_map["default"]))
+    if env == "production" and not app.config.get("SQLALCHEMY_DATABASE_URI"):
+        raise RuntimeError("DATABASE_URL es obligatorio cuando FLASK_ENV=production.")
 
     os.makedirs(app.config["AUDIO_STORAGE_PATH"], exist_ok=True)
 
@@ -72,7 +74,7 @@ def create_app(env=None):
         try:
             _ensure_superadmin_from_env()
         except Exception:
-            pass
+            app.logger.exception("No se pudo validar o crear el superadministrador inicial.")
 
     return app
 
