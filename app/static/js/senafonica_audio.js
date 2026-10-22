@@ -22,6 +22,7 @@ class SenafonicaAudioEngine {
     this.sampleCache = new Map(); // url -> AudioBuffer
     this.loadingPromises = new Map();
     this.activeNodes = [];
+    this.activeMedia = new Set();
     this.isPlaying = false;
     this.playToken = 0;
 
@@ -101,7 +102,9 @@ class SenafonicaAudioEngine {
   stop() {
     this.playToken++;
     this.isPlaying = false;
-    for (const node of this.activeNodes) {
+    const nodes = this.activeNodes;
+    this.activeNodes = [];
+    for (const node of nodes) {
       try {
         if (node.stop) node.stop();
         if (node.disconnect) node.disconnect();
@@ -109,7 +112,10 @@ class SenafonicaAudioEngine {
         // Ignored
       }
     }
-    this.activeNodes = [];
+    for (const media of this.activeMedia) {
+      media.pause();
+    }
+    this.activeMedia.clear();
   }
 
   /**
@@ -123,6 +129,10 @@ class SenafonicaAudioEngine {
     const now = startTime || ctx.currentTime;
 
     const sampleUrl = this.getSampleUrl(instrument, midi);
+    if (sampleUrl && await this._playHtmlSample(sampleUrl, now, duration, volume)) {
+      return now + duration;
+    }
+
     let buffer = sampleUrl ? this.sampleCache.get(sampleUrl) : null;
     if (!buffer && sampleUrl) {
       buffer = await this.preloadSample(sampleUrl);
@@ -133,6 +143,71 @@ class SenafonicaAudioEngine {
     } else {
       return this._synthesizeFolkNote(instrument, midi, now, duration, volume);
     }
+  }
+
+  async _playHtmlSample(url, startTime, duration, volume) {
+    if (typeof Audio === "undefined") return false;
+
+    const media = new Audio(url);
+    media.preload = "auto";
+    media.volume = Math.max(0, Math.min(1, volume));
+    this.activeMedia.add(media);
+
+    let startTimer;
+    let stopTimer;
+    let settled = false;
+    let resolvePlayback;
+    const playback = new Promise(resolve => {
+      resolvePlayback = resolve;
+    });
+    const cleanup = () => {
+      clearTimeout(startTimer);
+      clearTimeout(stopTimer);
+      media.onended = null;
+      media.onerror = null;
+      this.activeMedia.delete(media);
+      this.activeNodes = this.activeNodes.filter(node => node !== controller);
+    };
+    const controller = {
+      stop: () => {
+        cleanup();
+        media.pause();
+        if (!settled) {
+          settled = true;
+          resolvePlayback(false);
+        }
+      },
+    };
+    this.activeNodes.push(controller);
+
+    media.onended = cleanup;
+    media.onerror = () => {
+      cleanup();
+      if (!settled) {
+        settled = true;
+        resolvePlayback(false);
+      }
+    };
+
+    startTimer = setTimeout(async () => {
+      if (settled) return;
+      try {
+        await media.play();
+        if (settled) return;
+        settled = true;
+        resolvePlayback(true);
+        stopTimer = setTimeout(() => controller.stop(), Math.max(0.1, duration) * 1000);
+      } catch (error) {
+        cleanup();
+        console.warn("Could not play database audio sample:", url, error);
+        if (!settled) {
+          settled = true;
+          resolvePlayback(false);
+        }
+      }
+    }, Math.max(0, (startTime - this.ctx.currentTime) * 1000));
+
+    return playback;
   }
 
   /**

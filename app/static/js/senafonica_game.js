@@ -1,9 +1,15 @@
 /**
  * SENAFÓNICA Game Engine — Videojuego Web Autónomo e Integrado
  * Recorrido Cultural por la Provincia de Vélez
+ *
+ * Implementa el flujo EXPLORACIÓN → EVALUACIÓN:
+ *   1. Fase de exploración: el usuario escucha notas individuales, el intervalo
+ *      completo y lee la mnemotecnia antes de poder iniciar el quiz.
+ *   2. Fase de evaluación: preguntas de reconocimiento auditivo con feedback.
  */
 
 function senafonicaGame(initData) {
+  // ── PARSE INIT DATA ────────────────────────────────────────────────────────
   let data = initData;
   if (!data || typeof data !== 'object') {
     try {
@@ -16,20 +22,20 @@ function senafonicaGame(initData) {
   }
 
   return {
-    // ── DATA & CONFIG ────────────────────────────────────────────────────────
+    // ── DATA & CONFIG ──────────────────────────────────────────────────────
     user: data.user || { name: 'Aprendiz Veleño', xp: 0, coins: 0, level: 1, streak: 1 },
     catalog: data.catalog || {},
     intervals: data.intervals || [],
     scales: data.scales || [],
-    stations: data.levels || [], // 9 Estaciones de Vélez
+    stations: data.levels || [],
     theoryQuestions: data.theoryQuestions || [],
     inductionQuestions: data.inductionQuestions || [],
     shopItems: data.shopItems || [],
     csrfToken: data.csrfToken || '',
 
-    // ── ONBOARDING & LEGAL FLOW ─────────────────────────────────────────────
-    // Steps: 'legal' -> 'tutorial' -> 'induction_cards' -> 'induction_quiz' -> 'completed'
-    onboardingStep: 'completed', // Checked on init from localStorage
+    // ── ONBOARDING & LEGAL FLOW ───────────────────────────────────────────
+    // Steps: 'legal' → 'tutorial' → 'induction_cards' → 'induction_quiz' → 'completed'
+    onboardingStep: 'completed',
     playerAge: '',
     legalConsent: false,
     inductionIndex: 0,
@@ -37,22 +43,36 @@ function senafonicaGame(initData) {
     inductionAnswered: false,
     inductionIsCorrect: false,
 
-    // ── IN-GAME MODALS & TABS ───────────────────────────────────────────────
-    currentTab: 'path', // 'path' (mapa) | 'training' (ejercicio activo) | 'jam' (modo libre)
+    // ── IN-GAME MODALS & TABS ─────────────────────────────────────────────
+    currentTab: 'path',           // 'path' | 'learn' | 'training' | 'jam'
     showStationModal: false,
     selectedStation: null,
     showStatsModal: false,
     showShopModal: false,
     showRescueModal: false,
 
-    // ── GAMIFICATION HUD STATE ──────────────────────────────────────────────
+    // ── LEARN PHASE (Exploración Activa) ──────────────────────────────────
+    learnStation: null,           // station currently in learn mode
+    learnPhase: 'intro',          // 'intro' | 'note1' | 'note2' | 'interval' | 'ready'
+    learnNote1Played: false,
+    learnNote2Played: false,
+    learnIntervalPlayed: false,
+    learnDescendingPlayed: false,
+    learnChordPlayed: false,
+    learnDemoNotes: [],
+    learnNotePlayed: [],
+    learnSamples: [],
+    learnCheckMessage: '',
+    learnReadyToPlay: false,      // true when user has explored enough to unlock eval
+
+    // ── GAMIFICATION HUD STATE ────────────────────────────────────────────
     lives: 5,
     maxLives: 5,
     xp: 0,
     coins: 0,
     streak: 1,
-    levelStars: {},       // { stationId: stars (1-3) }
-    unlockedLevels: [1],  // Barbosa (Station 1) unlocked by default
+    levelStars: {},
+    unlockedLevels: [1],
     totalQuestionsAnswered: 0,
     totalCorrectAnswered: 0,
     unlockedCollectibles: [],
@@ -60,7 +80,7 @@ function senafonicaGame(initData) {
     equippedAccessories: { hat: '', body: '', eyes: '' },
     unlockedItems: ['skin_tiple_noble'],
 
-    // ── ACTIVE EXERCISE STATE ───────────────────────────────────────────────
+    // ── ACTIVE EXERCISE STATE ─────────────────────────────────────────────
     activeStation: null,
     levelQuestions: [],
     qIndex: 0,
@@ -70,42 +90,43 @@ function senafonicaGame(initData) {
     isCorrect: false,
     sessionCorrect: 0,
     sessionWrong: 0,
-    intervalDirection: 'ascendente', // 'ascendente' | 'descendente' | 'intercalada'
+    intervalDirection: 'ascendente',
     activeNotePlayingIndex: -1,
     activeNoteName: '',
     isComparingAudio: false,
     comparePhase: 'idle',
 
-    // ── RESCUE CHALLENGE STATE ──────────────────────────────────────────────
+    // ── RESCUE CHALLENGE STATE ────────────────────────────────────────────
     rescueQuestions: [],
     rescueIndex: 0,
     rescueAnswered: false,
     rescueSelected: null,
     rescueIsCorrect: false,
 
-    // ── FREE JAM (MODO LIBRE) STATE ─────────────────────────────────────────
+    // ── FREE JAM (MODO LIBRE) STATE ───────────────────────────────────────
     jamInstrument: 'Tiple',
     jamScaleIndex: 0,
-    jamRootMidi: 60, // DO4
+    jamRootMidi: 60,
     jamTempo: 1.0,
-    jamIntervalSemitones: 7, // 5ª Justa
+    jamIntervalSemitones: 7,
     jamDirection: 'ascendente',
     jamActiveNoteIndex: -1,
 
-    // ── MASCOT CONTROLLER (PNG SIN FONDO) ───────────────────────────────────
-    mascotState: 'idle', // 'idle' | 'celebrating' | 'sad' | 'listening'
+    // ── MASCOT CONTROLLER ─────────────────────────────────────────────────
+    mascotState: 'idle',
     mascotSpeech: '¡Bienvenido a SENAFÓNICA! Recorreremos la hermosa Provincia de Vélez.',
     mascotImg: '/static/img/ninos_traje.png',
 
-    // ── AUDIO ENGINE ────────────────────────────────────────────────────────
+    // ── AUDIO ENGINE ──────────────────────────────────────────────────────
     audio: null,
     isPlaying: false,
 
-    // ── INITIALIZATION ──────────────────────────────────────────────────────
+    // ══════════════════════════════════════════════════════════════════════
+    // INITIALIZATION
+    // ══════════════════════════════════════════════════════════════════════
     init() {
       this.audio = new SenafonicaAudioEngine(this.catalog);
 
-      // Check onboarding status
       const savedOnboarding = localStorage.getItem('senafonica_onboarding_done');
       if (!savedOnboarding) {
         this.onboardingStep = 'legal';
@@ -115,12 +136,16 @@ function senafonicaGame(initData) {
 
       this._loadLocalState();
 
-      // Keyboard shortcuts: Space to replay, 1-4 for options
+      // Keyboard shortcuts: Space to replay, 1–4 for options
       window.addEventListener('keydown', (e) => {
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
         if (e.code === 'Space') {
           e.preventDefault();
-          this.replayAudio();
+          if (this.currentTab === 'training') {
+            this.replayAudio();
+          } else if (this.currentTab === 'learn') {
+            this.learnPlayInterval();
+          }
         } else if (['Digit1', 'Digit2', 'Digit3', 'Digit4'].includes(e.code)) {
           const idx = parseInt(e.code.replace('Digit', '')) - 1;
           if (this.currentTab === 'training' && !this.answered) {
@@ -134,7 +159,9 @@ function senafonicaGame(initData) {
       });
     },
 
-    // ── ONBOARDING FLOW METHODS ─────────────────────────────────────────────
+    // ══════════════════════════════════════════════════════════════════════
+    // ONBOARDING FLOW
+    // ══════════════════════════════════════════════════════════════════════
     submitLegalConsent() {
       if (!this.playerAge || !this.legalConsent) return;
       this.onboardingStep = 'tutorial';
@@ -180,7 +207,6 @@ function senafonicaGame(initData) {
         this.inductionSelected = null;
         this.inductionIsCorrect = false;
       } else {
-        // Complete onboarding
         this.onboardingStep = 'completed';
         localStorage.setItem('senafonica_onboarding_done', 'true');
         this.xp += 30;
@@ -192,9 +218,11 @@ function senafonicaGame(initData) {
       }
     },
 
-    // ── LOCAL STORAGE PERSISTENCE ───────────────────────────────────────────
+    // ══════════════════════════════════════════════════════════════════════
+    // LOCAL STORAGE PERSISTENCE
+    // ══════════════════════════════════════════════════════════════════════
     _loadLocalState() {
-      const saved = localStorage.getItem('senafonica_gamification_velez_v1');
+      const saved = localStorage.getItem('senafonica_gamification_velez_v2');
       if (saved) {
         try {
           const parsed = JSON.parse(saved);
@@ -235,10 +263,12 @@ function senafonicaGame(initData) {
         equippedAccessories: this.equippedAccessories,
         unlockedItems: this.unlockedItems,
       };
-      localStorage.setItem('senafonica_gamification_velez_v1', JSON.stringify(state));
+      localStorage.setItem('senafonica_gamification_velez_v2', JSON.stringify(state));
     },
 
-    // ── MASCOT CONTROLLER ───────────────────────────────────────────────────
+    // ══════════════════════════════════════════════════════════════════════
+    // MASCOT CONTROLLER
+    // ══════════════════════════════════════════════════════════════════════
     _updateMascot(state, speech) {
       this.mascotState = state;
       if (speech) this.mascotSpeech = speech;
@@ -251,7 +281,9 @@ function senafonicaGame(initData) {
       }
     },
 
-    // ── STATIONS & MAP NAVIGATION ───────────────────────────────────────────
+    // ══════════════════════════════════════════════════════════════════════
+    // STATIONS & MAP NAVIGATION
+    // ══════════════════════════════════════════════════════════════════════
     previewStation(station) {
       this.selectedStation = station;
       this.showStationModal = true;
@@ -261,10 +293,224 @@ function senafonicaGame(initData) {
     startStationFromModal() {
       this.showStationModal = false;
       if (this.selectedStation) {
-        this.startStation(this.selectedStation);
+        this.startLearnPhase(this.selectedStation);
       }
     },
 
+    // ══════════════════════════════════════════════════════════════════════
+    // FASE DE EXPLORACIÓN / APRENDIZAJE (LEARN PHASE)
+    // El usuario DEBE explorar el contenido antes de poder iniciar el quiz.
+    // ══════════════════════════════════════════════════════════════════════
+    startLearnPhase(station) {
+      if (!this.unlockedLevels.includes(station.id)) {
+        this._updateMascot('sad', 'Esta estación está bloqueada. Completa las estaciones previas para avanzar.');
+        return;
+      }
+
+      if (this.lives <= 0) {
+        this.openRescueModal();
+        return;
+      }
+
+      this.learnStation = station;
+      this.learnPhase = 'intro';
+      this.learnNote1Played = false;
+      this.learnNote2Played = false;
+      this.learnIntervalPlayed = false;
+      this.learnDescendingPlayed = false;
+      this.learnChordPlayed = false;
+      this.learnReadyToPlay = false;
+      this.learnCheckMessage = '';
+      const content = station.learn_content || {};
+      this.learnDemoNotes = content.demo_notes || [60, 67];
+      this.learnNotePlayed = this.learnDemoNotes.map(() => false);
+      const sampleNotes = [this.learnDemoNotes];
+      if (content.demo_notes_b && content.demo_notes_b.length) {
+        sampleNotes.push(content.demo_notes_b);
+      }
+      this.learnSamples = sampleNotes.map((notes, index) => {
+        const correct = station.id === 1
+          ? 'Agudo'
+          : station.type === 'melody'
+            ? content.identification
+          : station.type === 'scale'
+          ? station.scale_name
+          : station.id === 2
+            ? 'Notas naturales'
+          : station.type === 'final_boss' && notes.length > 2
+            ? 'Acorde mayor'
+            : this._intervalNameForNotes(notes, index === 1
+              ? (station.intervals || [content.interval_name])[1] || content.interval_name
+              : content.interval_name);
+        const pool = station.id === 1
+          ? ['Agudo', 'Grave']
+          : station.type === 'melody'
+            ? station.melodies.map(melody => melody.name)
+          : station.type === 'scale'
+          ? this.scales.map(scale => scale.name)
+          : station.id === 2
+            ? ['Notas naturales', 'Escala mayor', 'Escala menor natural', 'Escala pentatónica mayor']
+          : station.type === 'final_boss' && correct === 'Acorde mayor'
+            ? ['Acorde mayor', 'Acorde menor', 'Quinta justa', 'Tercera mayor']
+            : (station.intervals || []).concat(this.intervals.map(interval => interval.name));
+        return {
+          label: index === 0 ? 'Muestra principal' : 'Muestra alternativa',
+          notes,
+          correct,
+          options: this._makeOptions(correct, [...new Set(pool)], 4),
+          played: false,
+          identified: false,
+          selected: '',
+        };
+      });
+      this.currentTab = 'learn';
+
+      this._updateMascot('listening', `Aprendiendo en ${station.station_name}. ${content.title || station.subtitle}`);
+    },
+
+    _intervalNameForNotes(notes, fallback) {
+      if (!notes || notes.length < 2) return fallback;
+      const semitones = Math.abs(notes[notes.length - 1] - notes[0]);
+      return (this.intervals.find(interval => interval.semitones === semitones) || {}).name || fallback;
+    },
+
+    async _runLearnPlayback(playback) {
+      if (this.isPlaying || !this.learnStation) return false;
+      this.isPlaying = true;
+      try {
+        await playback();
+        return true;
+      } catch (error) {
+        console.error('Could not play learning sample:', error);
+        this.learnCheckMessage = 'No se pudo reproducir la muestra. Inténtalo de nuevo.';
+        return false;
+      } finally {
+        this.isPlaying = false;
+      }
+    },
+
+    async learnPlayNote(index) {
+      const midi = this.learnDemoNotes[index];
+      if (midi === undefined) return;
+      const inst = this.learnStation.instrument === 'Todos' ? 'Tiple' : this.learnStation.instrument;
+      this._updateMascot('listening', `Escucha la nota ${this.audio.midiToName(midi)}`);
+      const played = await this._runLearnPlayback(async () => {
+        await this.audio.playNote(inst, midi, 0, 0.8, 0.95);
+        await new Promise(resolve => setTimeout(resolve, 900));
+      });
+      if (played) {
+        this.learnNotePlayed[index] = true;
+        this.learnNote1Played = Boolean(this.learnNotePlayed[0]);
+        this.learnNote2Played = Boolean(this.learnNotePlayed[1]);
+        this._checkLearnReady();
+      }
+    },
+
+    learnPlayNote1() {
+      return this.learnPlayNote(0);
+    },
+
+    learnPlayNote2() {
+      return this.learnPlayNote(1);
+    },
+
+    async playLearnSample(index) {
+      const sample = this.learnSamples[index];
+      if (!sample) return;
+      const inst = this.learnStation.instrument === 'Todos' ? 'Tiple' : this.learnStation.instrument;
+      this._updateMascot('listening', `Escucha la ${sample.label.toLowerCase()} e identifica lo que oyes.`);
+      const played = await this._runLearnPlayback(async () => {
+        if (this.learnStation.type === 'scale' && index === 0) {
+          const pattern = this.learnStation.learn_content.scale_pattern;
+          await this.audio.playScale(inst, sample.notes[0], pattern, 1.0, (noteIndex, midi, name) => {
+            this.activeNoteName = name || '';
+          });
+        } else {
+          for (const midi of sample.notes) {
+            await this.audio.playNote(inst, midi, 0, 0.6, 0.95);
+            await new Promise(resolve => setTimeout(resolve, 680));
+          }
+          this.activeNoteName = '';
+        }
+      });
+      if (played) {
+        sample.played = true;
+        this._checkLearnReady();
+      }
+    },
+
+    learnPlayInterval() {
+      return this.playLearnSample(0);
+    },
+
+    identifyLearnSample(index, answer) {
+      const sample = this.learnSamples[index];
+      if (!sample || !sample.played || sample.identified) return;
+      sample.selected = answer;
+      sample.identified = answer === sample.correct;
+      this.learnCheckMessage = sample.identified
+        ? '¡Correcto! Identificaste la muestra.'
+        : 'Aún no. Vuelve a escuchar la muestra e inténtalo otra vez.';
+      if (sample.identified) this._checkLearnReady();
+    },
+
+    async learnPlaySequence(direction) {
+      const notes = [...this.learnDemoNotes];
+      if (direction === 'descendente') notes.reverse();
+      const inst = this.learnStation.instrument === 'Todos' ? 'Tiple' : this.learnStation.instrument;
+      const played = await this._runLearnPlayback(async () => {
+        for (const midi of notes) {
+          await this.audio.playNote(inst, midi, 0, 0.6, 0.95);
+          await new Promise(resolve => setTimeout(resolve, 680));
+        }
+      });
+      if (played) {
+        if (direction === 'descendente') this.learnDescendingPlayed = true;
+        else this.learnIntervalPlayed = true;
+        this._checkLearnReady();
+      }
+    },
+
+    async learnPlayChord() {
+      const inst = this.learnStation.instrument === 'Todos' ? 'Tiple' : this.learnStation.instrument;
+      const root = this.learnDemoNotes[0] || 60;
+      const chord = this.learnStation.learn_content.harmonic_notes || [root, root + 4, root + 7, root + 12];
+      const played = await this._runLearnPlayback(async () => {
+        await Promise.all(chord.map(midi => this.audio.playNote(inst, midi, 0, 1.1, 0.65)));
+        await new Promise(resolve => setTimeout(resolve, 1150));
+      });
+      if (played) {
+        this.learnChordPlayed = true;
+        this._checkLearnReady();
+      }
+    },
+
+    _checkLearnReady() {
+      const requiredNotes = this.learnStation && this.learnStation.id === 2
+        ? this.learnNotePlayed.length
+        : Math.min(2, this.learnNotePlayed.length);
+      const notesExplored = this.learnNotePlayed.slice(0, requiredNotes).every(Boolean);
+      const samplesIdentified = this.learnSamples.length > 0
+        && this.learnSamples.every(sample => sample.identified);
+      this.learnReadyToPlay = notesExplored
+        && this.learnIntervalPlayed
+        && this.learnDescendingPlayed
+        && this.learnChordPlayed
+        && samplesIdentified;
+      if (this.learnReadyToPlay) {
+        this._updateMascot('celebrating', '¡Exploraste e identificaste las muestras! Ya puedes iniciar el desafío.');
+      }
+    },
+
+    // Transition from LEARN phase to EVALUATION/QUIZ phase
+    startEvaluationFromLearn() {
+      if (!this.learnReadyToPlay || !this.learnStation) return;
+      this.startStation(this.learnStation);
+    },
+
+    // ══════════════════════════════════════════════════════════════════════
+    // STATION QUIZ INITIALIZATION
+    // ══════════════════════════════════════════════════════════════════════
     startStation(station) {
       if (!this.unlockedLevels.includes(station.id)) {
         this._updateMascot('sad', 'Esta estación está bloqueada. Completa las estaciones previas para avanzar.');
@@ -297,14 +543,69 @@ function senafonicaGame(initData) {
       const questions = [];
       const count = station.questions_count || 5;
 
+      if (station.type === 'pitch') {
+        for (let i = 0; i < count; i++) {
+          const direction = i % 2 === 0 ? 'ascendente' : 'descendente';
+          questions.push({
+            id: i + 1,
+            type: 'pitch',
+            title: '¿El segundo sonido es agudo o grave?',
+            instruction: 'Compara la altura de las dos notas.',
+            instrument: station.instrument,
+            rootMidi: 48,
+            semitones: 12,
+            direction,
+            correct: direction === 'ascendente' ? 'Agudo' : 'Grave',
+            options: ['Agudo', 'Grave'],
+            explanation: direction === 'ascendente'
+              ? 'La segunda nota tiene una frecuencia más alta: es aguda.'
+              : 'La segunda nota tiene una frecuencia más baja: es grave.'
+          });
+        }
+        return questions;
+      }
+
+      if (station.type === 'melody') {
+        const melodies = station.melodies || [];
+        for (let i = 0; i < count && melodies.length; i++) {
+          const melody = melodies[i % melodies.length];
+          const rootMidi = 60 + (i % 4);
+          questions.push({
+            id: i + 1,
+            type: 'melody',
+            title: '¿Qué melodía de tres notas escuchas?',
+            instruction: 'Identifica el patrón melódico que se repite.',
+            instrument: station.instrument,
+            melodyNotes: melody.offsets.map(offset => rootMidi + offset),
+            correct: melody.name,
+            options: this._makeOptions(melody.name, melodies.map(item => item.name), melodies.length),
+            explanation: `La respuesta es ${melody.name}: escucha el orden y la distancia entre sus tres notas.`
+          });
+        }
+        return questions;
+      }
+
+      // ── SCALE QUESTIONS ─────────────────────────────────────────────────
       if (station.type === 'scale') {
-        const targetScale = this.scales.find(s => s.name.toLowerCase() === (station.scale_name || '').toLowerCase()) || this.scales[0];
+        const targetScale = this.scales.find(
+          s => s.name.toLowerCase() === (station.scale_name || '').toLowerCase()
+        ) || this.scales[0];
+
+        if (!targetScale) return questions;
+
         const allScaleNames = this.scales.map(s => s.name);
 
         for (let i = 0; i < count; i++) {
           const rootMidi = 55 + (i % 6);
-          const chosenScale = (i % 2 === 0) ? targetScale : this.scales[Math.floor(Math.random() * this.scales.length)];
-          const pattern = chosenScale.intervals_pattern ? chosenScale.intervals_pattern.split(',').map(Number) : [2, 2, 1, 2, 2, 2, 1];
+          // Alternate between target scale and random scales for variety
+          const chosenScale = (i % 2 === 0)
+            ? targetScale
+            : this.scales[Math.floor(Math.random() * this.scales.length)];
+
+          const pattern = chosenScale.intervals_pattern
+            ? chosenScale.intervals_pattern.split(',').map(Number)
+            : [2, 2, 1, 2, 2, 2, 1];
+
           const options = this._makeOptions(chosenScale.name, allScaleNames, 4);
 
           questions.push({
@@ -312,7 +613,7 @@ function senafonicaGame(initData) {
             type: 'scale',
             title: `Reconoce la Escala (${station.instrument})`,
             instruction: `Escucha la ejecución continua en ${station.station_name}.`,
-            instrument: station.instrument,
+            instrument: station.instrument === 'Todos' ? 'Tiple' : station.instrument,
             rootMidi: rootMidi,
             pattern: pattern,
             correct: chosenScale.name,
@@ -323,24 +624,46 @@ function senafonicaGame(initData) {
         return questions;
       }
 
-      // Interval questions
-      const targetIntervalNames = station.intervals && station.intervals.length ? station.intervals : this.intervals.map(i => i.name);
+      // ── INTERVAL QUESTIONS (interval + final_boss) ──────────────────────
+      const targetIntervalNames = (station.intervals && station.intervals.length)
+        ? station.intervals
+        : this.intervals.map(i => i.name);
+
+      // For final boss, use ALL intervals
+      const poolIntervalNames = station.type === 'final_boss'
+        ? this.intervals.map(i => i.name)
+        : targetIntervalNames;
+
       const allIntervalNames = this.intervals.map(i => i.name);
 
+      // Mix station-specific and pool intervals for variety
+      const questionIntervals = [];
       for (let i = 0; i < count; i++) {
-        const intervalName = targetIntervalNames[i % targetIntervalNames.length];
-        const intervalObj = this.intervals.find(item => item.name === intervalName) || this.intervals[1];
+        const fromStation = targetIntervalNames[i % targetIntervalNames.length];
+        const fromPool = poolIntervalNames[Math.floor(Math.random() * poolIntervalNames.length)];
+        questionIntervals.push(i % 3 === 0 ? fromPool : fromStation);
+      }
+
+      for (let i = 0; i < count; i++) {
+        const intervalName = questionIntervals[i];
+        const intervalObj = this.intervals.find(item => item.name === intervalName)
+          || this.intervals[Math.floor(Math.random() * this.intervals.length)];
+
+        if (!intervalObj) continue;
+
         const rootMidi = 55 + (i % 8);
         const allowedDirs = station.directions || ['ascendente'];
         const chosenDir = allowedDirs[Math.floor(Math.random() * allowedDirs.length)];
+
+        // Generate 4 options: correct + 3 plausible distractors
         const options = this._makeOptions(intervalName, allIntervalNames, 4);
 
         questions.push({
           id: i + 1,
           type: 'interval',
-          title: `¿Qué intervalo escuchas? (${station.instrument})`,
+          title: `¿Qué intervalo escuchas? (${station.instrument === 'Todos' ? 'Tiple' : station.instrument})`,
           instruction: `Identifica la distancia entre las notas tocadas en ${station.station_name}.`,
-          instrument: station.instrument,
+          instrument: station.instrument === 'Todos' ? 'Tiple' : station.instrument,
           rootMidi: rootMidi,
           semitones: intervalObj.semitones,
           direction: chosenDir,
@@ -360,7 +683,9 @@ function senafonicaGame(initData) {
       return opts.sort(() => 0.5 - Math.random());
     },
 
-    // ── AUDIO PLAYBACK ──────────────────────────────────────────────────────
+    // ══════════════════════════════════════════════════════════════════════
+    // AUDIO PLAYBACK (uses real DB samples via stream_url, fallback synthesis)
+    // ══════════════════════════════════════════════════════════════════════
     async playCurrentAudio() {
       if (!this.currentQ || this.isPlaying) return;
       this.isPlaying = true;
@@ -378,12 +703,20 @@ function senafonicaGame(initData) {
             this.activeNoteName = name || '';
           }
         );
-      } else if (q.type === 'interval') {
+      } else if (q.type === 'melody') {
+        for (let i = 0; i < q.melodyNotes.length; i++) {
+          const midi = q.melodyNotes[i];
+          this.activeNotePlayingIndex = i;
+          this.activeNoteName = this.audio.midiToName(midi);
+          await this.audio.playNote(q.instrument, midi, 0, 0.55, 0.95);
+          await new Promise(resolve => setTimeout(resolve, 620));
+        }
+      } else if (q.type === 'interval' || q.type === 'pitch') {
         await this.audio.playInterval(
           q.instrument,
           q.rootMidi,
           q.semitones,
-          this.intervalDirection || q.direction || 'ascendente',
+          q.type === 'pitch' ? q.direction : this.intervalDirection || q.direction || 'ascendente',
           (idx, midi, name) => {
             this.activeNotePlayingIndex = idx;
             this.activeNoteName = name || '';
@@ -407,7 +740,9 @@ function senafonicaGame(initData) {
       }
     },
 
-    // ── ANSWER SUBMISSION ───────────────────────────────────────────────────
+    // ══════════════════════════════════════════════════════════════════════
+    // ANSWER SUBMISSION
+    // ══════════════════════════════════════════════════════════════════════
     async selectOption(optionIndex) {
       if (this.answered || !this.currentQ) return;
       const option = this.currentQ.options[optionIndex];
@@ -442,7 +777,9 @@ function senafonicaGame(initData) {
       this._saveLocalState();
     },
 
-    // ── AUDITORY COMPARISON (CHOSEN VS CORRECT) ─────────────────────────────
+    // ══════════════════════════════════════════════════════════════════════
+    // AUDITORY COMPARISON (Chosen vs Correct)
+    // ══════════════════════════════════════════════════════════════════════
     async playAudioComparison() {
       if (!this.currentQ || this.currentQ.type !== 'interval' || this.isComparingAudio) return;
       const chosenName = this.selectedOption;
@@ -452,7 +789,7 @@ function senafonicaGame(initData) {
       const correctObj = this.intervals.find(i => i.name === correctName) || { semitones: 7 };
 
       this.isComparingAudio = true;
-      this._updateMascot('listening', `1. Tu respuesta (${chosenName}) -> 2. Respuesta correcta (${correctName})`);
+      this._updateMascot('listening', `1. Tu respuesta (${chosenName}) → 2. Respuesta correcta (${correctName})`);
 
       await this.audio.playComparison(
         this.currentQ.instrument,
@@ -468,7 +805,9 @@ function senafonicaGame(initData) {
       this.comparePhase = 'idle';
     },
 
-    // ── NEXT QUESTION OR COMPLETE STATION ───────────────────────────────────
+    // ══════════════════════════════════════════════════════════════════════
+    // NEXT QUESTION OR COMPLETE STATION
+    // ══════════════════════════════════════════════════════════════════════
     nextQuestion() {
       if (this.lives <= 0) {
         this.openRescueModal();
@@ -536,11 +875,13 @@ function senafonicaGame(initData) {
       this.currentTab = 'path';
       this._updateMascot(
         'celebrating',
-        `¡Estación ${this.activeStation.station_name} completada con ${stars} estrella(s)! Ganaste +${xpBonus} XP y +${coinBonus} Púas.`
+        `¡Estación ${this.activeStation.station_name} completada con ${stars}★! Ganaste +${xpBonus} XP y +${coinBonus} Púas.`
       );
     },
 
-    // ── RESCUE & MUSIC THEORY CHALLENGE ─────────────────────────────────────
+    // ══════════════════════════════════════════════════════════════════════
+    // RESCUE & MUSIC THEORY CHALLENGE
+    // ══════════════════════════════════════════════════════════════════════
     openRescueModal() {
       this.rescueQuestions = [...this.theoryQuestions].sort(() => 0.5 - Math.random()).slice(0, 3);
       this.rescueIndex = 0;
@@ -582,7 +923,7 @@ function senafonicaGame(initData) {
         this.rescueIsCorrect = false;
       } else {
         if (this.lives === 0) {
-          this.lives = 2; // Mercy fallback so player is never stranded
+          this.lives = 2; // Mercy fallback
         }
         this.showRescueModal = false;
         this._saveLocalState();
@@ -590,12 +931,16 @@ function senafonicaGame(initData) {
       }
     },
 
-    // ── FREE JAM (MODO LIBRE) ───────────────────────────────────────────────
+    // ══════════════════════════════════════════════════════════════════════
+    // FREE JAM (MODO LIBRE)
+    // ══════════════════════════════════════════════════════════════════════
     async playJamScale() {
       if (this.isPlaying) return;
       this.isPlaying = true;
       const scaleObj = this.scales[this.jamScaleIndex] || this.scales[0];
-      const pattern = scaleObj.intervals_pattern ? scaleObj.intervals_pattern.split(',').map(Number) : [2, 2, 1, 2, 2, 2, 1];
+      const pattern = scaleObj.intervals_pattern
+        ? scaleObj.intervals_pattern.split(',').map(Number)
+        : [2, 2, 1, 2, 2, 2, 1];
 
       this._updateMascot('listening', `Reproduciendo ${scaleObj.name} en ${this.jamInstrument} (sostenido recortado fluido)...`);
 
@@ -604,9 +949,7 @@ function senafonicaGame(initData) {
         Number(this.jamRootMidi),
         pattern,
         Number(this.jamTempo),
-        (idx) => {
-          this.jamActiveNoteIndex = idx;
-        }
+        (idx) => { this.jamActiveNoteIndex = idx; }
       );
 
       this.isPlaying = false;
@@ -617,7 +960,8 @@ function senafonicaGame(initData) {
     async playJamInterval() {
       if (this.isPlaying) return;
       this.isPlaying = true;
-      const intervalObj = this.intervals.find(i => i.semitones === Number(this.jamIntervalSemitones)) || this.intervals[1];
+      const intervalObj = this.intervals.find(i => i.semitones === Number(this.jamIntervalSemitones))
+        || this.intervals[1];
 
       this._updateMascot('listening', `Sonando ${intervalObj.name} (${this.jamDirection}) en ${this.jamInstrument}...`);
 
@@ -626,9 +970,7 @@ function senafonicaGame(initData) {
         Number(this.jamRootMidi),
         Number(this.jamIntervalSemitones),
         this.jamDirection,
-        (idx) => {
-          this.jamActiveNoteIndex = idx;
-        }
+        (idx) => { this.jamActiveNoteIndex = idx; }
       );
 
       this.isPlaying = false;
@@ -636,7 +978,9 @@ function senafonicaGame(initData) {
       this._updateMascot('idle', `${intervalObj.name}: ${intervalObj.semitones} semitonos.`);
     },
 
-    // ── SHOP & IN-GAME INVENTORY ────────────────────────────────────────────
+    // ══════════════════════════════════════════════════════════════════════
+    // SHOP & IN-GAME INVENTORY
+    // ══════════════════════════════════════════════════════════════════════
     buyItem(item) {
       if (this.unlockedItems.includes(item.id)) {
         this.equipItem(item);
@@ -668,7 +1012,9 @@ function senafonicaGame(initData) {
       this._saveLocalState();
     },
 
-    // ── CONFETTI & PARTICLES ────────────────────────────────────────────────
+    // ══════════════════════════════════════════════════════════════════════
+    // CONFETTI & PARTICLES
+    // ══════════════════════════════════════════════════════════════════════
     _triggerConfetti() {
       const canvas = document.getElementById('senafonica-confetti');
       if (!canvas) return;
@@ -679,12 +1025,12 @@ function senafonicaGame(initData) {
       const particles = [];
       const colors = ['#39A900', '#FBBF24', '#3B82F6', '#EC4899', '#10B981', '#FFFFFF'];
 
-      for (let i = 0; i < 75; i++) {
+      for (let i = 0; i < 80; i++) {
         particles.push({
           x: canvas.width / 2,
           y: canvas.height * 0.35,
-          vx: (Math.random() - 0.5) * 16,
-          vy: (Math.random() - 1.0) * 13,
+          vx: (Math.random() - 0.5) * 18,
+          vy: (Math.random() - 1.0) * 14,
           size: Math.random() * 7 + 4,
           color: colors[Math.floor(Math.random() * colors.length)],
           rotation: Math.random() * 360,
@@ -726,7 +1072,9 @@ function senafonicaGame(initData) {
       render();
     },
 
-    // ── BACKEND SERVER SYNC ─────────────────────────────────────────────────
+    // ══════════════════════════════════════════════════════════════════════
+    // BACKEND SERVER SYNC
+    // ══════════════════════════════════════════════════════════════════════
     async _syncWithServer(payload) {
       if (!this.csrfToken) return;
       try {
@@ -739,17 +1087,19 @@ function senafonicaGame(initData) {
           body: JSON.stringify(payload),
         });
         if (res.ok) {
-          const data = await res.json();
-          if (data.total_xp) this.xp = data.total_xp;
-          if (data.coins) this.coins = data.coins;
-          if (data.streak) this.streak = data.streak;
+          const serverData = await res.json();
+          if (serverData.total_xp) this.xp = serverData.total_xp;
+          if (serverData.coins) this.coins = serverData.coins;
+          if (serverData.streak) this.streak = serverData.streak;
         }
       } catch (err) {
         console.warn('Server sync failed, local state preserved:', err);
       }
     },
 
-    // ── STATS HELPER ────────────────────────────────────────────────────────
+    // ══════════════════════════════════════════════════════════════════════
+    // STATS HELPERS
+    // ══════════════════════════════════════════════════════════════════════
     getAccuracy() {
       if (!this.totalQuestionsAnswered) return 0;
       return Math.round((this.totalCorrectAnswered / this.totalQuestionsAnswered) * 100);

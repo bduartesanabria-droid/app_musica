@@ -1,0 +1,52 @@
+Actúa como un Desarrollador Senior Full-Stack especializado en EdTech y desarrollo web interactivo (Python/Flask, Alpine.js, PostgreSQL/MySQL). 
+
+Necesitamos realizar una refactorización técnica y pedagógica profunda en la aplicación interactiva de entrenamiento auditivo SEMIMUS (repositorio `app_musica`).
+
+Aplica las siguientes tres directivas obligatorias:
+
+---
+
+### 1. FIX TÉCNICO: Integración de Audios desde la Base de Datos
+* **Problema:** Los sonidos actualmente no se están reproduciendo en la aplicación.
+* **Instrucción:**
+  - Los archivos/rutas de los audios residen en la base de datos (tabla de notas/intervalos/sonidos).
+  - Asegura que el backend (Flask/API) devuelva en el JSON de respuesta la propiedad con la URL o ruta estática correspondiente a cada archivo audio.
+  - Ajusta el cliente frontend en Alpine.js (`senafonicaGame` / controlador de audio) para consumir la ruta recibida de la BD, instanciar el objeto `Audio()` y reproducir las notas y melodías correctamente al interactuar con el usuario.
+  - Implementa un fallback o manejo de errores de audio por si una ruta en BD no responde.
+
+---
+
+### 2. ARQUITECTURA PEDAGÓGICA: Flujo de Aprendizaje Guiado "Desde Cero"
+* **Problema:** El juego exige al usuario identificar notas e intervalos sin antes haberlos enseñado, generando frustración en personas sin formación musical previa.
+* **Instrucción:** Diseña la estructura de cada módulo/nivel en dos fases claras e inseparables:
+
+  1. FASE DE EXPLORACIÓN / APRENDIZAJE (Tutorial Activo):
+     - Antes de cualquier reto o evaluación, presenta una interfaz donde el usuario explore visual y auditivamente.
+     - Ejemplo con "La Cuarta Justa" ($C_4 \rightarrow F_4$): El usuario debe poder presionar botones para escuchar las notas individuales (Do, Fa), la melodía ascendente/descendente y el acorde armónico.
+     - Incluye una referencia asociativa (ej. la melodía de inicio de una canción popular o una regla mnemotécnica clara).
+     - El botón de "Iniciar Desafío/EVALUACIÓN" solo se habilita cuando el usuario ha probado e identificado las muestras en el módulo interactivo.
+
+  2. FASE DE PRÁCTICA / EVALUACIÓN:
+     - Retos interactivos de reconocimiento auditivo progresivo.
+     - Feedback auditivo y visual inmediato ante respuestas correctas e incorrectas.
+
+---
+
+### 3. ESCALABILIDAD Y EXPANSIÓN DE NIVELES
+* **Problema:** La cantidad de niveles actual es muy reducida.
+* **Instrucción:**
+  - Diseña e implementa una estructura de datos JSON / tabla SQL en base de datos que permita escalar la cantidad de niveles dinámicamente sin duplicar código.
+  - Organiza una progresión estructurada de niveles (mínimo 10 a 15 niveles iniciales):
+    * Nivel 1: Conceptos básicos de altura (Agudo vs. Grave).
+    * Nivel 2: Mapeo y exploración de notas naturales ($C, D, E, F, G, A, B$).
+    * Nivel 3: Módulo de Cuarta Justa (Exploración + Identificación).
+    * Nivel 4: Módulo de Quinta Justa.
+    * Nivel 5: Contraste entre Cuarta Justa y Quinta Justa.
+    * Niveles posteriores: Introducción a Terceras (Mayores/Menores), Octavas y Melodías de 3 notas.
+
+---
+
+ENTREGABLE REQUERIDO:
+1. El código de las rutas/APIs ajustadas para entregar el payload con las URLs de audio de la BD.
+2. El script/controlador de Alpine.js corregido para el manejo de audio y el flujo "Aprender -> Jugar".
+3. La estructura/esquema JSON o SQL para los nuevos niveles.

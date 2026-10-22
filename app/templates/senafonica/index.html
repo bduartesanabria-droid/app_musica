@@ -349,6 +349,94 @@
       </div>
     </div>
 
+    <!-- FASE DE APRENDIZAJE: EXPLORAR, ESCUCHAR E IDENTIFICAR -->
+    <section x-show="currentTab === 'learn' && learnStation" class="space-y-4 pb-6">
+      <div class="flex items-center justify-between">
+        <button type="button" @click="currentTab = 'path'" class="px-3 py-2 rounded-xl bg-slate-800 text-slate-300 font-bold text-xs">
+          ← Volver al mapa
+        </button>
+        <span class="text-xs font-black text-emerald-400" x-text="'Nivel ' + (learnStation ? learnStation.id : '') + ' · Aprende'"></span>
+      </div>
+
+      <article class="bg-slate-900/90 border border-white/15 rounded-3xl p-5 shadow-xl space-y-4">
+        <header class="text-center">
+          <p class="text-[10px] uppercase tracking-widest text-emerald-400 font-black" x-text="learnStation ? learnStation.subtitle : ''"></p>
+          <h2 class="text-2xl font-black text-white mt-1" x-text="learnStation && learnStation.learn_content ? learnStation.learn_content.title : ''"></h2>
+          <p class="text-sm text-slate-300 mt-2" x-text="learnStation && learnStation.learn_content ? learnStation.learn_content.body : ''"></p>
+        </header>
+
+        <div class="rounded-2xl bg-slate-800/80 border border-white/10 p-4">
+          <h3 class="text-sm font-black text-white">1. Explora las notas</h3>
+          <p class="text-xs text-slate-400 mt-1">Escucha cada nota por separado y observa su nombre.</p>
+          <div class="grid grid-cols-2 gap-2 mt-3 sm:grid-cols-4">
+            <template x-for="(midi, noteIndex) in learnDemoNotes" :key="noteIndex">
+              <button type="button"
+                      @click="learnPlayNote(noteIndex)"
+                      :disabled="isPlaying"
+                      class="min-h-12 rounded-xl bg-slate-700 hover:bg-slate-600 disabled:opacity-50 text-white font-bold text-xs">
+                <span x-text="'Escuchar ' + audio.midiToName(midi)"></span>
+                <span x-show="learnNotePlayed[noteIndex]" class="text-emerald-400 ml-1">✓</span>
+              </button>
+            </template>
+          </div>
+        </div>
+
+        <div class="rounded-2xl bg-slate-800/80 border border-white/10 p-4">
+          <h3 class="text-sm font-black text-white">2. Escucha e identifica</h3>
+          <template x-for="(sample, sampleIndex) in learnSamples" :key="sampleIndex">
+            <div class="mt-3 rounded-xl bg-slate-900/80 p-3">
+              <div class="flex items-center justify-between gap-3">
+                <span class="text-xs font-bold text-slate-200" x-text="sample.label"></span>
+                <button type="button"
+                        @click="playLearnSample(sampleIndex)"
+                        :disabled="isPlaying"
+                        class="px-3 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-600 disabled:opacity-50 text-white text-xs font-black">
+                  <span x-text="isPlaying ? 'Reproduciendo…' : 'Reproducir muestra'"></span>
+                </button>
+              </div>
+              <div x-show="sample.played && !sample.identified" class="grid grid-cols-2 gap-2 mt-3">
+                <template x-for="(option, optionIndex) in sample.options" :key="optionIndex">
+                  <button type="button"
+                          @click="identifyLearnSample(sampleIndex, option)"
+                          class="min-h-11 rounded-lg border border-white/10 bg-slate-800 px-2 text-xs font-bold text-slate-200 hover:border-emerald-400"
+                          x-text="option"></button>
+                </template>
+              </div>
+              <p x-show="sample.identified" class="mt-2 text-xs font-bold text-emerald-300">Identificación correcta ✓</p>
+            </div>
+          </template>
+          <p x-show="learnCheckMessage" class="mt-3 text-xs font-bold text-amber-300" x-text="learnCheckMessage"></p>
+        </div>
+
+        <div class="rounded-2xl bg-slate-800/80 border border-white/10 p-4">
+          <h3 class="text-sm font-black text-white">3. Compara la melodía y el acorde</h3>
+          <div class="grid grid-cols-1 gap-2 mt-3 sm:grid-cols-3">
+            <button type="button" @click="learnPlaySequence('ascendente')" :disabled="isPlaying"
+                    class="min-h-12 rounded-xl bg-slate-700 text-white text-xs font-bold disabled:opacity-50">
+              Melodía ascendente <span x-show="learnIntervalPlayed" class="text-emerald-400">✓</span>
+            </button>
+            <button type="button" @click="learnPlaySequence('descendente')" :disabled="isPlaying"
+                    class="min-h-12 rounded-xl bg-slate-700 text-white text-xs font-bold disabled:opacity-50">
+              Melodía descendente <span x-show="learnDescendingPlayed" class="text-emerald-400">✓</span>
+            </button>
+            <button type="button" @click="learnPlayChord()" :disabled="isPlaying"
+                    class="min-h-12 rounded-xl bg-slate-700 text-white text-xs font-bold disabled:opacity-50">
+              Acorde armónico <span x-show="learnChordPlayed" class="text-emerald-400">✓</span>
+            </button>
+          </div>
+          <p class="text-xs text-amber-200 mt-3"
+             x-text="learnStation && learnStation.learn_content ? learnStation.learn_content.mnemonic : ''"></p>
+        </div>
+
+        <button type="button"
+                @click="startEvaluationFromLearn()"
+                :disabled="!learnReadyToPlay"
+                class="w-full py-4 btn-duo-primary text-base font-black disabled:opacity-40 disabled:cursor-not-allowed">
+          <span x-text="learnReadyToPlay ? 'Iniciar desafío →' : 'Completa la exploración para desbloquear el desafío'"></span>
+        </button>
+      </article>
+    </section>
+
     <!-- ───────────────────────────────────────────────────────────────────────
          PANTALLA 2: EJERCICIO ACTIVO EN ESTACIÓN (QUIZ & COMPARACIÓN AUDITIVA)
          ─────────────────────────────────────────────────────────────────────── -->
@@ -494,7 +582,10 @@
                     @click="jamInstrument = inst"
                     class="py-2.5 px-2 rounded-xl text-xs font-bold text-center border transition-all"
                     :class="jamInstrument === inst ? 'bg-sena border-sena text-white shadow-lg' : 'bg-slate-800 border-white/5 text-slate-400 hover:text-white'">
-              <span class="block text-base mb-1" x-text="inst === 'Tiple' ? '🎸' : inst === 'Requinto' ? '🎻' : inst === 'Bandola' ? '🪕' : '🎸'"></span>
+              <img class="w-14 h-14 mx-auto mb-1 rounded-lg object-cover"
+                   :src="'/static/img/' + inst.toLowerCase() + '.jpeg'"
+                   :alt="'Imagen del instrumento ' + inst"
+                   loading="lazy">
               <span x-text="inst"></span>
             </button>
           </template>
@@ -736,7 +827,15 @@
         <template x-for="item in shopItems" :key="item.id">
           <div class="p-3 rounded-2xl bg-slate-800/80 border border-white/10 flex items-center justify-between gap-3">
             <div class="flex items-center gap-3">
-              <span class="text-2xl" x-text="item.icon"></span>
+              <template x-if="item.instrument">
+                <img class="w-12 h-12 rounded-lg object-cover"
+                     :src="'/static/img/' + item.instrument.toLowerCase() + '.jpeg'"
+                     :alt="'Imagen del instrumento ' + item.instrument"
+                     loading="lazy">
+              </template>
+              <template x-if="!item.instrument">
+                <span class="text-2xl" x-text="item.icon"></span>
+              </template>
               <div>
                 <p class="text-xs font-black text-white" x-text="item.title"></p>
                 <p class="text-[10px] text-slate-400" x-text="item.cost_coins + ' 🪙 · ' + item.cost_xp + ' XP'"></p>

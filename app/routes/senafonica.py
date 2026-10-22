@@ -1,5 +1,8 @@
 import json
-from flask import Blueprint, render_template, jsonify, request, current_app
+import io
+import mimetypes
+import os
+from flask import Blueprint, abort, render_template, jsonify, request, send_file, url_for
 from flask_login import current_user
 from sqlalchemy.orm import joinedload
 from ..extensions import db
@@ -11,6 +14,9 @@ from ..utils.timezone import bogota_date
 
 senafonica_bp = Blueprint("senafonica", __name__)
 
+# ══════════════════════════════════════════════════════════════════════════════
+# INDUCTION QUESTIONS (3 preguntas teóricas de bienvenida)
+# ══════════════════════════════════════════════════════════════════════════════
 INITIAL_INDUCTION_QUESTIONS = [
     {
         "id": "ind_1",
@@ -22,7 +28,7 @@ INITIAL_INDUCTION_QUESTIONS = [
             "La cantidad de cuerdas de una guitarra"
         ],
         "correct": "La distancia en altura entre dos notas musicales",
-        "explanation": "Un intervalo mide exactamente la distancia de frecuencias o semitonos entre dos notas: pueden estar muy cerca (segundas) o distantes (quintas, octavas)."
+        "explanation": "Un intervalo mide la distancia de frecuencias o semitonos entre dos notas: pueden estar muy cerca (segundas) o distantes (quintas, octavas)."
     },
     {
         "id": "ind_2",
@@ -34,7 +40,7 @@ INITIAL_INDUCTION_QUESTIONS = [
             "Un libro de partituras antiguas"
         ],
         "correct": "La escalera ordenada de notas que le da color y emoción a una melodía",
-        "explanation": "La escala es el conjunto o escalera de notas organizadas que definen la sonoridad (alegre, nostálgica, misteriosa) de la música andina."
+        "explanation": "La escala es el conjunto de notas organizadas que definen la sonoridad (alegre, nostálgica, misteriosa) de la música andina."
     },
     {
         "id": "ind_3",
@@ -46,10 +52,13 @@ INITIAL_INDUCTION_QUESTIONS = [
             "Flauta traversa, Saxofón y Trompeta"
         ],
         "correct": "Tiple, Requinto y Bandola",
-        "explanation": "El Tiple (armonía y ritmo), el Requinto (melodía y punteo) y la Bandola (contra-canto) conforman el alma de la música andina y guabinera de Vélez."
+        "explanation": "El Tiple (armonía y ritmo), el Requinto (melodía y punteo) y la Bandola (contra-canto) conforman el alma de la música andina veleña."
     }
 ]
 
+# ══════════════════════════════════════════════════════════════════════════════
+# THEORY / RESCUE QUESTIONS (15 preguntas teóricas para rescate y bonus)
+# ══════════════════════════════════════════════════════════════════════════════
 THEORY_QUESTIONS = [
     {
         "id": 1,
@@ -61,23 +70,23 @@ THEORY_QUESTIONS = [
     },
     {
         "id": 2,
-        "question": "¿Qué emoción o carácter sonoro describe mejor a la Escala Menor Armónica?",
+        "question": "¿Qué emoción describe mejor a la Escala Menor Armónica?",
         "options": ["Alegre y festiva", "Misteriosa y exótica", "Sencilla y rústica", "Disonante sin tonalidad"],
         "correct": "Misteriosa y exótica",
-        "explanation": "La presencia del 7º grado elevado (sensible) crea un intervalo de 2ª aumentada con el 6º grado, otorgándole un sonido misterioso y exótico.",
+        "explanation": "La presencia del 7º grado elevado crea un intervalo de 2ª aumentada con el 6º grado, otorgándole un sonido misterioso y exótico.",
         "category": "escalas"
     },
     {
         "id": 3,
-        "question": "¿Cuántas cuerdas y cuántos órdenes tiene el Tiple tradicional colombiano?",
+        "question": "¿Cuántas cuerdas y órdenes tiene el Tiple tradicional colombiano?",
         "options": ["6 cuerdas en 6 órdenes", "10 cuerdas en 5 órdenes", "12 cuerdas en 4 órdenes", "16 cuerdas en 4 órdenes"],
         "correct": "12 cuerdas en 4 órdenes",
-        "explanation": "El tiple colombiano cuenta con 12 cuerdas de acero organizadas en cuatro órdenes triples afinados tradicionalmente en Mi, Si, Sol, Re.",
+        "explanation": "El tiple colombiano cuenta con 12 cuerdas de acero organizadas en cuatro órdenes triples.",
         "category": "folclore"
     },
     {
         "id": 4,
-        "question": "¿Cuál es la diferencia de distancia en semitonos entre una 3ª mayor y una 3ª menor?",
+        "question": "¿Cuál es la diferencia en semitonos entre una 3ª mayor y una 3ª menor?",
         "options": ["Medio tono (1 semitono)", "Un tono (2 semitonos)", "Tono y medio (3 semitonos)", "Son idénticas"],
         "correct": "Medio tono (1 semitono)",
         "explanation": "La 3ª menor mide 3 semitonos y la 3ª mayor mide 4 semitonos; la diferencia entre ambas es exactamente 1 semitono.",
@@ -119,7 +128,7 @@ THEORY_QUESTIONS = [
     },
     {
         "id": 8,
-        "question": "¿Cuántas notas distintas conforman la escala pentatónica tradicional?",
+        "question": "¿Cuántas notas distintas conforman la escala pentatónica?",
         "options": ["4 notas", "5 notas", "7 notas", "8 notas"],
         "correct": "5 notas",
         "explanation": "Su propio prefijo 'penta' indica que está compuesta por 5 notas dentro de la octava.",
@@ -130,7 +139,7 @@ THEORY_QUESTIONS = [
         "question": "¿Qué distancia en semitonos hay en una 2ª menor?",
         "options": ["1 semitono", "2 semitonos", "3 semitonos", "4 semitonos"],
         "correct": "1 semitono",
-        "explanation": "La segunda menor es el intervalo más pequeño en la escala cromática occidental: exactamente 1 semitono.",
+        "explanation": "La segunda menor es el intervalo más pequeño en la escala cromática: exactamente 1 semitono.",
         "category": "intervalos"
     },
     {
@@ -138,12 +147,12 @@ THEORY_QUESTIONS = [
         "question": "¿Qué intervalo forman las notas DO y FA?",
         "options": ["3ª mayor", "4ª justa", "5ª justa", "Tritono"],
         "correct": "4ª justa",
-        "explanation": "Entre DO y FA hay una distancia de 5 semitonos (DO -> DO# -> RE -> RE# -> MI -> FA), formando una cuarta justa.",
+        "explanation": "Entre DO y FA hay una distancia de 5 semitonos, formando una cuarta justa.",
         "category": "intervalos"
     },
     {
         "id": 11,
-        "question": "¿Qué emoción o sensación auditiva suele caracterizar a la Escala Mayor?",
+        "question": "¿Qué emoción suele caracterizar a la Escala Mayor?",
         "options": ["Misteriosa y lúgubre", "Nostálgica y melancólica", "Alegre, brillante y triunfal", "Tensa e inestable"],
         "correct": "Alegre, brillante y triunfal",
         "explanation": "La presencia de la tercera mayor y consonancias estables transmite una sensación natural de optimismo y luminosidad.",
@@ -154,7 +163,7 @@ THEORY_QUESTIONS = [
         "question": "¿Cuántos órdenes de cuerdas tiene la Bandola andina colombiana?",
         "options": ["4 órdenes", "5 órdenes", "6 órdenes", "7 órdenes"],
         "correct": "6 órdenes",
-        "explanation": "La bandola andina tradicionalmente cuenta con 6 órdenes (normalmente 14 a 16 cuerdas en total) afinados en cuartas.",
+        "explanation": "La bandola andina cuenta con 6 órdenes (normalmente 14 a 16 cuerdas en total) afinados en cuartas.",
         "category": "folclore"
     },
     {
@@ -175,7 +184,7 @@ THEORY_QUESTIONS = [
     },
     {
         "id": 15,
-        "question": "¿Cuál es la diferencia entre un intervalo melódico y un intervalo armónico?",
+        "question": "¿Cuál es la diferencia entre un intervalo melódico y un armónico?",
         "options": [
             "El melódico suena nota tras nota (sucesivo); el armónico suena al mismo tiempo",
             "El melódico es siempre mayor; el armónico siempre menor",
@@ -183,11 +192,14 @@ THEORY_QUESTIONS = [
             "No existe ninguna diferencia técnica"
         ],
         "correct": "El melódico suena nota tras nota (sucesivo); el armónico suena al mismo tiempo",
-        "explanation": "Los intervalos melódicos se escuchan consecutivamente (uno después del otro), mientras los armónicos se ejecutan de forma simultánea.",
+        "explanation": "Los intervalos melódicos se escuchan consecutivamente, mientras los armónicos se ejecutan de forma simultánea.",
         "category": "intervalos"
     }
 ]
 
+# ══════════════════════════════════════════════════════════════════════════════
+# SHOP ITEMS
+# ══════════════════════════════════════════════════════════════════════════════
 SHOP_ITEMS = [
     {
         "id": "skin_tiple_noble",
@@ -297,181 +309,466 @@ SHOP_ITEMS = [
     }
 ]
 
-# 9 Estaciones Emblemáticas de la Provincia de Vélez (Ruta Cultural)
+# ══════════════════════════════════════════════════════════════════════════════
+# 15 ESTACIONES ESCALABLES — PROVINCIA DE VÉLEZ
+# Estructura escalable: cada nodo tiene un `learn_content` (fase exploración)
+# y parámetros para generar preguntas dinámicamente desde la BD.
+# ══════════════════════════════════════════════════════════════════════════════
 VELEZ_STATIONS_CONFIG = [
+    # ─── NIVEL 1 ─────────────────────────────────────────────────────────────
     {
         "id": 1,
         "title": "Estación 1: Barbosa",
         "station_name": "Barbosa",
         "badge": "Puerta de Oro de Santander",
-        "subtitle": "Introducción y 2ªs / 3ªs Mayores",
+        "subtitle": "Agudo vs. Grave — Altura del Sonido",
         "cultural_fact": "Barbosa es la Puerta de Oro de Santander a orillas del río Suárez, famosa encrucijada de arrieros y cuna de grandes conjuntos tipleros que bajan a los festivales del río.",
         "reward_item": "Sombrero Aguadeño Veleño",
-        "type": "interval",
+        "type": "pitch",
         "instrument": "Tiple",
-        "intervals": ["Segunda mayor", "Tercera mayor"],
+        "intervals": ["Segunda mayor"],
         "directions": ["ascendente"],
         "required_stars": 0,
+        "questions_count": 4,
+        "xp_reward": 40,
+        "coins_reward": 8,
+        "theme_color": "#F59E0B",
+        "gradient": "from-amber-600/30 via-yellow-900/20 to-slate-950",
+        "learn_content": {
+            "title": "¿Qué es la Altura del Sonido?",
+            "body": "Los sonidos pueden ser AGUDOS (frecuencia alta, como un silbido) o GRAVES (frecuencia baja, como un tambor). En el Tiple, las cuerdas más delgadas producen notas agudas y las más gruesas producen notas graves.",
+            "demo_notes": [48, 72],
+            "demo_label": "Escucha: DO grave → DO agudo. La altura cambia aunque sea la misma nota.",
+            "mnemonic": "Compara la vibración: una frecuencia baja suena grave y una frecuencia alta suena aguda.",
+            "interval_name": "Agudo",
+            "semitones": 12
+        }
+    },
+    # ─── NIVEL 2 ─────────────────────────────────────────────────────────────
+    {
+        "id": 2,
+        "title": "Estación 2: Vélez Centro",
+        "station_name": "Plaza Principal de Vélez",
+        "badge": "Capital Folclórica de Colombia",
+        "subtitle": "Notas Naturales — DO, RE, MI, FA, SOL",
+        "cultural_fact": "La Plaza de Vélez es el corazón del Festival Nacional de la Guabina. Aquí el Tiple suena a toda hora y se aprenden las notas naturales caminando entre los quioscos folclóricos.",
+        "reward_item": "Skin Tiple de Madera Noble",
+        "type": "interval",
+        "instrument": "Tiple",
+        "intervals": ["Segunda mayor", "Segunda menor"],
+        "directions": ["ascendente"],
+        "required_stars": 1,
         "questions_count": 5,
         "xp_reward": 50,
         "coins_reward": 10,
-        "theme_color": "#F59E0B",
-        "gradient": "from-amber-600/30 via-yellow-900/20 to-slate-950"
-    },
-    {
-        "id": 2,
-        "title": "Estación 2: Catedral de Vélez",
-        "station_name": "Catedral de Nuestra Señora de las Nieves",
-        "badge": "Capital Folclórica de Colombia",
-        "subtitle": "Escala Pentatónica Tradicional",
-        "cultural_fact": "La Catedral de Vélez es única en Colombia porque su puerta de entrada está en un costado respecto al altar. Vélez es la Capital Folclórica y cuna del Tiple.",
-        "reward_item": "Skin Tiple de Madera Noble",
-        "type": "scale",
-        "scale_name": "Pentatónica mayor",
-        "instrument": "Tiple",
-        "speed": "optimizado",
-        "required_stars": 1,
-        "questions_count": 6,
-        "xp_reward": 60,
-        "coins_reward": 12,
         "theme_color": "#10B981",
-        "gradient": "from-emerald-700/30 via-teal-950/20 to-slate-950"
+        "gradient": "from-emerald-700/30 via-teal-950/20 to-slate-950",
+        "learn_content": {
+            "title": "Las Notas Naturales del Tiple",
+            "body": "Las 7 notas naturales son: DO, RE, MI, FA, SOL, LA, SI. Forman la escala diatónica mayor. Entre MI y FA, y entre SI y DO, la distancia es de solo 1 semitono (2ª menor); las demás tienen 2 semitonos (2ª mayor).",
+            "demo_notes": [60, 62, 64, 65, 67, 69, 71],
+            "demo_label": "Escucha: DO→RE→MI→FA→SOL→LA→SI — las siete notas naturales.",
+            "mnemonic": "🎵 Recuerda: entre MI y FA no hay sostenido (son vecinos directos). ¡Solo un pasito!",
+            "interval_name": "Segunda mayor / menor",
+            "semitones": 2
+        }
     },
+    # ─── NIVEL 3 ─────────────────────────────────────────────────────────────
     {
         "id": 3,
-        "title": "Estación 3: Puente Nacional",
+        "title": "Estación 3: Catedral de Vélez",
+        "station_name": "Catedral de Nuestra Señora de las Nieves",
+        "badge": "Templo del Folclore Colombiano",
+        "subtitle": "Cuarta Justa — El Gran Salto Folclórico",
+        "cultural_fact": "La Catedral de Vélez es única en Colombia porque su puerta principal está en un costado respecto al altar. Su campana marca el ritmo de los festivales de guabina y tiple.",
+        "reward_item": "Ruana Boyacense de Gala",
+        "type": "interval",
+        "instrument": "Tiple",
+        "intervals": ["Cuarta justa"],
+        "directions": ["ascendente", "descendente"],
+        "required_stars": 2,
+        "questions_count": 5,
+        "xp_reward": 55,
+        "coins_reward": 11,
+        "theme_color": "#8B5CF6",
+        "gradient": "from-violet-700/30 via-purple-950/20 to-slate-950",
+        "learn_content": {
+            "title": "La Cuarta Justa (DO→FA)",
+            "body": "La 4ª Justa tiene 5 semitonos. Es el salto que abre muchas canciones populares. En el Requinto veleño, este intervalo marca los punteos más reconocibles.",
+            "demo_notes": [60, 65],
+            "demo_label": "Escucha: DO→FA, la Cuarta Justa. 5 semitonos de distancia.",
+            "mnemonic": "🎵 Asocia la Cuarta Justa con el inicio de 'Cumpleaños feliz': un salto amplio hacia arriba.",
+            "interval_name": "Cuarta justa",
+            "semitones": 5
+        }
+    },
+    # ─── NIVEL 4 ─────────────────────────────────────────────────────────────
+    {
+        "id": 4,
+        "title": "Estación 4: Puente Nacional",
         "station_name": "Puente Nacional",
         "badge": "Cuna de la Libertad",
-        "subtitle": "Intervalos de 4ªs y 5ªs Justas",
+        "subtitle": "Quinta Justa — El Intervalo Poderoso",
         "cultural_fact": "Puente Nacional fue el primer pueblo libre de América durante la insurrección comunera de 1781. Aquí el requinto repica con fuerza libertaria en torbellinos campesinos.",
         "reward_item": "Púa de Oro Comunal",
         "type": "interval",
         "instrument": "Requinto",
+        "intervals": ["Quinta justa"],
+        "directions": ["ascendente", "descendente"],
+        "required_stars": 3,
+        "questions_count": 6,
+        "xp_reward": 65,
+        "coins_reward": 13,
+        "theme_color": "#EF4444",
+        "gradient": "from-red-800/30 via-orange-950/20 to-slate-950",
+        "learn_content": {
+            "title": "La Quinta Justa (DO→SOL)",
+            "body": "La 5ª Justa tiene 7 semitonos y suena abierta y estable. En el Tiple forma la base de muchos acordes mayores y aparece en melodías populares.",
+            "demo_notes": [60, 67],
+            "demo_label": "Escucha: DO→SOL, la Quinta Justa. 7 semitonos de distancia.",
+            "mnemonic": "🎵 La Quinta Justa aparece al inicio de 'Twinkle Twinkle Little Star': un salto abierto y poderoso.",
+            "interval_name": "Quinta justa",
+            "semitones": 7
+        }
+    },
+    # ─── NIVEL 5 ─────────────────────────────────────────────────────────────
+    {
+        "id": 5,
+        "title": "Estación 5: El Peñón",
+        "station_name": "El Peñón (Piedra del Amor)",
+        "badge": "Mirador de los Enamorados",
+        "subtitle": "Cuarta vs. Quinta Justa — Contraste de Intervalos",
+        "cultural_fact": "El Peñón de Vélez es una roca monumental desde donde se ve toda la provincia. Los duetos de tiple y requinto suenan allí en las serenatas veleñas al atardecer.",
+        "reward_item": "Sombrero Vueltiao Folclórico",
+        "type": "interval",
+        "instrument": "Tiple",
         "intervals": ["Cuarta justa", "Quinta justa"],
         "directions": ["ascendente", "descendente"],
-        "required_stars": 2,
+        "required_stars": 4,
         "questions_count": 6,
         "xp_reward": 70,
         "coins_reward": 14,
-        "theme_color": "#EF4444",
-        "gradient": "from-red-800/30 via-orange-950/20 to-slate-950"
+        "theme_color": "#3B82F6",
+        "gradient": "from-blue-800/30 via-indigo-950/20 to-slate-950",
+        "learn_content": {
+            "title": "Diferencia entre Cuarta y Quinta Justa",
+            "body": "La 4ª Justa (5 semitonos) suena suspendida. La 5ª Justa (7 semitonos) suena más abierta y estable. Escucha ambas y compara la distancia.",
+            "demo_notes": [60, 65],
+            "demo_notes_b": [60, 67],
+            "demo_label": "Escucha DO→FA (4ª) y DO→SOL (5ª): solo dos semitonos las separan.",
+            "mnemonic": "🎵 La cuarta es más cerrada; la quinta es más abierta. Compara sus saltos.",
+            "interval_name": "Cuarta justa",
+            "semitones": 5
+        }
     },
+    # ─── NIVEL 6 ─────────────────────────────────────────────────────────────
     {
-        "id": 4,
-        "title": "Estación 4: Guavatá",
+        "id": 6,
+        "title": "Estación 6: Guavatá",
         "station_name": "Guavatá",
         "badge": "Capital Guayabera de Colombia",
-        "subtitle": "Escala Mayor Alegre",
-        "cultural_fact": "Guavatá es el mayor productor de guayaba del mundo, fruto bendito que endulza el bocadillo veleño con hojas de bijao. Su música es dulce y alegre como la escala mayor.",
-        "reward_item": "Ruana Santandereana de Gala",
-        "type": "scale",
-        "scale_name": "Mayor",
+        "subtitle": "Terceras Mayores y Menores",
+        "cultural_fact": "Guavatá es el mayor productor de guayaba del mundo, fruto bendito que endulza el bocadillo veleño. Su música es tan variada como sus sabores: cuartas y quintas en un mismo compás.",
+        "reward_item": "Bandola Dorada Mono Núñez",
+        "type": "interval",
         "instrument": "Tiple",
-        "speed": "optimizado",
-        "required_stars": 3,
+        "intervals": ["Tercera mayor", "Tercera menor"],
+        "directions": ["ascendente", "descendente"],
+        "required_stars": 5,
+        "questions_count": 6,
+        "xp_reward": 75,
+        "coins_reward": 15,
+        "theme_color": "#EC4899",
+        "gradient": "from-pink-700/30 via-rose-950/20 to-slate-950",
+        "learn_content": {
+            "title": "Terceras: Mayor vs. Menor",
+            "body": "La 3ª Mayor (4 semitonos, DO→MI) suena alegre y brillante. La 3ª Menor (3 semitonos, DO→MIb) suena más íntima y nostálgica. Son la base de muchos acordes.",
+            "demo_notes": [60, 64],
+            "demo_notes_b": [60, 63],
+            "demo_label": "Escucha DO→MI (3ª Mayor) y DO→MIb (3ª Menor), y compara sus colores.",
+            "mnemonic": "🎵 La tercera mayor es más luminosa; la menor, más íntima.",
+            "interval_name": "Tercera mayor",
+            "semitones": 4
+        }
+    },
+    # ─── NIVEL 7 ─────────────────────────────────────────────────────────────
+    {
+        "id": 7,
+        "title": "Estación 7: Escala Pentatónica",
+        "station_name": "Moniquirá / Fábricas de Bocadillo",
+        "badge": "Ciudad Dulce y Río de Caña",
+        "subtitle": "Escala Pentatónica — 5 Notas Andinas",
+        "cultural_fact": "Vecina hermana de Vélez, Moniquirá perfuma el aire con la cocción de la guayaba en pailas de cobre. Su escala musical, como su bocadillo, es simple, dulce y perfecta.",
+        "reward_item": "Gafas de Maestro Melódico",
+        "type": "scale",
+        "scale_name": "Pentatónica mayor",
+        "instrument": "Tiple",
+        "directions": ["ascendente"],
+        "required_stars": 6,
         "questions_count": 6,
         "xp_reward": 80,
         "coins_reward": 16,
-        "theme_color": "#EC4899",
-        "gradient": "from-pink-700/30 via-rose-950/20 to-slate-950"
-    },
-    {
-        "id": 5,
-        "title": "Estación 5: Moniquirá",
-        "station_name": "Moniquirá / Fábricas de Bocadillo",
-        "badge": "Ciudad Dulce y Río de Caña",
-        "subtitle": "Intervalos de 6ªs y 7ªs",
-        "cultural_fact": "Vecina hermana de Vélez, Moniquirá perfuma el aire con la cocción de la guayaba en pailas de cobre al son del tiple y la bandola andina.",
-        "reward_item": "Bandola Dorada Mono Núñez",
-        "type": "interval",
-        "instrument": "Bandola",
-        "intervals": ["Sexta menor", "Sexta mayor", "Séptima menor", "Séptima mayor"],
-        "directions": ["ascendente", "descendente", "intercalada"],
-        "required_stars": 4,
-        "questions_count": 7,
-        "xp_reward": 90,
-        "coins_reward": 18,
         "theme_color": "#F59E0B",
-        "gradient": "from-amber-600/30 via-yellow-950/20 to-slate-950"
+        "gradient": "from-amber-600/30 via-yellow-950/20 to-slate-950",
+        "learn_content": {
+            "title": "La Escala Pentatónica (5 notas)",
+            "body": "La pentatónica mayor usa los grados 1, 2, 3, 5, 6 de la escala mayor. En DO: DO, RE, MI, SOL, LA. Es la escala de la música folclórica andina: simple, sin tensiones, siempre agradable al oído.",
+            "demo_notes": [60, 62, 64, 67, 69, 72],
+            "demo_label": "Escucha: DO→RE→MI→SOL→LA→DO. La pentatónica de la música andina veleña.",
+            "mnemonic": "🎵 Las teclas negras del piano forman una pentatónica. ¡5 notas que siempre suenan bien juntas!",
+            "interval_name": "Pentatónica mayor",
+            "semitones": 0,
+            "scale_pattern": [2, 2, 3, 2, 3]
+        }
     },
+    # ─── NIVEL 8 ─────────────────────────────────────────────────────────────
     {
-        "id": 6,
-        "title": "Estación 6: Jesús María",
+        "id": 8,
+        "title": "Estación 8: Escala Mayor",
         "station_name": "Jesús María",
         "badge": "Tierra del Torbellino y Coplas",
-        "subtitle": "Escala Menor Natural Nostálgica",
-        "cultural_fact": "En Jesús María el torbellino campesino y las 'mojigangas' llenan de poesía y nostalgia los caminos de herradura, donde la escala menor florece con sentimiento.",
-        "reward_item": "Sombrero Vueltiao Folclórico",
+        "subtitle": "Escala Mayor — Alegría Andina",
+        "cultural_fact": "En Jesús María el torbellino campesino llena de alegría los caminos de herradura. La escala mayor captura esa sensación de fiesta y optimismo folclórico.",
+        "reward_item": "Requinto de Gala en Palosanto",
         "type": "scale",
-        "scale_name": "Menor natural",
+        "scale_name": "Mayor",
+        "instrument": "Tiple",
+        "directions": ["ascendente"],
+        "required_stars": 7,
+        "questions_count": 6,
+        "xp_reward": 85,
+        "coins_reward": 17,
+        "theme_color": "#10B981",
+        "gradient": "from-emerald-700/30 via-teal-950/20 to-slate-950",
+        "learn_content": {
+            "title": "La Escala Mayor (DO-RE-MI-FA-SOL-LA-SI-DO)",
+            "body": "La escala mayor tiene 7 notas con el patrón de tonos: T-T-S-T-T-T-S (2-2-1-2-2-2-1 semitonos). Es la más común en la música andina colombiana. Suena alegre, brillante y positiva.",
+            "demo_notes": [60, 62, 64, 65, 67, 69, 71, 72],
+            "demo_label": "Escucha: DO-RE-MI-FA-SOL-LA-SI-DO. La escalera completa, alegre y luminosa.",
+            "mnemonic": "🎵 Patrón: T-T-S-T-T-T-S. 'Tono-Tono-Semitono, Tono-Tono-Tono-Semitono'.",
+            "interval_name": "Mayor",
+            "semitones": 0,
+            "scale_pattern": [2, 2, 1, 2, 2, 2, 1]
+        }
+    },
+    # ─── NIVEL 9 ─────────────────────────────────────────────────────────────
+    {
+        "id": 9,
+        "title": "Estación 9: Intervalos Ampliados",
+        "station_name": "Chipatá",
+        "badge": "Cuna del Primer Maíz",
+        "subtitle": "Sextas y Séptimas — El Salto Virtuoso",
+        "cultural_fact": "Chipatá acogió la primera misa de Santander en 1537. Tierra prehispánica de maíz y chicha, donde los músicos hacen saltos melódicos amplios que imitan el viento de los páramos.",
+        "reward_item": "Medalla Oído de Oro",
+        "type": "interval",
         "instrument": "Bandola",
-        "speed": "optimizado",
-        "required_stars": 5,
+        "intervals": ["Sexta menor", "Sexta mayor"],
+        "directions": ["ascendente", "descendente"],
+        "required_stars": 8,
+        "questions_count": 6,
+        "xp_reward": 90,
+        "coins_reward": 18,
+        "theme_color": "#6366F1",
+        "gradient": "from-indigo-800/30 via-slate-900/20 to-slate-950",
+        "learn_content": {
+            "title": "Sextas: Mayor (9) vs. Menor (8 semitonos)",
+            "body": "La 6ª Mayor (9 semitonos, DO→LA) suena cálida y romántica. La 6ª Menor (8 semitonos, DO→LAb) suena más oscura e íntima. Los virtuosos de bandola aman estos saltos largos.",
+            "demo_notes": [60, 69],
+            "demo_notes_b": [60, 68],
+            "demo_label": "Escucha: DO→LA (6ª Mayor) vs. DO→LAb (6ª Menor). El salto del virtuoso.",
+            "mnemonic": "🎵 6ª Mayor = DO→LA (9 semitonos). 'My Bonnie Lies Over The Ocean' empieza con una 6ª Mayor.",
+            "interval_name": "Sexta mayor",
+            "semitones": 9
+        }
+    },
+    # ─── NIVEL 10 ─────────────────────────────────────────────────────────────
+    {
+        "id": 10,
+        "title": "Estación 10: Séptimas",
+        "station_name": "Bolívar y Veredas Andinas",
+        "badge": "Cuna de Virtuosos Campesinos",
+        "subtitle": "Séptimas Mayor y Menor",
+        "cultural_fact": "Bolívar es cuna de campesinos virtuosos que ejecutan pasillos con punteos vertiginosos. Las séptimas son los intervalos que más tensión y emoción generan en un pasillo andino.",
+        "reward_item": "Skin Bandola Dorada Mono Núñez",
+        "type": "interval",
+        "instrument": "Bandola",
+        "intervals": ["Séptima menor", "Séptima mayor"],
+        "directions": ["ascendente", "descendente", "intercalada"],
+        "required_stars": 9,
         "questions_count": 7,
         "xp_reward": 100,
         "coins_reward": 20,
-        "theme_color": "#6366F1",
-        "gradient": "from-indigo-800/30 via-slate-900/20 to-slate-950"
+        "theme_color": "#059669",
+        "gradient": "from-emerald-800/30 via-slate-950 to-black",
+        "learn_content": {
+            "title": "Séptimas: Tensión y Resolución",
+            "body": "La 7ª Menor (10 semitonos, DO→SIb) suena tensa y busca resolver. La 7ª Mayor (11 semitonos, DO→SI) es la más disonante de todos los intervalos diatónicos. Ambas son cruciales en los pasillos andinos.",
+            "demo_notes": [60, 70],
+            "demo_notes_b": [60, 71],
+            "demo_label": "Escucha: DO→SIb (7ª menor, tensa) y DO→SI (7ª mayor, muy disonante).",
+            "mnemonic": "🎵 La 7ª Menor está en 'Somewhere' de West Side Story. ¡Siente la tensión que pide resolverse!",
+            "interval_name": "Séptima menor",
+            "semitones": 10
+        }
     },
+    # ─── NIVEL 11 ─────────────────────────────────────────────────────────────
     {
-        "id": 7,
-        "title": "Estación 7: Chipatá",
-        "station_name": "Chipatá",
-        "badge": "Cuna del Primer Maíz",
-        "subtitle": "Escala Menor Armónica Misteriosa",
-        "cultural_fact": "Chipatá acogió la primera misa de Santander en 1537; tierra prehispánica de maíz, chicha y misteriosas melodías andinas con el 7º grado elevado.",
-        "reward_item": "Gafas de Maestro Melódico",
-        "type": "scale",
-        "scale_name": "Menor armónica",
-        "instrument": "Tiple",
-        "speed": "optimizado",
-        "required_stars": 6,
+        "id": 11,
+        "title": "Estación 11: La Octava",
+        "station_name": "Albania",
+        "badge": "Tierra de Cafetales y Nostalgias",
+        "subtitle": "Octava Justa — La Misma Nota en Otra Altura",
+        "cultural_fact": "Albania se esconde entre cafetales y cañaduzales donde las melodías veleñas recorren registros graves y agudos.",
+        "reward_item": "Sombrero Vueltiao 21 Vueltas",
+        "type": "interval",
+        "intervals": ["Octava"],
+        "instrument": "Bandola",
+        "directions": ["ascendente", "descendente"],
+        "required_stars": 10,
         "questions_count": 7,
-        "xp_reward": 110,
-        "coins_reward": 22,
+        "xp_reward": 105,
+        "coins_reward": 21,
         "theme_color": "#8B5CF6",
-        "gradient": "from-purple-800/30 via-violet-950/20 to-slate-950"
+        "gradient": "from-purple-800/30 via-violet-950/20 to-slate-950",
+        "learn_content": {
+            "title": "La Octava Justa",
+            "body": "La octava separa dos notas con el mismo nombre y duplica su frecuencia. DO3 y DO4 suenan distintos en altura, pero comparten la misma identidad musical.",
+            "demo_notes": [48, 60],
+            "demo_label": "Escucha DO3→DO4: la misma nota una octava más arriba.",
+            "mnemonic": "Una octava son 12 semitonos: al subirla, llegas de nuevo a la misma nota.",
+            "interval_name": "Octava",
+            "semitones": 12
+        }
     },
+    # ─── NIVEL 12 ─────────────────────────────────────────────────────────────
     {
-        "id": 8,
-        "title": "Estación 8: Bolívar",
-        "station_name": "Bolívar y Veredas Andinas",
-        "badge": "Cuna de Virtuosos Campesinos",
-        "subtitle": "Escala Menor Melódica Compleja",
-        "cultural_fact": "Bolívar es cuna de campesinos virtuosos que ejecutan pasillos y guabinas con punteos vertiginosos al subir y bajar la escala menor melódica.",
-        "reward_item": "Requinto de Gala en Palosanto",
+        "id": 12,
+        "title": "Estación 12: Melodías de Tres Notas",
+        "station_name": "Barbur",
+        "badge": "Veredas de los Misterios",
+        "subtitle": "Melodías de Tres Notas — Escucha y Recuerda",
+        "cultural_fact": "Las veredas de Barbur guardan melodías breves que pasan de oído en oído y se transforman en cada interpretación.",
+        "reward_item": "Medalla Tiplista Mayor",
+        "type": "melody",
+        "melodies": [
+            {"name": "Arpegio mayor", "offsets": [0, 4, 7]},
+            {"name": "Arpegio menor", "offsets": [0, 3, 7]},
+            {"name": "Ascenso conjunto", "offsets": [0, 2, 4]}
+        ],
+        "instrument": "Tiple",
+        "directions": ["ascendente"],
+        "required_stars": 11,
+        "questions_count": 7,
+        "xp_reward": 115,
+        "coins_reward": 23,
+        "theme_color": "#F59E0B",
+        "gradient": "from-amber-700/30 via-orange-950/20 to-slate-950",
+        "learn_content": {
+            "title": "Reconoce una melodía de tres notas",
+            "body": "Una melodía breve puede sonar como un arpegio mayor, un arpegio menor o un ascenso por grados conjuntos. Escucha el contorno y la distancia entre las tres notas.",
+            "demo_notes": [60, 64, 67],
+            "demo_label": "DO–MI–SOL: tres notas que forman un arpegio mayor.",
+            "identification": "Arpegio mayor",
+            "mnemonic": "Escucha primero si el salto central suena amplio (mayor), más cerrado (menor) o paso a paso."
+        }
+    },
+    # ─── NIVEL 13 ─────────────────────────────────────────────────────────────
+    {
+        "id": 13,
+        "title": "Estación 13: Escala Menor Melódica",
+        "station_name": "Güepsa",
+        "badge": "Río de las Corrientes Suaves",
+        "subtitle": "Menor Melódica — Arriba y Abajo Diferente",
+        "cultural_fact": "Güepsa tiene corrientes de agua tan suaves como la escala menor melódica al descender. La escala sube brillante y baja oscura, como el río de Güepsa en el atardecer.",
+        "reward_item": "Skin Requinto de Gala",
         "type": "scale",
         "scale_name": "Menor melódica",
         "instrument": "Requinto",
-        "speed": "optimizado",
-        "required_stars": 7,
-        "questions_count": 8,
-        "xp_reward": 130,
+        "directions": ["ascendente"],
+        "required_stars": 12,
+        "questions_count": 7,
+        "xp_reward": 125,
         "coins_reward": 25,
-        "theme_color": "#059669",
-        "gradient": "from-emerald-800/30 via-slate-950 to-black"
+        "theme_color": "#EC4899",
+        "gradient": "from-pink-800/30 via-rose-950/20 to-slate-950",
+        "learn_content": {
+            "title": "Menor Melódica — Dual al Ascender y Descender",
+            "body": "La menor melódica eleva el 6º Y el 7º grado al ASCENDER (DO, RE, MIb, FA, SOL, LA, SI, DO), pero al DESCENDER vuelve a la menor natural (DO, SIb, LAb, SOL...). Es la más compleja y expresiva de todas.",
+            "demo_notes": [60, 62, 63, 65, 67, 69, 71, 72],
+            "demo_label": "Escucha: sube con 6ª y 7ª mayores para una conducción vocal suave y natural.",
+            "mnemonic": "🎵 Sube alegre (6ª y 7ª elevados), baja triste (vuelve a menor natural). ¡Como el ánimo humano!",
+            "interval_name": "Menor melódica",
+            "semitones": 0,
+            "scale_pattern": [2, 1, 2, 2, 2, 2, 1]
+        }
     },
+    # ─── NIVEL 14 ─────────────────────────────────────────────────────────────
     {
-        "id": 9,
-        "title": "Estación 9: Festival de la Guabina y el Tiple",
+        "id": 14,
+        "title": "Estación 14: Todos los Intervalos",
+        "station_name": "Vélez — Festival Nacional",
+        "badge": "Gran Escenario Veleño (Semifinal)",
+        "subtitle": "Reconocimiento Total — 2ªs, 3ªs, 4ªs, 5ªs, 6ªs, 7ªs",
+        "cultural_fact": "El Festival Nacional de la Guabina y el Tiple reúne a músicos de toda Colombia. Para subir al escenario principal debes reconocer todos los intervalos que has aprendido en el recorrido.",
+        "reward_item": "Medalla Oído de Oro + Todos los Accesorios",
+        "type": "interval",
+        "instrument": "Tiple",
+        "intervals": ["Segunda mayor", "Tercera mayor", "Tercera menor", "Cuarta justa", "Quinta justa", "Sexta mayor", "Séptima menor"],
+        "directions": ["ascendente", "descendente", "intercalada"],
+        "required_stars": 13,
+        "questions_count": 8,
+        "xp_reward": 150,
+        "coins_reward": 30,
+        "theme_color": "#FBBF24",
+        "gradient": "from-yellow-600/30 via-amber-900/20 to-slate-950",
+        "learn_content": {
+            "title": "Repaso General de Todos los Intervalos",
+            "body": "Aquí tienes el mapa completo: 2ªM=2st, 2ªm=1st, 3ªM=4st, 3ªm=3st, 4ªJ=5st, 5ªJ=7st, 6ªM=9st, 6ªm=8st, 7ªM=11st, 7ªm=10st. Escucha y memoriza cada uno antes del desafío final.",
+            "demo_notes": [60, 62],
+            "demo_label": "Usa el Modo Libre (JAM) para repasar cualquier intervalo antes de continuar.",
+            "mnemonic": "🎵 Recuerda los ganchos: 4ªJ=Cumpleaños, 5ªJ=Star Wars, 6ªM=My Bonnie, 7ªm=Somewhere.",
+            "interval_name": "Segunda mayor",
+            "semitones": 2
+        }
+    },
+    # ─── NIVEL 15 — BOSS FINAL ────────────────────────────────────────────────
+    {
+        "id": 15,
+        "title": "Estación 15: Maestro Mayor Veleño",
         "station_name": "Festival Nacional de la Guabina y el Tiple (Vélez)",
-        "badge": "Gran Escenario Veleño",
-        "subtitle": "Gran Concierto del Maestro Mayor",
-        "cultural_fact": "La máxima fiesta folclórica de Colombia cada agosto en Vélez. Quien domina todos los intervalos y escalas aquí se corona como Maestro Mayor Veleño.",
-        "reward_item": "Medalla Máxima 'Tiplista Mayor'",
+        "badge": "Gran Escenario — Maestro Mayor Veleño",
+        "subtitle": "Gran Concierto del Maestro Mayor — Desafío Final",
+        "cultural_fact": "La máxima fiesta folclórica de Colombia cada agosto en Vélez. Quien domina todos los intervalos y escalas aquí se corona como Maestro Mayor Veleño y guardián del patrimonio musical andino.",
+        "reward_item": "Medalla Máxima 'Tiplista Mayor' + Corona del Maestro",
         "type": "final_boss",
         "instrument": "Todos",
-        "required_stars": 8,
+        "intervals": ["Segunda mayor", "Tercera mayor", "Tercera menor", "Cuarta justa", "Quinta justa", "Sexta mayor", "Sexta menor", "Séptima menor", "Séptima mayor"],
+        "directions": ["ascendente", "descendente", "intercalada"],
+        "required_stars": 14,
         "questions_count": 10,
-        "xp_reward": 200,
-        "coins_reward": 50,
+        "xp_reward": 250,
+        "coins_reward": 60,
         "theme_color": "#FBBF24",
-        "gradient": "from-yellow-600/40 via-amber-900/20 to-slate-950"
+        "gradient": "from-yellow-600/40 via-amber-900/20 to-slate-950",
+        "learn_content": {
+            "title": "El Gran Concierto Final",
+            "body": "Has recorrido toda la Provincia de Vélez: Barbosa, la Catedral, Puente Nacional, Guavatá, Moniquirá, y todos los municipios de la ruta. Ahora demostrarás en el escenario mayor que eres un Maestro del Oído Folclórico Veleño.",
+            "demo_notes": [60, 64, 67, 72],
+            "demo_label": "Escucha el acorde final: DO-MI-SOL-DO (acorde mayor perfecto). ¡Estás listo!",
+            "mnemonic": "🎵 Confía en tu oído. Cada nota que escuches lleva el alma de la Provincia de Vélez.",
+            "interval_name": "Quinta justa",
+            "semitones": 7
+        }
     }
 ]
 
 
 def _build_audio_catalog():
+    """
+    Builds audio catalog from the database, grouped by instrument name.
+    Each entry includes the stream_url so the frontend can play real samples.
+    Falls back to synthesis if no samples are in the DB.
+    """
     audios = Audio.query.options(
         joinedload(Audio.instrument),
         joinedload(Audio.note),
@@ -487,22 +784,51 @@ def _build_audio_catalog():
         catalog[inst_name].append({
             "id": a.id,
             "filename": a.filename,
-            "stream_url": a.stream_url,
+            "stream_url": url_for("senafonica.stream_audio_sample", audio_id=a.id),
             "note_name": a.note.display_name,
             "midi": a.note.midi_number,
             "octave": a.note.octave,
             "frequency": a.note.frequency
         })
 
+    # Sort each instrument's samples by MIDI for efficient lookup
     for inst_name in catalog:
         catalog[inst_name].sort(key=lambda item: item["midi"] or 0)
 
     return catalog
 
 
+@senafonica_bp.route("/api/senafonica/audio/<int:audio_id>")
+def stream_audio_sample(audio_id):
+    """Stream an active, note-mapped sample for the public learning game."""
+    audio = Audio.query.options(
+        joinedload(Audio.instrument),
+        joinedload(Audio.note),
+    ).filter_by(id=audio_id, is_active=True).first()
+    if not audio or not audio.instrument or not audio.note:
+        abort(404)
+
+    content_type = mimetypes.guess_type(audio.original_filename)[0] or "application/octet-stream"
+    if audio.file_path and os.path.isfile(audio.file_path):
+        return send_file(
+            audio.file_path,
+            mimetype=content_type,
+            download_name=audio.original_filename,
+            conditional=True,
+        )
+    if audio.audio_data:
+        return send_file(
+            io.BytesIO(audio.audio_data),
+            mimetype=content_type,
+            download_name=audio.original_filename,
+            conditional=True,
+        )
+    abort(404)
+
+
 @senafonica_bp.route("/senafonica")
 def index():
-    # Support both logged-in users and guests smoothly
+    """Main game page — supports both authenticated users and guests."""
     gamification = None
     progress = None
     user_info = {
@@ -569,6 +895,7 @@ def index():
 
 @senafonica_bp.route("/api/senafonica/data")
 def get_data():
+    """JSON API endpoint to refresh game data without page reload."""
     catalog = _build_audio_catalog()
     intervals = Interval.query.order_by(Interval.semitones).all()
     scales = Scale.query.order_by(Scale.id).all()
@@ -576,11 +903,22 @@ def get_data():
     return jsonify({
         "catalog": catalog,
         "intervals": [
-            {"id": i.id, "name": i.name, "semitones": i.semitones, "abbreviation": i.abbreviation}
+            {
+                "id": i.id,
+                "name": i.name,
+                "semitones": i.semitones,
+                "abbreviation": i.abbreviation,
+                "description": i.description
+            }
             for i in intervals
         ],
         "scales": [
-            {"id": s.id, "name": s.name, "pattern": s.intervals_pattern, "description": s.description}
+            {
+                "id": s.id,
+                "name": s.name,
+                "pattern": s.intervals_pattern,
+                "description": s.description
+            }
             for s in scales
         ],
         "levels": VELEZ_STATIONS_CONFIG,
@@ -592,6 +930,7 @@ def get_data():
 
 @senafonica_bp.route("/api/senafonica/sync", methods=["POST"])
 def sync_progress():
+    """Sync in-game progress to the DB for authenticated users."""
     data = request.get_json(silent=True) or {}
     xp_to_add = int(data.get("xp_earned", 0))
     coins_to_add = int(data.get("coins_earned", 0))
@@ -646,7 +985,7 @@ def sync_progress():
             "streak": progress.current_streak_days
         })
 
-    # For guest users, return 200 OK echoing payload
+    # Guests: echo payload back as success
     return jsonify({
         "status": "success",
         "guest": True,
