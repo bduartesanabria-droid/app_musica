@@ -1,15 +1,54 @@
 import json
 from flask import Blueprint, render_template, jsonify, request, current_app
-from flask_login import login_required, current_user
+from flask_login import current_user
 from sqlalchemy.orm import joinedload
 from ..extensions import db
 from ..models.instrument import Instrument, Note, Interval, Scale
 from ..models.audio import Audio
-from ..models.gamification import UserGamification, Badge, UserBadge
-from ..models.progress import Progress, UserStatistics
-from ..utils.timezone import bogota_date, utc_now_naive
+from ..models.gamification import UserGamification
+from ..models.progress import Progress
+from ..utils.timezone import bogota_date
 
 senafonica_bp = Blueprint("senafonica", __name__)
+
+INITIAL_INDUCTION_QUESTIONS = [
+    {
+        "id": "ind_1",
+        "question": "¿Qué es un Intervalo Musical?",
+        "options": [
+            "La distancia en altura entre dos notas musicales",
+            "El tiempo que dura una canción",
+            "La velocidad con la que se rasguea el Tiple",
+            "La cantidad de cuerdas de una guitarra"
+        ],
+        "correct": "La distancia en altura entre dos notas musicales",
+        "explanation": "Un intervalo mide exactamente la distancia de frecuencias o semitonos entre dos notas: pueden estar muy cerca (segundas) o distantes (quintas, octavas)."
+    },
+    {
+        "id": "ind_2",
+        "question": "¿Qué es una Escala Musical?",
+        "options": [
+            "La escalera ordenada de notas que le da color y emoción a una melodía",
+            "Un instrumento de percusión veleño",
+            "El peso en gramos del Requinto",
+            "Un libro de partituras antiguas"
+        ],
+        "correct": "La escalera ordenada de notas que le da color y emoción a una melodía",
+        "explanation": "La escala es el conjunto o escalera de notas organizadas que definen la sonoridad (alegre, nostálgica, misteriosa) de la música andina."
+    },
+    {
+        "id": "ind_3",
+        "question": "¿Cuáles son los tres instrumentos folclóricos protagonistas de la Provincia de Vélez?",
+        "options": [
+            "Tiple, Requinto y Bandola",
+            "Batería, Bajo eléctrico y Teclado",
+            "Acordeón, Caja y Guacharaca",
+            "Flauta traversa, Saxofón y Trompeta"
+        ],
+        "correct": "Tiple, Requinto y Bandola",
+        "explanation": "El Tiple (armonía y ritmo), el Requinto (melodía y punteo) y la Bandola (contra-canto) conforman el alma de la música andina y guabinera de Vélez."
+    }
+]
 
 THEORY_QUESTIONS = [
     {
@@ -201,8 +240,8 @@ SHOP_ITEMS = [
     {
         "id": "acc_ruana_gala",
         "type": "accessory",
-        "title": "Ruana Boyacense de Gala",
-        "description": "Lana virgen peinada con ribetes tricolores bordados a mano.",
+        "title": "Ruana Boyacense / Veleña de Gala",
+        "description": "Lana virgen peinada con ribetes bordados a mano de la tradición veleña.",
         "cost_xp": 180,
         "cost_coins": 30,
         "icon": "🧣",
@@ -213,8 +252,8 @@ SHOP_ITEMS = [
     {
         "id": "acc_sombrero_aguadeno",
         "type": "accessory",
-        "title": "Sombrero Aguadeño",
-        "description": "Palma de iraca de Caldas con cinta negra elegante de maestro tiplero.",
+        "title": "Sombrero Aguadeño Veleño",
+        "description": "Palma de iraca fina con cinta negra elegante, clásico de los tipleros mayores.",
         "cost_xp": 120,
         "cost_coins": 20,
         "icon": "🎩",
@@ -226,7 +265,7 @@ SHOP_ITEMS = [
         "id": "acc_gafas_maestro",
         "type": "accessory",
         "title": "Gafas de Maestro Melódico",
-        "description": "Lentes redondos dorados que afinan la concentración y el oído musical.",
+        "description": "Lentes dorados redondos que potencian la concentración auditiva.",
         "cost_xp": 90,
         "cost_coins": 10,
         "icon": "👓",
@@ -258,158 +297,176 @@ SHOP_ITEMS = [
     }
 ]
 
-LEVELS_CONFIG = [
+# 9 Estaciones Emblemáticas de la Provincia de Vélez (Ruta Cultural)
+VELEZ_STATIONS_CONFIG = [
     {
         "id": 1,
-        "title": "Primeros Pasos: 2ª y 3ª Mayores",
-        "subtitle": "Aprende a diferenciar el paso corto de tono y la alegría de la 3ª mayor.",
+        "title": "Estación 1: Barbosa",
+        "station_name": "Barbosa",
+        "badge": "Puerta de Oro de Santander",
+        "subtitle": "Introducción y 2ªs / 3ªs Mayores",
+        "cultural_fact": "Barbosa es la Puerta de Oro de Santander a orillas del río Suárez, famosa encrucijada de arrieros y cuna de grandes conjuntos tipleros que bajan a los festivales del río.",
+        "reward_item": "Sombrero Aguadeño Veleño",
         "type": "interval",
         "instrument": "Tiple",
         "intervals": ["Segunda mayor", "Tercera mayor"],
         "directions": ["ascendente"],
         "required_stars": 0,
         "questions_count": 5,
-        "xp_reward": 40,
-        "coins_reward": 8
+        "xp_reward": 50,
+        "coins_reward": 10,
+        "theme_color": "#F59E0B",
+        "gradient": "from-amber-600/30 via-yellow-900/20 to-slate-950"
     },
     {
         "id": 2,
-        "title": "Consonancias Puras: 4ª y 5ª Justas",
-        "subtitle": "Las columnas de la música andina. Reconoce la estabilidad de la 5ª y 4ª.",
-        "type": "interval",
-        "instrument": "Requinto",
-        "intervals": ["Cuarta justa", "Quinta justa"],
-        "directions": ["ascendente", "descendente"],
-        "required_stars": 1,
-        "questions_count": 6,
-        "xp_reward": 50,
-        "coins_reward": 10
-    },
-    {
-        "id": 3,
-        "title": "Desafío Teórico: Rescate y Sabiduría",
-        "subtitle": "Pondrás a prueba tu conocimiento de semitonos y folclore andino.",
-        "type": "theory",
-        "instrument": "Bandola",
-        "required_stars": 2,
-        "questions_count": 4,
-        "xp_reward": 60,
-        "coins_reward": 15
-    },
-    {
-        "id": 4,
-        "title": "Matices Menores: 2ª y 3ª Menor",
-        "subtitle": "Entrena la sutileza del semitono y el carácter nostálgico de la 3ª menor.",
-        "type": "interval",
-        "instrument": "Bandola",
-        "intervals": ["Segunda menor", "Tercera menor", "Segunda mayor", "Tercera mayor"],
-        "directions": ["ascendente", "descendente", "intercalada"],
-        "required_stars": 3,
-        "questions_count": 7,
-        "xp_reward": 70,
-        "coins_reward": 12
-    },
-    {
-        "id": 5,
-        "title": "El Tritono y las 6ªs",
-        "subtitle": "Descubre la tensión del tritono y la apertura expresiva de las 6ªs.",
-        "type": "interval",
-        "instrument": "Tiple",
-        "intervals": ["Cuarta aumentada", "Sexta menor", "Sexta mayor", "Quinta justa"],
-        "directions": ["ascendente", "descendente", "intercalada"],
-        "required_stars": 4,
-        "questions_count": 7,
-        "xp_reward": 80,
-        "coins_reward": 14
-    },
-    {
-        "id": 6,
-        "title": "Séptimas y Octava Justa",
-        "subtitle": "Domina la amplitud completa de la octava con saltos melódicos audaces.",
-        "type": "interval",
-        "instrument": "Requinto",
-        "intervals": ["Séptima menor", "Séptima mayor", "Octava", "Quinta justa"],
-        "directions": ["ascendente", "descendente", "intercalada"],
-        "required_stars": 5,
-        "questions_count": 8,
-        "xp_reward": 90,
-        "coins_reward": 16
-    },
-    {
-        "id": 7,
-        "title": "Escala Pentatónica Andina",
-        "subtitle": "Núcleo 2: Nivel 1. 5 notas sin semitonos tensos, base de las melodías ancestrales.",
+        "title": "Estación 2: Catedral de Vélez",
+        "station_name": "Catedral de Nuestra Señora de las Nieves",
+        "badge": "Capital Folclórica de Colombia",
+        "subtitle": "Escala Pentatónica Tradicional",
+        "cultural_fact": "La Catedral de Vélez es única en Colombia porque su puerta de entrada está en un costado respecto al altar. Vélez es la Capital Folclórica y cuna del Tiple.",
+        "reward_item": "Skin Tiple de Madera Noble",
         "type": "scale",
         "scale_name": "Pentatónica mayor",
         "instrument": "Tiple",
         "speed": "optimizado",
-        "required_stars": 6,
+        "required_stars": 1,
         "questions_count": 6,
-        "xp_reward": 100,
-        "coins_reward": 20
+        "xp_reward": 60,
+        "coins_reward": 12,
+        "theme_color": "#10B981",
+        "gradient": "from-emerald-700/30 via-teal-950/20 to-slate-950"
     },
     {
-        "id": 8,
-        "title": "Escala Mayor: Fiesta Andina",
-        "subtitle": "Núcleo 2: Nivel 2. Brillante, alegre y tradicional en guabinas y torbellinos.",
+        "id": 3,
+        "title": "Estación 3: Puente Nacional",
+        "station_name": "Puente Nacional",
+        "badge": "Cuna de la Libertad",
+        "subtitle": "Intervalos de 4ªs y 5ªs Justas",
+        "cultural_fact": "Puente Nacional fue el primer pueblo libre de América durante la insurrección comunera de 1781. Aquí el requinto repica con fuerza libertaria en torbellinos campesinos.",
+        "reward_item": "Púa de Oro Comunal",
+        "type": "interval",
+        "instrument": "Requinto",
+        "intervals": ["Cuarta justa", "Quinta justa"],
+        "directions": ["ascendente", "descendente"],
+        "required_stars": 2,
+        "questions_count": 6,
+        "xp_reward": 70,
+        "coins_reward": 14,
+        "theme_color": "#EF4444",
+        "gradient": "from-red-800/30 via-orange-950/20 to-slate-950"
+    },
+    {
+        "id": 4,
+        "title": "Estación 4: Guavatá",
+        "station_name": "Guavatá",
+        "badge": "Capital Guayabera de Colombia",
+        "subtitle": "Escala Mayor Alegre",
+        "cultural_fact": "Guavatá es el mayor productor de guayaba del mundo, fruto bendito que endulza el bocadillo veleño con hojas de bijao. Su música es dulce y alegre como la escala mayor.",
+        "reward_item": "Ruana Santandereana de Gala",
         "type": "scale",
         "scale_name": "Mayor",
-        "instrument": "Requinto",
+        "instrument": "Tiple",
         "speed": "optimizado",
-        "required_stars": 7,
+        "required_stars": 3,
         "questions_count": 6,
-        "xp_reward": 110,
-        "coins_reward": 22
+        "xp_reward": 80,
+        "coins_reward": 16,
+        "theme_color": "#EC4899",
+        "gradient": "from-pink-700/30 via-rose-950/20 to-slate-950"
     },
     {
-        "id": 9,
-        "title": "Escala Menor Natural: Nostalgia",
-        "subtitle": "Núcleo 2: Nivel 3. El alma del pasillo colombiano con su tercera y sexta menor.",
+        "id": 5,
+        "title": "Estación 5: Moniquirá",
+        "station_name": "Moniquirá / Fábricas de Bocadillo",
+        "badge": "Ciudad Dulce y Río de Caña",
+        "subtitle": "Intervalos de 6ªs y 7ªs",
+        "cultural_fact": "Vecina hermana de Vélez, Moniquirá perfuma el aire con la cocción de la guayaba en pailas de cobre al son del tiple y la bandola andina.",
+        "reward_item": "Bandola Dorada Mono Núñez",
+        "type": "interval",
+        "instrument": "Bandola",
+        "intervals": ["Sexta menor", "Sexta mayor", "Séptima menor", "Séptima mayor"],
+        "directions": ["ascendente", "descendente", "intercalada"],
+        "required_stars": 4,
+        "questions_count": 7,
+        "xp_reward": 90,
+        "coins_reward": 18,
+        "theme_color": "#F59E0B",
+        "gradient": "from-amber-600/30 via-yellow-950/20 to-slate-950"
+    },
+    {
+        "id": 6,
+        "title": "Estación 6: Jesús María",
+        "station_name": "Jesús María",
+        "badge": "Tierra del Torbellino y Coplas",
+        "subtitle": "Escala Menor Natural Nostálgica",
+        "cultural_fact": "En Jesús María el torbellino campesino y las 'mojigangas' llenan de poesía y nostalgia los caminos de herradura, donde la escala menor florece con sentimiento.",
+        "reward_item": "Sombrero Vueltiao Folclórico",
         "type": "scale",
         "scale_name": "Menor natural",
         "instrument": "Bandola",
         "speed": "optimizado",
-        "required_stars": 8,
+        "required_stars": 5,
         "questions_count": 7,
-        "xp_reward": 120,
-        "coins_reward": 24
+        "xp_reward": 100,
+        "coins_reward": 20,
+        "theme_color": "#6366F1",
+        "gradient": "from-indigo-800/30 via-slate-900/20 to-slate-950"
     },
     {
-        "id": 10,
-        "title": "Escala Menor Armónica: Misterio",
-        "subtitle": "Núcleo 2: Nivel 4. La atracción magnética de la sensible con su 2ª aumentada.",
+        "id": 7,
+        "title": "Estación 7: Chipatá",
+        "station_name": "Chipatá",
+        "badge": "Cuna del Primer Maíz",
+        "subtitle": "Escala Menor Armónica Misteriosa",
+        "cultural_fact": "Chipatá acogió la primera misa de Santander en 1537; tierra prehispánica de maíz, chicha y misteriosas melodías andinas con el 7º grado elevado.",
+        "reward_item": "Gafas de Maestro Melódico",
         "type": "scale",
         "scale_name": "Menor armónica",
         "instrument": "Tiple",
         "speed": "optimizado",
-        "required_stars": 9,
+        "required_stars": 6,
         "questions_count": 7,
-        "xp_reward": 130,
-        "coins_reward": 26
+        "xp_reward": 110,
+        "coins_reward": 22,
+        "theme_color": "#8B5CF6",
+        "gradient": "from-purple-800/30 via-violet-950/20 to-slate-950"
     },
     {
-        "id": 11,
-        "title": "Escala Menor Melódica: Complejidad",
-        "subtitle": "Núcleo 2: Nivel 5. El pináculo del oído melódico: fluidez virtuosa al ascender.",
+        "id": 8,
+        "title": "Estación 8: Bolívar",
+        "station_name": "Bolívar y Veredas Andinas",
+        "badge": "Cuna de Virtuosos Campesinos",
+        "subtitle": "Escala Menor Melódica Compleja",
+        "cultural_fact": "Bolívar es cuna de campesinos virtuosos que ejecutan pasillos y guabinas con punteos vertiginosos al subir y bajar la escala menor melódica.",
+        "reward_item": "Requinto de Gala en Palosanto",
         "type": "scale",
         "scale_name": "Menor melódica",
         "instrument": "Requinto",
         "speed": "optimizado",
-        "required_stars": 10,
+        "required_stars": 7,
         "questions_count": 8,
-        "xp_reward": 150,
-        "coins_reward": 30
+        "xp_reward": 130,
+        "coins_reward": 25,
+        "theme_color": "#059669",
+        "gradient": "from-emerald-800/30 via-slate-950 to-black"
     },
     {
-        "id": 12,
-        "title": "Gran Concierto: Tiplista Maestro",
-        "subtitle": "Evaluación final de todos los intervalos y escalas en un gran reto folclórico.",
+        "id": 9,
+        "title": "Estación 9: Festival de la Guabina y el Tiple",
+        "station_name": "Festival Nacional de la Guabina y el Tiple (Vélez)",
+        "badge": "Gran Escenario Veleño",
+        "subtitle": "Gran Concierto del Maestro Mayor",
+        "cultural_fact": "La máxima fiesta folclórica de Colombia cada agosto en Vélez. Quien domina todos los intervalos y escalas aquí se corona como Maestro Mayor Veleño.",
+        "reward_item": "Medalla Máxima 'Tiplista Mayor'",
         "type": "final_boss",
         "instrument": "Todos",
-        "required_stars": 11,
+        "required_stars": 8,
         "questions_count": 10,
         "xp_reward": 200,
-        "coins_reward": 50
+        "coins_reward": 50,
+        "theme_color": "#FBBF24",
+        "gradient": "from-yellow-600/40 via-amber-900/20 to-slate-950"
     }
 ]
 
@@ -444,13 +501,34 @@ def _build_audio_catalog():
 
 
 @senafonica_bp.route("/senafonica")
-@login_required
 def index():
-    gamification = UserGamification.query.filter_by(user_id=current_user.id).first()
-    progress = Progress.query.filter_by(user_id=current_user.id).first()
+    # Support both logged-in users and guests smoothly
+    gamification = None
+    progress = None
+    user_info = {
+        "id": None,
+        "name": "Aprendiz Veleño",
+        "full_name": "Aprendiz de la Provincia de Vélez",
+        "xp": 0,
+        "coins": 0,
+        "level": 1,
+        "streak": 1,
+    }
+
+    if current_user and current_user.is_authenticated:
+        gamification = UserGamification.query.filter_by(user_id=current_user.id).first()
+        progress = Progress.query.filter_by(user_id=current_user.id).first()
+        user_info = {
+            "id": current_user.id,
+            "name": current_user.first_name,
+            "full_name": f"{current_user.first_name} {current_user.last_name}",
+            "xp": gamification.total_xp if gamification else 0,
+            "coins": gamification.coins if gamification else 0,
+            "level": gamification.current_level if gamification else 1,
+            "streak": progress.current_streak_days if progress else 1,
+        }
 
     catalog = _build_audio_catalog()
-    instruments = Instrument.query.filter_by(is_active=True).all()
     intervals = Interval.query.order_by(Interval.semitones).all()
     scales = Scale.query.order_by(Scale.id).all()
 
@@ -476,30 +554,20 @@ def index():
         for s in scales
     ]
 
-    user_info = {
-        "id": current_user.id,
-        "name": current_user.first_name,
-        "full_name": f"{current_user.first_name} {current_user.last_name}",
-        "xp": gamification.total_xp if gamification else 0,
-        "coins": gamification.coins if gamification else 0,
-        "level": gamification.current_level if gamification else 1,
-        "streak": progress.current_streak_days if progress else 0,
-    }
-
     return render_template(
         "senafonica/index.html",
         user_info=user_info,
         audio_catalog=catalog,
         intervals_data=intervals_data,
         scales_data=scales_data,
-        levels_config=LEVELS_CONFIG,
+        levels_config=VELEZ_STATIONS_CONFIG,
         theory_questions=THEORY_QUESTIONS,
+        induction_questions=INITIAL_INDUCTION_QUESTIONS,
         shop_items=SHOP_ITEMS
     )
 
 
 @senafonica_bp.route("/api/senafonica/data")
-@login_required
 def get_data():
     catalog = _build_audio_catalog()
     intervals = Interval.query.order_by(Interval.semitones).all()
@@ -515,14 +583,14 @@ def get_data():
             {"id": s.id, "name": s.name, "pattern": s.intervals_pattern, "description": s.description}
             for s in scales
         ],
-        "levels": LEVELS_CONFIG,
+        "levels": VELEZ_STATIONS_CONFIG,
         "theory_questions": THEORY_QUESTIONS,
+        "induction_questions": INITIAL_INDUCTION_QUESTIONS,
         "shop_items": SHOP_ITEMS
     })
 
 
 @senafonica_bp.route("/api/senafonica/sync", methods=["POST"])
-@login_required
 def sync_progress():
     data = request.get_json(silent=True) or {}
     xp_to_add = int(data.get("xp_earned", 0))
@@ -530,49 +598,58 @@ def sync_progress():
     correct_count = int(data.get("correct_count", 0))
     total_count = int(data.get("total_count", 0))
 
-    gamification = UserGamification.query.filter_by(user_id=current_user.id).first()
-    if not gamification:
-        gamification = UserGamification(user_id=current_user.id)
-        db.session.add(gamification)
+    if current_user and current_user.is_authenticated:
+        gamification = UserGamification.query.filter_by(user_id=current_user.id).first()
+        if not gamification:
+            gamification = UserGamification(user_id=current_user.id)
+            db.session.add(gamification)
 
-    progress = Progress.query.filter_by(user_id=current_user.id).first()
-    if not progress:
-        progress = Progress(user_id=current_user.id)
-        db.session.add(progress)
+        progress = Progress.query.filter_by(user_id=current_user.id).first()
+        if not progress:
+            progress = Progress(user_id=current_user.id)
+            db.session.add(progress)
 
-    if xp_to_add > 0:
-        gamification.total_xp = (gamification.total_xp or 0) + xp_to_add
-        gamification.weekly_xp = (gamification.weekly_xp or 0) + xp_to_add
-        gamification.monthly_xp = (gamification.monthly_xp or 0) + xp_to_add
-        gamification.recalculate_level()
+        if xp_to_add > 0:
+            gamification.total_xp = (gamification.total_xp or 0) + xp_to_add
+            gamification.weekly_xp = (gamification.weekly_xp or 0) + xp_to_add
+            gamification.monthly_xp = (gamification.monthly_xp or 0) + xp_to_add
+            gamification.recalculate_level()
 
-    if coins_to_add > 0:
-        gamification.coins = (gamification.coins or 0) + coins_to_add
-        gamification.total_coins_earned = (gamification.total_coins_earned or 0) + coins_to_add
+        if coins_to_add > 0:
+            gamification.coins = (gamification.coins or 0) + coins_to_add
+            gamification.total_coins_earned = (gamification.total_coins_earned or 0) + coins_to_add
 
-    if total_count > 0:
-        progress.total_questions_answered = (progress.total_questions_answered or 0) + total_count
-        progress.total_correct = (progress.total_correct or 0) + correct_count
-        progress.total_sessions = (progress.total_sessions or 0) + 1
+        if total_count > 0:
+            progress.total_questions_answered = (progress.total_questions_answered or 0) + total_count
+            progress.total_correct = (progress.total_correct or 0) + correct_count
+            progress.total_sessions = (progress.total_sessions or 0) + 1
 
-    today = bogota_date()
-    if progress.last_activity_date != today:
-        if progress.last_activity_date and (today - progress.last_activity_date).days == 1:
-            progress.current_streak_days = (progress.current_streak_days or 0) + 1
-        else:
-            progress.current_streak_days = 1
-        progress.last_activity_date = today
+        today = bogota_date()
+        if progress.last_activity_date != today:
+            if progress.last_activity_date and (today - progress.last_activity_date).days == 1:
+                progress.current_streak_days = (progress.current_streak_days or 0) + 1
+            else:
+                progress.current_streak_days = 1
+            progress.last_activity_date = today
 
-        if (progress.current_streak_days or 0) > (progress.longest_streak_days or 0):
-            progress.longest_streak_days = progress.current_streak_days
+            if (progress.current_streak_days or 0) > (progress.longest_streak_days or 0):
+                progress.longest_streak_days = progress.current_streak_days
 
-    db.session.commit()
+        db.session.commit()
 
+        return jsonify({
+            "status": "success",
+            "total_xp": gamification.total_xp,
+            "current_level": gamification.current_level,
+            "level_info": gamification.level_info,
+            "coins": gamification.coins,
+            "streak": progress.current_streak_days
+        })
+
+    # For guest users, return 200 OK echoing payload
     return jsonify({
         "status": "success",
-        "total_xp": gamification.total_xp,
-        "current_level": gamification.current_level,
-        "level_info": gamification.level_info,
-        "coins": gamification.coins,
-        "streak": progress.current_streak_days
+        "guest": True,
+        "xp_added": xp_to_add,
+        "coins_added": coins_to_add
     })

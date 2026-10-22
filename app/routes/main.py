@@ -71,9 +71,9 @@ def avatar(filename):
 @main_bp.route("/")
 def index():
     return redirect(url_for("senafonica.index"))
-    if False:
-        return redirect(url_for("main.dashboard"))
-    return redirect(url_for("auth.login"))
+
+
+
 
 
 @main_bp.route("/dashboard")
