@@ -1,0 +1,463 @@
+/**
+ * SENAFÓNICA Audio Engine — Web Audio API & Sample Player
+ *
+ * Provides:
+ * 1. High-precision Web Audio API scheduling for scales and intervals.
+ * 2. Optimized, trimmed note sustain (reduced by >1s for live virtuoso tempo).
+ * 3. 3 interval directions: Ascendente, Descendente, Intercalada/Aleatoria.
+ * 4. Realistic acoustic synthesis for Colombian folk instruments:
+ *    - Tiple (12-string triple orders, metallic chorus shimmer)
+ *    - Requinto (crisp, brilliant, high-attack lead plucking)
+ *    - Bandola (steel-string plectrum strike, rich folk timbre)
+ *    - Guitarra (warm classical base)
+ * 5. Direct sample loading and slicing from server catalog.
+ * 6. Interactive auditory comparison (Chosen vs Correct interval).
+ * 7. Feedback SFX (Celebration arpeggio, error buzz, heart lost, life restored).
+ */
+
+class SenafonicaAudioEngine {
+  constructor(catalog = {}) {
+    this.catalog = catalog; // { "Tiple": [...], "Requinto": [...], ... }
+    this.ctx = null;
+    this.sampleCache = new Map(); // url -> AudioBuffer
+    this.loadingPromises = new Map();
+    this.activeNodes = [];
+    this.isPlaying = false;
+    this.playToken = 0;
+
+    // Default note duration for scale playback (trimmed by >1s)
+    this.scaleNoteDuration = 0.42; // Seconds per note (rapid and fluid, live virtuoso execution)
+    this.scaleNoteGap = 0.02;      // No empty silence between notes
+    this.intervalNoteDuration = 0.55;
+    this.intervalNoteGap = 0.16;
+
+    // MIDI Note name map
+    this.NOTE_NAMES = ["DO", "DO#", "RE", "RE#", "MI", "FA", "FA#", "SOL", "SOL#", "LA", "LA#", "SI"];
+  }
+
+  // Ensure AudioContext is initialized on user interaction
+  async initContext() {
+    if (!this.ctx) {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      this.ctx = new AudioCtx();
+    }
+    if (this.ctx.state === "suspended") {
+      await this.ctx.resume();
+    }
+    return this.ctx;
+  }
+
+  // Preload an audio sample URL to AudioBuffer
+  async preloadSample(url) {
+    if (!url) return null;
+    if (this.sampleCache.has(url)) return this.sampleCache.get(url);
+    if (this.loadingPromises.has(url)) return this.loadingPromises.get(url);
+
+    const promise = (async () => {
+      try {
+        await this.initContext();
+        const response = await fetch(url);
+        if (!response.ok) return null;
+        const arrayBuffer = await response.arrayBuffer();
+        const audioBuffer = await this.ctx.decodeAudioData(arrayBuffer);
+        this.sampleCache.set(url, audioBuffer);
+        return audioBuffer;
+      } catch (err) {
+        console.warn("Could not preload sample:", url, err);
+        return null;
+      } finally {
+        this.loadingPromises.delete(url);
+      }
+    })();
+
+    this.loadingPromises.set(url, promise);
+    return promise;
+  }
+
+  // Find sample URL from catalog
+  getSampleUrl(instrument, midi) {
+    if (!this.catalog) return null;
+    const instKey = Object.keys(this.catalog).find(
+      k => k.toLowerCase() === (instrument || "").toLowerCase()
+    );
+    if (!instKey || !this.catalog[instKey]) return null;
+    const match = this.catalog[instKey].find(item => item.midi === midi);
+    return match ? match.stream_url : null;
+  }
+
+  // Convert MIDI note number to frequency in Hz
+  midiToFreq(midi) {
+    return 440 * Math.pow(2, (midi - 69) / 12);
+  }
+
+  // Convert MIDI note number to Note Name (e.g. DO4, SOL#3)
+  midiToName(midi) {
+    const note = this.NOTE_NAMES[midi % 12];
+    const octave = Math.floor(midi / 12) - 1;
+    return `${note}${octave}`;
+  }
+
+  // Stop all actively playing sounds
+  stop() {
+    this.playToken++;
+    this.isPlaying = false;
+    for (const node of this.activeNodes) {
+      try {
+        if (node.stop) node.stop();
+        if (node.disconnect) node.disconnect();
+      } catch (e) {
+        // Ignored
+      }
+    }
+    this.activeNodes = [];
+  }
+
+  /**
+   * Plays a single note with trimmed sustain.
+   * If a real sample exists, uses the AudioBuffer with an exponential decay envelope.
+   * Otherwise uses high-fidelity Colombian folk synthesis.
+   */
+  async playNote(instrument, midi, startTime = 0, duration = 0.5, volume = 0.9) {
+    await this.initContext();
+    const ctx = this.ctx;
+    const now = startTime || ctx.currentTime;
+
+    const sampleUrl = this.getSampleUrl(instrument, midi);
+    let buffer = sampleUrl ? this.sampleCache.get(sampleUrl) : null;
+    if (!buffer && sampleUrl) {
+      buffer = await this.preloadSample(sampleUrl);
+    }
+
+    if (buffer) {
+      return this._playSampleBuffer(buffer, now, duration, volume);
+    } else {
+      return this._synthesizeFolkNote(instrument, midi, now, duration, volume);
+    }
+  }
+
+  /**
+   * Optimized sample playback with trimmed sustain.
+   * Standard sample tail has ~1.8-2.5s; we ramp down quickly to simulate live execution.
+   */
+  _playSampleBuffer(buffer, startTime, duration, volume) {
+    const ctx = this.ctx;
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+
+    const gainNode = ctx.createGain();
+    gainNode.gain.setValueAtTime(volume, startTime);
+    // Sustain trimmed: keep body, then apply clean exponential release
+    const decayStart = startTime + Math.max(0.12, duration - 0.15);
+    const stopTime = startTime + duration;
+
+    gainNode.gain.setValueAtTime(volume, decayStart);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, stopTime);
+
+    source.connect(gainNode);
+    gainNode.connect(ctx.destination);
+
+    source.start(startTime);
+    source.stop(stopTime + 0.05);
+
+    this.activeNodes.push(source);
+    return stopTime;
+  }
+
+  /**
+   * High-fidelity physical modeling synthesis of Colombian instruments.
+   */
+  _synthesizeFolkNote(instrument, midi, startTime, duration, volume) {
+    const ctx = this.ctx;
+    const freq = this.midiToFreq(midi);
+    const inst = (instrument || "Tiple").toLowerCase();
+
+    const masterGain = ctx.createGain();
+    masterGain.gain.setValueAtTime(0.0001, startTime);
+    masterGain.gain.linearRampToValueAtTime(volume, startTime + 0.008); // Sharp plectrum attack
+    masterGain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+    masterGain.connect(ctx.destination);
+
+    if (inst.includes("tiple")) {
+      // Tiple: 4 orders of 3 strings (chorus detune + metallic ringing)
+      const detunes = [-4, 0, +4];
+      detunes.forEach((detune, idx) => {
+        const osc = ctx.createOscillator();
+        osc.type = idx === 1 ? "sawtooth" : "triangle";
+        osc.frequency.setValueAtTime(freq, startTime);
+        osc.detune.setValueAtTime(detune, startTime);
+
+        const filter = ctx.createBiquadFilter();
+        filter.type = "bandpass";
+        filter.frequency.setValueAtTime(freq * 2.2, startTime);
+        filter.Q.setValueAtTime(2.0, startTime);
+
+        const plectrumNoise = this._createPlectrumClick(startTime);
+
+        osc.connect(filter);
+        filter.connect(masterGain);
+        if (plectrumNoise) plectrumNoise.connect(masterGain);
+
+        osc.start(startTime);
+        osc.stop(startTime + duration + 0.05);
+        this.activeNodes.push(osc);
+      });
+    } else if (inst.includes("requinto")) {
+      // Requinto: bright, high-pitch nylon attack, quick overtone decay
+      const osc = ctx.createOscillator();
+      osc.type = "sawtooth";
+      osc.frequency.setValueAtTime(freq, startTime);
+
+      const filter = ctx.createBiquadFilter();
+      filter.type = "lowpass";
+      filter.frequency.setValueAtTime(freq * 3.8, startTime);
+      filter.frequency.exponentialRampToValueAtTime(freq * 1.5, startTime + duration);
+
+      osc.connect(filter);
+      filter.connect(masterGain);
+
+      osc.start(startTime);
+      osc.stop(startTime + duration + 0.05);
+      this.activeNodes.push(osc);
+    } else if (inst.includes("bandola")) {
+      // Bandola: 6 orders of steel strings, percussive plectrum stroke
+      [-2.5, +2.5].forEach(detune => {
+        const osc = ctx.createOscillator();
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(freq, startTime);
+        osc.detune.setValueAtTime(detune, startTime);
+
+        const filter = ctx.createBiquadFilter();
+        filter.type = "peaking";
+        filter.frequency.setValueAtTime(1400, startTime);
+        filter.gain.setValueAtTime(8, startTime);
+
+        osc.connect(filter);
+        filter.connect(masterGain);
+
+        osc.start(startTime);
+        osc.stop(startTime + duration + 0.05);
+        this.activeNodes.push(osc);
+      });
+    } else {
+      // Classical guitar: warm triangular fundamental
+      const osc = ctx.createOscillator();
+      osc.type = "triangle";
+      osc.frequency.setValueAtTime(freq, startTime);
+
+      const filter = ctx.createBiquadFilter();
+      filter.type = "lowpass";
+      filter.frequency.setValueAtTime(freq * 2.0, startTime);
+
+      osc.connect(filter);
+      filter.connect(masterGain);
+
+      osc.start(startTime);
+      osc.stop(startTime + duration + 0.05);
+      this.activeNodes.push(osc);
+    }
+
+    return startTime + duration;
+  }
+
+  // Generates brief noise pulse simulating a plectrum (púa) striking the string
+  _createPlectrumClick(startTime) {
+    if (!this.ctx) return null;
+    const bufferSize = this.ctx.sampleRate * 0.012; // 12ms noise click
+    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.3));
+    }
+    const noise = this.ctx.createBufferSource();
+    noise.buffer = buffer;
+
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.35, startTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.012);
+    noise.connect(gain);
+    noise.start(startTime);
+    this.activeNodes.push(noise);
+    return gain;
+  }
+
+  /**
+   * NÚCLEO 1: INTERVAL PLAYER
+   * Plays two notes in the chosen direction (ascendente, descendente, intercalada).
+   *
+   * @param {string} instrument - 'Tiple', 'Requinto', 'Bandola', etc.
+   * @param {number} rootMidi - e.g. 60 (DO4)
+   * @param {number} semitones - distance in semitones (0 to 12)
+   * @param {string} direction - 'ascendente', 'descendente', 'intercalada'
+   * @param {function} onNoteCallback - (noteIndex, midi, noteName)
+   */
+  async playInterval(instrument, rootMidi, semitones, direction = "ascendente", onNoteCallback = null) {
+    this.stop();
+    const token = this.playToken;
+    this.isPlaying = true;
+    await this.initContext();
+
+    let note1Midi, note2Midi;
+    const effectiveDir = direction.toLowerCase();
+
+    if (effectiveDir === "descendente") {
+      note1Midi = rootMidi + semitones;
+      note2Midi = rootMidi;
+    } else if (effectiveDir === "intercalada" || effectiveDir === "aleatoria") {
+      // Randomly choose ascending or descending for true ear training
+      const isAsc = Math.random() > 0.5;
+      note1Midi = isAsc ? rootMidi : rootMidi + semitones;
+      note2Midi = isAsc ? rootMidi + semitones : rootMidi;
+    } else {
+      // Ascendente (default)
+      note1Midi = rootMidi;
+      note2Midi = rootMidi + semitones;
+    }
+
+    const dur = this.intervalNoteDuration;
+    const gap = this.intervalNoteGap;
+
+    // Note 1
+    if (onNoteCallback) onNoteCallback(0, note1Midi, this.midiToName(note1Midi));
+    await this.playNote(instrument, note1Midi, 0, dur, 0.95);
+
+    await new Promise(res => setTimeout(res, (dur + gap) * 1000));
+    if (token !== this.playToken) return;
+
+    // Note 2
+    if (onNoteCallback) onNoteCallback(1, note2Midi, this.midiToName(note2Midi));
+    await this.playNote(instrument, note2Midi, 0, dur + 0.15, 0.95);
+
+    await new Promise(res => setTimeout(res, (dur + 0.15) * 1000));
+    if (token === this.playToken) {
+      this.isPlaying = false;
+      if (onNoteCallback) onNoteCallback(-1, null, null);
+    }
+  }
+
+  /**
+   * NÚCLEO 2: SCALE PLAYER
+   * Plays the full scale with trimmed note sustains, notes firing one right after another
+   * simulating live authentic performance without silent gaps.
+   *
+   * @param {string} instrument - 'Tiple', 'Requinto', 'Bandola'
+   * @param {number} rootMidi - Root note (e.g. 55 or 60)
+   * @param {Array<number>} pattern - e.g. [2, 2, 1, 2, 2, 2, 1] for Major
+   * @param {number} tempoMultiplier - 1.0 = normal, 1.3 = fast
+   * @param {function} onNoteCallback - (noteIndex, midi, noteName, totalNotes)
+   */
+  async playScale(instrument, rootMidi, pattern, tempoMultiplier = 1.0, onNoteCallback = null) {
+    this.stop();
+    const token = this.playToken;
+    this.isPlaying = true;
+    await this.initContext();
+
+    // Compute all MIDI notes in the scale
+    const notes = [rootMidi];
+    let current = rootMidi;
+    for (const step of pattern) {
+      current += step;
+      notes.push(current);
+    }
+
+    const noteDuration = this.scaleNoteDuration / tempoMultiplier;
+    const gap = this.scaleNoteGap / tempoMultiplier;
+
+    for (let i = 0; i < notes.length; i++) {
+      if (token !== this.playToken) return;
+      const midi = notes[i];
+      if (onNoteCallback) onNoteCallback(i, midi, this.midiToName(midi), notes.length);
+
+      await this.playNote(instrument, midi, 0, noteDuration, 0.95);
+      // Wait exactly for the next note without gap
+      await new Promise(res => setTimeout(res, (noteDuration + gap) * 1000));
+    }
+
+    if (token === this.playToken) {
+      this.isPlaying = false;
+      if (onNoteCallback) onNoteCallback(-1, null, null, notes.length);
+    }
+  }
+
+  /**
+   * AUDITORY COMPARISON (Chosen vs Correct Interval)
+   * Plays the student's selected interval, pauses briefly, then plays the correct interval.
+   */
+  async playComparison(instrument, rootMidi, chosenSemitones, correctSemitones, onPhaseChange = null) {
+    this.stop();
+    const token = this.playToken;
+    this.isPlaying = true;
+
+    // Phase 1: Chosen
+    if (onPhaseChange) onPhaseChange("chosen");
+    await this.playInterval(instrument, rootMidi, chosenSemitones, "ascendente");
+    await new Promise(res => setTimeout(res, 600));
+    if (token !== this.playToken) return;
+
+    // Phase 2: Pause / transition
+    if (onPhaseChange) onPhaseChange("transition");
+    await new Promise(res => setTimeout(res, 400));
+    if (token !== this.playToken) return;
+
+    // Phase 3: Correct
+    if (onPhaseChange) onPhaseChange("correct");
+    await this.playInterval(instrument, rootMidi, correctSemitones, "ascendente");
+
+    if (token === this.playToken) {
+      this.isPlaying = false;
+      if (onPhaseChange) onPhaseChange("idle");
+    }
+  }
+
+  // ── SOUND EFFECTS (SFX) ───────────────────────────────────────────────────
+
+  // Success arpeggio (harmonic celebration)
+  async playSuccessSound() {
+    await this.initContext();
+    const notes = [60, 64, 67, 72, 76]; // C4, E4, G4, C5, E5
+    const now = this.ctx.currentTime;
+    notes.forEach((midi, i) => {
+      this.playNote("Tiple", midi, now + i * 0.08, 0.45, 0.85);
+    });
+  }
+
+  // Dissonant sound on wrong answer
+  async playErrorSound() {
+    await this.initContext();
+    const now = this.ctx.currentTime;
+    // Dissonant low chord
+    this.playNote("Guitarra", 45, now, 0.35, 0.8);
+    this.playNote("Guitarra", 46, now, 0.35, 0.7);
+  }
+
+  // Life lost heart pluck
+  async playLifeLostSound() {
+    await this.initContext();
+    const now = this.ctx.currentTime;
+    this.playNote("Requinto", 63, now, 0.25, 0.7);
+    this.playNote("Requinto", 59, now + 0.12, 0.4, 0.8);
+  }
+
+  // Life restored / bonus chime
+  async playLifeRestoredSound() {
+    await this.initContext();
+    const notes = [67, 71, 74, 79]; // G4, B4, D5, G5
+    const now = this.ctx.currentTime;
+    notes.forEach((midi, i) => {
+      this.playNote("Bandola", midi, now + i * 0.09, 0.5, 0.85);
+    });
+  }
+
+  // Level completed fanfare
+  async playLevelCompleteSound() {
+    await this.initContext();
+    const notes = [60, 64, 67, 72, 72, 76];
+    const delays = [0, 0.1, 0.2, 0.32, 0.45, 0.6];
+    const now = this.ctx.currentTime;
+    notes.forEach((midi, i) => {
+      this.playNote("Tiple", midi, now + delays[i], 0.6, 0.9);
+    });
+  }
+}
+
+// Attach globally
+window.SenafonicaAudioEngine = SenafonicaAudioEngine;

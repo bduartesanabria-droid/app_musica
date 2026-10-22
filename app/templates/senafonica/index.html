@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#39A900">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <title>SENAFÓNICA | Entrenamiento del Oído Musical Andino</title>
+
+  <!-- Tailwind CSS & Google Fonts -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/tailwind.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/senafonica.css') }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+
+  <!-- Alpine.js & Senafonica Scripts -->
+  <script defer src="{{ url_for('static', filename='vendor/alpine-3.14.9.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/senafonica_audio.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/senafonica_game.js') }}"></script>
+</head>
+
+<body class="senafonica-shell flex flex-col justify-between"
+      x-data="senafonicaGame({
+        user: {{ user_info|tojson }},
+        catalog: {{ audio_catalog|tojson }},
+        intervals: {{ intervals_data|tojson }},
+        scales: {{ scales_data|tojson }},
+        levels: {{ levels_config|tojson }},
+        theoryQuestions: {{ theory_questions|tojson }},
+        shopItems: {{ shop_items|tojson }},
+        csrfToken: '{{ csrf_token() }}'
+      })">
+
+  <!-- Confetti Canvas overlay -->
+  <canvas id="senafonica-confetti"></canvas>
+
+  <!-- ═════════════════════════════════════════════════════════════════════════
+       TOP APP BAR (MOBILE-FIRST GAMIFICATION STATS)
+       ═════════════════════════════════════════════════════════════════════════ -->
+  <header class="sticky top-0 z-40 bg-[#0B111A]/90 backdrop-blur-md border-b border-white/10 px-4 py-2.5">
+    <div class="max-w-2xl mx-auto flex items-center justify-between">
+      <!-- Back to SEMIMUS Dashboard -->
+      <a href="{{ url_for('main.dashboard') }}" class="flex items-center gap-2 p-1.5 rounded-xl hover:bg-white/10 text-white transition-colors" title="Volver al Panel">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+        </svg>
+        <span class="text-xs font-black tracking-wider text-sena uppercase hidden sm:inline">SENAFÓNICA</span>
+      </a>
+
+      <!-- Gamification Counters -->
+      <div class="flex items-center gap-3 sm:gap-5 text-sm font-black">
+        <!-- Streak -->
+        <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-orange-500/15 border border-orange-500/30 text-orange-400" title="Racha de días consecutivos">
+          <span class="text-base">🔥</span>
+          <span x-text="streak"></span>
+        </div>
+
+        <!-- Coins / Púas de Oro -->
+        <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-yellow-500/15 border border-yellow-500/30 text-yellow-400" title="Púas de Oro ganadas">
+          <span class="text-base">🪙</span>
+          <span x-text="coins"></span>
+        </div>
+
+        <!-- Total XP -->
+        <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400" title="Puntos de Experiencia">
+          <span class="text-base">⚡</span>
+          <span x-text="xp + ' XP'"></span>
+        </div>
+
+        <!-- Lives / Hearts -->
+        <div class="flex items-center gap-1 px-2.5 py-1 rounded-full bg-red-500/15 border border-red-500/30 text-red-400 cursor-pointer"
+             @click="openRescueModal()" title="Vidas restantes. Clic para desafío de rescate.">
+          <span class="text-base" :class="lives <= 1 ? 'animate-pulse text-red-500' : ''">❤️</span>
+          <span x-text="lives + '/' + maxLives" class="font-black"></span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ═════════════════════════════════════════════════════════════════════════
+       CENTERED PROMINENT MASCOT (THE FOLK APPRENTICE)
+       ═════════════════════════════════════════════════════════════════════════ -->
+  <section class="max-w-md mx-auto w-full pt-3 px-4 flex flex-col items-center">
+    <div class="mascot-container">
+      <div class="mascot-avatar-wrap">
+        <!-- Animated Character Image -->
+        <img :src="mascotImg"
+             alt="Aprendiz SENAFÓNICA"
+             class="mascot-img"
+             :class="{
+               'mascot-idle': mascotState === 'idle',
+               'mascot-celebrating': mascotState === 'celebrating',
+               'mascot-sad': mascotState === 'sad',
+               'mascot-listening': mascotState === 'listening'
+             }">
+
+        <!-- Equipped Accessory Badges / Overlays -->
+        <template x-if="equippedAccessories.hat === 'acc_sombrero_vueltiao'">
+          <span class="absolute -top-3 left-1/2 -translate-x-1/2 text-3xl filter drop-shadow" title="Sombrero Vueltiao">👒</span>
+        </template>
+        <template x-if="equippedAccessories.hat === 'acc_sombrero_aguadeno'">
+          <span class="absolute -top-3 left-1/2 -translate-x-1/2 text-3xl filter drop-shadow" title="Sombrero Aguadeño">🎩</span>
+        </template>
+        <template x-if="equippedAccessories.eyes === 'acc_gafas_maestro'">
+          <span class="absolute top-10 left-1/2 -translate-x-1/2 text-2xl filter drop-shadow" title="Gafas de Maestro">👓</span>
+        </template>
+      </div>
+
+      <!-- Speech Bubble -->
+      <div class="speech-bubble" x-text="mascotSpeech"></div>
+    </div>
+  </section>
+
+  <!-- ═════════════════════════════════════════════════════════════════════════
+       MAIN VIEW CONTAINER (SWITCHABLE TABS)
+       ═════════════════════════════════════════════════════════════════════════ -->
+  <main class="flex-1 max-w-xl mx-auto w-full px-4 py-2">
+
+    <!-- ───────────────────────────────────────────────────────────────────────
+         VIEW 1: DUOLINGO-STYLE GUIDED LEARNING PATH (RUTA DE APRENDIZAJE)
+         ─────────────────────────────────────────────────────────────────────── -->
+    <div x-show="currentTab === 'path'" x-transition:enter="transition ease-out duration-200">
+      <div class="text-center mb-6">
+        <span class="text-[11px] font-black uppercase tracking-widest text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
+          Modo Guiado · Progresión Andina
+        </span>
+        <h2 class="text-2xl font-black text-white mt-2">Ruta del Oído Musical</h2>
+        <p class="text-xs text-slate-400 mt-1">Supera cada nivel con estrellas para desbloquear nuevas escalas e instrumentos.</p>
+      </div>
+
+      <!-- Winding Level Path -->
+      <div class="flex flex-col items-center space-y-6 pb-20 relative">
+        <template x-for="(level, idx) in levels" :key="level.id">
+          <div class="flex flex-col items-center w-full"
+               :style="'transform: translateX(' + ((idx % 3 === 1 ? -32 : idx % 3 === 2 ? 32 : 0)) + 'px)'">
+
+            <!-- Node Button -->
+            <button type="button"
+                    @click="startLevel(level)"
+                    class="path-node"
+                    :class="{
+                      'unlocked': unlockedLevels.includes(level.id),
+                      'locked': !unlockedLevels.includes(level.id),
+                      'boss': level.type === 'final_boss'
+                    }">
+              <!-- Icon inside Node -->
+              <span x-show="unlockedLevels.includes(level.id)">
+                <span x-text="level.type === 'theory' ? '📜' : level.type === 'scale' ? '🎼' : level.type === 'final_boss' ? '👑' : '🎵'"></span>
+              </span>
+              <span x-show="!unlockedLevels.includes(level.id)" class="text-slate-400">🔒</span>
+
+              <!-- Star Rating Indicator -->
+              <div class="stars-badge" x-show="unlockedLevels.includes(level.id)">
+                <span :class="(levelStars[level.id] || 0) >= 1 ? 'text-amber-400' : 'text-slate-600'">★</span>
+                <span :class="(levelStars[level.id] || 0) >= 2 ? 'text-amber-400' : 'text-slate-600'">★</span>
+                <span :class="(levelStars[level.id] || 0) >= 3 ? 'text-amber-400' : 'text-slate-600'">★</span>
+              </div>
+            </button>
+
+            <!-- Level Info Card beneath node -->
+            <div class="text-center mt-3 max-w-[240px]">
+              <p class="text-xs font-bold text-white truncate" x-text="level.title"></p>
+              <p class="text-[10px] text-slate-400 truncate" x-text="level.instrument + ' · ' + level.subtitle"></p>
+            </div>
+          </div>
+        </template>
+      </div>
+    </div>
+
+    <!-- ───────────────────────────────────────────────────────────────────────
+         VIEW 2: ACTIVE TRAINING SESSION (QUIZ & LISTENING CARD)
+         ─────────────────────────────────────────────────────────────────────── -->
+    <div x-show="currentTab === 'training'" x-transition:enter="transition ease-out duration-200">
+      <div x-show="currentQ" class="space-y-4">
+
+        <!-- Level Top Progress -->
+        <div class="flex items-center justify-between gap-3">
+          <button type="button" @click="setTab('path')" class="p-2 rounded-xl bg-slate-800 text-slate-300 hover:text-white font-bold text-sm">
+            ✕ Salir
+          </button>
+          <div class="flex-1 bg-slate-800 h-3 rounded-full overflow-hidden p-0.5 border border-white/10">
+            <div class="bg-sena h-full rounded-full transition-all duration-300"
+                 :style="'width: ' + (((qIndex + 1) / (levelQuestions.length || 1)) * 100) + '%'"></div>
+          </div>
+          <span class="text-xs font-black text-slate-400" x-text="(qIndex + 1) + '/' + levelQuestions.length"></span>
+        </div>
+
+        <!-- Question Card -->
+        <div class="bg-slate-900/90 border border-white/10 rounded-3xl p-5 shadow-2xl backdrop-blur-md">
+          <div class="text-center mb-4">
+            <span class="text-[10px] font-extrabold uppercase tracking-widest text-emerald-400 bg-emerald-500/10 px-3 py-0.5 rounded-full border border-emerald-500/20"
+                  x-text="activeLevel ? activeLevel.instrument : 'Folclore'"></span>
+            <h3 class="text-xl font-black text-white mt-2" x-text="currentQ ? currentQ.title : ''"></h3>
+            <p class="text-xs text-slate-400 mt-1" x-text="currentQ ? currentQ.instruction : ''"></p>
+          </div>
+
+          <!-- Interval Direction Selector (For Core 1) -->
+          <div x-show="currentQ && currentQ.type === 'interval'" class="flex items-center justify-center gap-1.5 mb-4">
+            <span class="text-[11px] font-bold text-slate-400 mr-1">Dirección:</span>
+            <button type="button"
+                    @click="changeDirection('ascendente')"
+                    :class="intervalDirection === 'ascendente' ? 'bg-sena text-white' : 'bg-slate-800 text-slate-400'"
+                    class="px-2.5 py-1 rounded-xl text-xs font-bold transition-all">
+              Ascendente ↑
+            </button>
+            <button type="button"
+                    @click="changeDirection('descendente')"
+                    :class="intervalDirection === 'descendente' ? 'bg-sena text-white' : 'bg-slate-800 text-slate-400'"
+                    class="px-2.5 py-1 rounded-xl text-xs font-bold transition-all">
+              Descendente ↓
+            </button>
+            <button type="button"
+                    @click="changeDirection('intercalada')"
+                    :class="intervalDirection === 'intercalada' ? 'bg-sena text-white' : 'bg-slate-800 text-slate-400'"
+                    class="px-2.5 py-1 rounded-xl text-xs font-bold transition-all">
+              Aleatoria ⇄
+            </button>
+          </div>
+
+          <!-- Big Center Audio Play Button (Min 64x64px) -->
+          <div class="flex flex-col items-center justify-center my-4">
+            <button type="button"
+                    @click="replayAudio()"
+                    :disabled="isPlaying"
+                    class="w-20 h-20 rounded-full flex items-center justify-center text-3xl font-black transition-transform active:scale-95 shadow-xl"
+                    :class="isPlaying ? 'bg-emerald-500 text-white sound-ripple animate-pulse' : 'btn-duo-primary'">
+              <span x-show="!isPlaying">▶</span>
+              <span x-show="isPlaying">🔊</span>
+            </button>
+            <p class="text-xs font-bold text-slate-400 mt-2"
+               x-text="isPlaying ? (activeNoteName ? 'Sonando: ' + activeNoteName : 'Reproduciendo notas…') : 'Toca para escuchar (Espacio)'"></p>
+          </div>
+
+          <!-- Multiple Choice Options (4 Large Tactile Buttons >= 48px) -->
+          <div class="space-y-2.5 mt-5">
+            <template x-for="(opt, oIdx) in (currentQ ? currentQ.options : [])" :key="oIdx">
+              <button type="button"
+                      @click="selectOption(oIdx)"
+                      :disabled="answered"
+                      class="option-btn"
+                      :class="{
+                        'is-correct': answered && opt === currentQ.correct,
+                        'is-wrong': answered && selectedOption === opt && opt !== currentQ.correct
+                      }">
+                <div class="flex items-center gap-3">
+                  <span class="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center text-xs font-black text-slate-300"
+                        x-text="oIdx + 1"></span>
+                  <span x-text="opt"></span>
+                </div>
+                <span x-show="answered && opt === currentQ.correct" class="text-emerald-400 font-black text-lg">✓</span>
+                <span x-show="answered && selectedOption === opt && opt !== currentQ.correct" class="text-red-400 font-black text-lg">✕</span>
+              </button>
+            </template>
+          </div>
+        </div>
+
+        <!-- Feedback & Auditory Comparison Banner -->
+        <div x-show="answered" x-transition:enter="transition ease-out duration-200"
+             class="rounded-3xl p-5 border shadow-2xl backdrop-blur-md"
+             :class="isCorrect ? 'bg-emerald-950/80 border-emerald-500/40 text-emerald-200' : 'bg-red-950/80 border-red-500/40 text-red-200'">
+
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <p class="font-black text-lg" x-text="isCorrect ? '¡Excelente oído!' : '¡Respuesta incorrecta!'"></p>
+              <p class="text-xs mt-1" x-text="currentQ ? currentQ.explanation : ''"></p>
+            </div>
+            <span class="text-3xl" x-text="isCorrect ? '🎉' : '💔'"></span>
+          </div>
+
+          <!-- Comparison Player on Error (Core Pedagogical Requirement) -->
+          <div x-show="!isCorrect && currentQ && currentQ.type === 'interval'" class="mt-4 pt-3 border-t border-red-500/20">
+            <p class="text-xs font-bold text-red-300 mb-2">Compara auditivamente para afinar tu oído:</p>
+            <div class="flex flex-wrap gap-2">
+              <button type="button"
+                      @click="playAudioComparison()"
+                      :disabled="isComparingAudio"
+                      class="px-4 py-2 rounded-xl bg-red-800/60 hover:bg-red-700/60 border border-red-400/40 text-white font-bold text-xs flex items-center gap-2">
+                <span>🔊</span>
+                <span x-text="isComparingAudio ? 'Comparando sonidos…' : 'Escuchar Tu Respuesta vs. Correcta'"></span>
+              </button>
+            </div>
+            <p x-show="comparePhase !== 'idle'" class="text-[11px] font-bold text-yellow-300 mt-2"
+               x-text="comparePhase === 'chosen' ? '1. Escuchando tu respuesta elegida...' : comparePhase === 'correct' ? '2. Escuchando la respuesta correcta...' : '...'"></p>
+          </div>
+
+          <!-- Continue Button -->
+          <button type="button"
+                  @click="nextQuestion()"
+                  class="w-full mt-4 py-3.5 btn-duo-primary text-base font-black">
+            <span x-text="qIndex < levelQuestions.length - 1 ? 'Siguiente Pregunta →' : 'Completar Nivel ✨'"></span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ───────────────────────────────────────────────────────────────────────
+         VIEW 3: MODO LIBRE / EXPLORADOR (JAM ANDINO SIN VIDAS)
+         ─────────────────────────────────────────────────────────────────────── -->
+    <div x-show="currentTab === 'jam'" x-transition:enter="transition ease-out duration-200" class="space-y-5">
+      <div class="text-center mb-4">
+        <span class="text-[11px] font-black uppercase tracking-widest text-yellow-400 bg-yellow-500/10 px-3 py-1 rounded-full border border-yellow-500/20">
+          Modo Libre · Sin Límite de Vidas
+        </span>
+        <h2 class="text-2xl font-black text-white mt-2">Explorador de Escalas e Intervalos</h2>
+        <p class="text-xs text-slate-400 mt-1">Practica el sonido auténtico con tempos optimizados (notas fluidas sin pausas vacías).</p>
+      </div>
+
+      <!-- Instrument Chooser -->
+      <div class="bg-slate-900/90 border border-white/10 rounded-2xl p-4">
+        <label class="text-xs font-bold text-slate-300 uppercase tracking-wider block mb-2">Instrumento Folclórico</label>
+        <div class="grid grid-cols-4 gap-2">
+          <template x-for="inst in ['Tiple', 'Requinto', 'Bandola', 'Guitarra']" :key="inst">
+            <button type="button"
+                    @click="jamInstrument = inst"
+                    class="py-2.5 px-2 rounded-xl text-xs font-bold text-center border transition-all"
+                    :class="jamInstrument === inst ? 'bg-sena border-sena text-white shadow-lg' : 'bg-slate-800 border-white/5 text-slate-400 hover:text-white'">
+              <span class="block text-base mb-1" x-text="inst === 'Tiple' ? '🎸' : inst === 'Requinto' ? '🎻' : inst === 'Bandola' ? '🪕' : '🎸'"></span>
+              <span x-text="inst"></span>
+            </button>
+          </template>
+        </div>
+      </div>
+
+      <!-- Scale Player (Core 2) -->
+      <div class="bg-slate-900/90 border border-white/10 rounded-2xl p-4 space-y-3">
+        <div class="flex items-center justify-between">
+          <h3 class="text-sm font-black text-white flex items-center gap-2">
+            <span>🎼</span> Núcleo 2: Escalas Andinas
+          </h3>
+          <span class="text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-full">Sostenido recortado</span>
+        </div>
+
+        <!-- Scale Select -->
+        <div>
+          <label class="text-[11px] text-slate-400 block mb-1">Escala por progresión de dificultad:</label>
+          <select x-model="jamScaleIndex" class="w-full bg-slate-800 border border-white/10 rounded-xl px-3 py-2 text-sm font-semibold text-white">
+            <template x-for="(sc, scIdx) in scales" :key="sc.id">
+              <option :value="scIdx" x-text="(scIdx + 1) + '. ' + sc.name + ' (' + (sc.description || 'Folk') + ')'"></option>
+            </template>
+          </select>
+        </div>
+
+        <!-- Root note & Tempo -->
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-[11px] text-slate-400 block mb-1">Tónica (Nota Raíz):</label>
+            <select x-model="jamRootMidi" class="w-full bg-slate-800 border border-white/10 rounded-xl px-3 py-2 text-xs font-semibold text-white">
+              <option value="55">SOL 3 (55)</option>
+              <option value="57">LA 3 (57)</option>
+              <option value="60">DO 4 (60) - Estándar</option>
+              <option value="62">RE 4 (62)</option>
+              <option value="64">MI 4 (64)</option>
+              <option value="65">FA 4 (65)</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-[11px] text-slate-400 block mb-1">Velocidad / Tempo:</label>
+            <select x-model="jamTempo" class="w-full bg-slate-800 border border-white/10 rounded-xl px-3 py-2 text-xs font-semibold text-white">
+              <option value="0.85">Moderado (0.85x)</option>
+              <option value="1.0">Estándar Fluido (1.0x)</option>
+              <option value="1.3">Virtuoso Andino (1.3x)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Play Scale Button -->
+        <button type="button"
+                @click="playJamScale()"
+                :disabled="isPlaying"
+                class="w-full py-3 btn-duo-primary text-sm font-black flex items-center justify-center gap-2">
+          <span x-text="isPlaying ? '🔊 Reproduciendo Escala…' : '▶ Escuchar Escala Completa'"></span>
+        </button>
+      </div>
+
+      <!-- Interval Player (Core 1) -->
+      <div class="bg-slate-900/90 border border-white/10 rounded-2xl p-4 space-y-3">
+        <h3 class="text-sm font-black text-white flex items-center gap-2">
+          <span>🎵</span> Núcleo 1: Intervalos Musicales
+        </h3>
+
+        <!-- Interval Select -->
+        <div>
+          <label class="text-[11px] text-slate-400 block mb-1">Intervalo a evaluar:</label>
+          <select x-model="jamIntervalSemitones" class="w-full bg-slate-800 border border-white/10 rounded-xl px-3 py-2 text-sm font-semibold text-white">
+            <template x-for="item in intervals" :key="item.id">
+              <option :value="item.semitones" x-text="item.name + ' (' + item.semitones + ' semitonos)'"></option>
+            </template>
+          </select>
+        </div>
+
+        <!-- Direction Select -->
+        <div class="flex items-center gap-2">
+          <span class="text-[11px] text-slate-400">Dinámica:</span>
+          <button type="button" @click="jamDirection = 'ascendente'"
+                  :class="jamDirection === 'ascendente' ? 'bg-sena text-white' : 'bg-slate-800 text-slate-400'"
+                  class="px-2.5 py-1 rounded-lg text-xs font-bold">Ascendente ↑</button>
+          <button type="button" @click="jamDirection = 'descendente'"
+                  :class="jamDirection === 'descendente' ? 'bg-sena text-white' : 'bg-slate-800 text-slate-400'"
+                  class="px-2.5 py-1 rounded-lg text-xs font-bold">Descendente ↓</button>
+          <button type="button" @click="jamDirection = 'intercalada'"
+                  :class="jamDirection === 'intercalada' ? 'bg-sena text-white' : 'bg-slate-800 text-slate-400'"
+                  class="px-2.5 py-1 rounded-lg text-xs font-bold">Aleatoria ⇄</button>
+        </div>
+
+        <!-- Play Interval Button -->
+        <button type="button"
+                @click="playJamInterval()"
+                :disabled="isPlaying"
+                class="w-full py-3 btn-duo-secondary text-sm font-black flex items-center justify-center gap-2">
+          <span x-text="isPlaying ? '🔊 Sonando Intervalo…' : '▶ Escuchar Intervalo'"></span>
+        </button>
+      </div>
+    </div>
+
+    <!-- ───────────────────────────────────────────────────────────────────────
+         VIEW 4: TIENDA DE RECOMPENSAS (SKINS, SOMBREROS Y MEDALLAS)
+         ─────────────────────────────────────────────────────────────────────── -->
+    <div x-show="currentTab === 'shop'" x-transition:enter="transition ease-out duration-200" class="space-y-4 pb-20">
+      <div class="text-center mb-4">
+        <span class="text-[11px] font-black uppercase tracking-widest text-amber-400 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20">
+          Tienda Folclórica
+        </span>
+        <h2 class="text-2xl font-black text-white mt-2">Skins y Accesorios</h2>
+        <p class="text-xs text-slate-400 mt-1">Usa tus XP y Púas de Oro para personalizar tu experiencia.</p>
+      </div>
+
+      <!-- Shop Items Grid -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <template x-for="item in shopItems" :key="item.id">
+          <div class="bg-slate-900/90 border rounded-2xl p-4 flex flex-col justify-between"
+               :class="unlockedItems.includes(item.id) ? 'border-emerald-500/30' : 'border-white/10'">
+            <div>
+              <div class="flex items-start justify-between">
+                <span class="text-3xl" x-text="item.icon"></span>
+                <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full"
+                      :style="'background:' + item.color + '22; color:' + item.color"
+                      x-text="item.rarity"></span>
+              </div>
+              <h4 class="font-black text-white text-sm mt-2" x-text="item.title"></h4>
+              <p class="text-[11px] text-slate-400 mt-1 leading-snug" x-text="item.description"></p>
+            </div>
+
+            <div class="mt-4 pt-3 border-t border-white/5 flex items-center justify-between">
+              <div class="text-xs font-black text-amber-400">
+                <span x-text="item.cost_coins"></span> 🪙 · <span x-text="item.cost_xp"></span> XP
+              </div>
+              <button type="button"
+                      @click="buyItem(item)"
+                      class="px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all"
+                      :class="unlockedItems.includes(item.id)
+                        ? (equippedSkin === item.id || equippedAccessories.hat === item.id || equippedAccessories.body === item.id || equippedAccessories.eyes === item.id
+                          ? 'bg-emerald-600 text-white'
+                          : 'bg-slate-700 text-slate-300 hover:bg-slate-600')
+                        : 'btn-duo-amber'">
+                <span x-text="unlockedItems.includes(item.id)
+                  ? (equippedSkin === item.id || equippedAccessories.hat === item.id || equippedAccessories.body === item.id || equippedAccessories.eyes === item.id ? 'Equipado' : 'Equipar')
+                  : 'Desbloquear'"></span>
+              </button>
+            </div>
+          </div>
+        </template>
+      </div>
+    </div>
+  </main>
+
+  <!-- ═════════════════════════════════════════════════════════════════════════
+       BOTTOM MOBILE NAVIGATION BAR (DUOLINGO STYLE)
+       ═════════════════════════════════════════════════════════════════════════ -->
+  <nav class="sticky bottom-0 z-40 bg-[#0B111A]/95 backdrop-blur-lg border-t border-white/10 px-4 py-2">
+    <div class="max-w-md mx-auto grid grid-cols-4 gap-1">
+      <button type="button"
+              @click="setTab('path')"
+              class="flex flex-col items-center justify-center py-2 px-1 rounded-2xl transition-all"
+              :class="currentTab === 'path' ? 'text-sena bg-sena/10 font-black' : 'text-slate-400 hover:text-white'">
+        <span class="text-xl">🗺️</span>
+        <span class="text-[10px] mt-0.5">Ruta</span>
+      </button>
+
+      <button type="button"
+              @click="setTab('jam')"
+              class="flex flex-col items-center justify-center py-2 px-1 rounded-2xl transition-all"
+              :class="currentTab === 'jam' ? 'text-sena bg-sena/10 font-black' : 'text-slate-400 hover:text-white'">
+        <span class="text-xl">🎸</span>
+        <span class="text-[10px] mt-0.5">Modo Libre</span>
+      </button>
+
+      <button type="button"
+              @click="setTab('shop')"
+              class="flex flex-col items-center justify-center py-2 px-1 rounded-2xl transition-all"
+              :class="currentTab === 'shop' ? 'text-sena bg-sena/10 font-black' : 'text-slate-400 hover:text-white'">
+        <span class="text-xl">🏪</span>
+        <span class="text-[10px] mt-0.5">Tienda</span>
+      </button>
+
+      <button type="button"
+              @click="openRescueModal()"
+              class="flex flex-col items-center justify-center py-2 px-1 rounded-2xl transition-all"
+              :class="lives <= 1 ? 'text-red-400 bg-red-500/10 animate-pulse font-black' : 'text-slate-400 hover:text-white'">
+        <span class="text-xl">📜</span>
+        <span class="text-[10px] mt-0.5">Teoría</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ═════════════════════════════════════════════════════════════════════════
+       THEORETICAL RESCUE MODAL (RECUPERACIÓN INSTANTÁNEA DE VIDAS)
+       ═════════════════════════════════════════════════════════════════════════ -->
+  <div x-show="showRescueModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+    <div class="bg-slate-900 border border-white/15 rounded-3xl p-6 max-w-md w-full shadow-2xl relative"
+         @click.away="showRescueModal = false">
+
+      <!-- Close Button -->
+      <button type="button" @click="showRescueModal = false" class="absolute top-4 right-4 text-slate-400 hover:text-white text-xl">✕</button>
+
+      <div class="text-center mb-5">
+        <span class="text-3xl">❤️‍🩹</span>
+        <h3 class="text-xl font-black text-white mt-2">Desafío Teórico de Rescate</h3>
+        <p class="text-xs text-slate-400 mt-1">Responde correctamente para recuperar tus vidas y ganar Puntos de Experiencia.</p>
+      </div>
+
+      <!-- Question Content -->
+      <template x-if="rescueQuestions[rescueIndex]">
+        <div class="space-y-4">
+          <div class="p-4 rounded-2xl bg-slate-800/80 border border-white/5">
+            <p class="text-xs font-bold text-emerald-400 uppercase tracking-widest mb-1">
+              Pregunta <span x-text="rescueIndex + 1"></span> de <span x-text="rescueQuestions.length"></span>
+            </p>
+            <p class="font-extrabold text-white text-base" x-text="rescueQuestions[rescueIndex].question"></p>
+          </div>
+
+          <!-- Options -->
+          <div class="space-y-2">
+            <template x-for="(opt, optIdx) in rescueQuestions[rescueIndex].options" :key="optIdx">
+              <button type="button"
+                      @click="selectRescueOption(optIdx)"
+                      :disabled="rescueAnswered"
+                      class="option-btn text-sm"
+                      :class="{
+                        'is-correct': rescueAnswered && opt === rescueQuestions[rescueIndex].correct,
+                        'is-wrong': rescueAnswered && rescueSelected === opt && opt !== rescueQuestions[rescueIndex].correct
+                      }">
+                <span x-text="opt"></span>
+                <span x-show="rescueAnswered && opt === rescueQuestions[rescueIndex].correct" class="text-emerald-400 font-bold">✓</span>
+              </button>
+            </template>
+          </div>
+
+          <!-- Feedback explanation -->
+          <div x-show="rescueAnswered" class="p-3 rounded-xl text-xs font-medium"
+               :class="rescueIsCorrect ? 'bg-emerald-950/80 text-emerald-300' : 'bg-red-950/80 text-red-300'">
+            <p class="font-bold" x-text="rescueIsCorrect ? '¡Correcto! +2 Vidas restauradas y +20 XP.' : 'No te desanimes.'"></p>
+            <p class="mt-1" x-text="rescueQuestions[rescueIndex].explanation"></p>
+          </div>
+
+          <!-- Next Button -->
+          <button type="button"
+                  x-show="rescueAnswered"
+                  @click="nextRescueQuestion()"
+                  class="w-full py-3 btn-duo-primary text-sm font-black">
+            <span x-text="rescueIndex < rescueQuestions.length - 1 ? 'Siguiente Pregunta →' : 'Completar Rescate y Volver ✨'"></span>
+          </button>
+        </div>
+      </template>
+    </div>
+  </div>
+
+</body>
+</html>

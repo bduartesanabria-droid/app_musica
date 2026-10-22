@@ -45,6 +45,7 @@
         <span>Entrenamiento</span>
       </a>
 
+      <a href="{{ url_for('senafonica.index') }}" class="nav-item {% if 'senafonica' in request.endpoint %}active{% endif %} text-emerald-400 font-bold" style="background:rgba(57,169,0,0.12);border:1px solid rgba(57,169,0,0.3);"><span aria-hidden="true">🎮</span><div class="flex items-center justify-between w-full"><span>SENAFÓNICA</span><span class="text-[9px] bg-emerald-500 text-black font-black px-1.5 py-0.5 rounded-full">JUEGO</span></div></a>
       <a href="{{ url_for('main.learning') }}"
          class="nav-item {% if request.endpoint == 'main.learning' %}active{% endif %}">
         <span aria-hidden="true">♫</span><span>Aprender</span>
