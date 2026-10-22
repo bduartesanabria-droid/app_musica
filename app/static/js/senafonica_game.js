@@ -1,36 +1,56 @@
 /**
- * SENAFÓNICA Game Engine — Duolingo-style gamification, reactive mascot, and interactive path
+ * SENAFÓNICA Game Engine — Videojuego Web Autónomo e Integrado
+ * Recorrido Cultural por la Provincia de Vélez
  */
 
 function senafonicaGame(initData) {
   return {
     // ── DATA & CONFIG ────────────────────────────────────────────────────────
-    user: initData.user || { name: 'Músico', xp: 0, coins: 0, level: 1, streak: 0 },
+    user: initData.user || { name: 'Aprendiz Veleño', xp: 0, coins: 0, level: 1, streak: 1 },
     catalog: initData.catalog || {},
     intervals: initData.intervals || [],
     scales: initData.scales || [],
-    levels: initData.levels || [],
+    stations: initData.levels || [], // 9 Estaciones de Vélez
     theoryQuestions: initData.theoryQuestions || [],
+    inductionQuestions: initData.inductionQuestions || [],
     shopItems: initData.shopItems || [],
     csrfToken: initData.csrfToken || '',
 
-    // ── ACTIVE NAVIGATION / MODE ────────────────────────────────────────────
-    currentTab: 'path', // 'path' | 'training' | 'jam' | 'shop' | 'theory'
+    // ── ONBOARDING & LEGAL FLOW ─────────────────────────────────────────────
+    // Steps: 'legal' -> 'tutorial' -> 'induction_cards' -> 'induction_quiz' -> 'completed'
+    onboardingStep: 'completed', // Checked on init from localStorage
+    playerAge: '',
+    legalConsent: false,
+    inductionIndex: 0,
+    inductionSelected: null,
+    inductionAnswered: false,
+    inductionIsCorrect: false,
 
-    // ── GAMIFICATION STATE ──────────────────────────────────────────────────
+    // ── IN-GAME MODALS & TABS ───────────────────────────────────────────────
+    currentTab: 'path', // 'path' (mapa) | 'training' (ejercicio activo) | 'jam' (modo libre)
+    showStationModal: false,
+    selectedStation: null,
+    showStatsModal: false,
+    showShopModal: false,
+    showRescueModal: false,
+
+    // ── GAMIFICATION HUD STATE ──────────────────────────────────────────────
     lives: 5,
     maxLives: 5,
     xp: 0,
     coins: 0,
     streak: 1,
-    levelStars: {},       // { levelId: stars (1-3) }
-    unlockedLevels: [1],  // Level 1 unlocked by default
+    levelStars: {},       // { stationId: stars (1-3) }
+    unlockedLevels: [1],  // Barbosa (Station 1) unlocked by default
+    totalQuestionsAnswered: 0,
+    totalCorrectAnswered: 0,
+    unlockedCollectibles: [],
     equippedSkin: 'skin_tiple_noble',
     equippedAccessories: { hat: '', body: '', eyes: '' },
     unlockedItems: ['skin_tiple_noble'],
 
-    // ── ACTIVE LEVEL / SESSION STATE ────────────────────────────────────────
-    activeLevel: null,
+    // ── ACTIVE EXERCISE STATE ───────────────────────────────────────────────
+    activeStation: null,
     levelQuestions: [],
     qIndex: 0,
     currentQ: null,
@@ -43,10 +63,9 @@ function senafonicaGame(initData) {
     activeNotePlayingIndex: -1,
     activeNoteName: '',
     isComparingAudio: false,
-    comparePhase: 'idle', // 'chosen' | 'transition' | 'correct' | 'idle'
+    comparePhase: 'idle',
 
-    // ── RESCUE / THEORETICAL MODAL ──────────────────────────────────────────
-    showRescueModal: false,
+    // ── RESCUE CHALLENGE STATE ──────────────────────────────────────────────
     rescueQuestions: [],
     rescueIndex: 0,
     rescueAnswered: false,
@@ -62,12 +81,12 @@ function senafonicaGame(initData) {
     jamDirection: 'ascendente',
     jamActiveNoteIndex: -1,
 
-    // ── MASCOT CONTROLLER ───────────────────────────────────────────────────
-    mascotState: 'idle', // 'idle' | 'celebrating' | 'sad' | 'listening' | 'rescue'
-    mascotSpeech: '¡Bienvenido a SENAFÓNICA! Entrena tu oído folclórico.',
+    // ── MASCOT CONTROLLER (PNG SIN FONDO) ───────────────────────────────────
+    mascotState: 'idle', // 'idle' | 'celebrating' | 'sad' | 'listening'
+    mascotSpeech: '¡Bienvenido a SENAFÓNICA! Recorreremos la hermosa Provincia de Vélez.',
     mascotImg: '/static/img/niños_traje.png',
 
-    // ── AUDIO ENGINE INSTANCE ───────────────────────────────────────────────
+    // ── AUDIO ENGINE ────────────────────────────────────────────────────────
     audio: null,
     isPlaying: false,
 
@@ -75,11 +94,15 @@ function senafonicaGame(initData) {
     init() {
       this.audio = new SenafonicaAudioEngine(this.catalog);
 
-      // Restore saved progress from localStorage or user data
-      this._loadLocalState();
+      // Check onboarding status
+      const savedOnboarding = localStorage.getItem('senafonica_onboarding_done');
+      if (!savedOnboarding) {
+        this.onboardingStep = 'legal';
+      } else {
+        this.onboardingStep = 'completed';
+      }
 
-      // Set initial mascot speech
-      this._updateMascot('idle', `¡Hola, ${this.user.name}! Elige un nivel en la Ruta de Aprendizaje.`);
+      this._loadLocalState();
 
       // Keyboard shortcuts: Space to replay, 1-4 for options
       window.addEventListener('keydown', (e) => {
@@ -93,14 +116,74 @@ function senafonicaGame(initData) {
             this.selectOption(idx);
           } else if (this.showRescueModal && !this.rescueAnswered) {
             this.selectRescueOption(idx);
+          } else if (this.onboardingStep === 'induction_quiz' && !this.inductionAnswered) {
+            this.selectInductionOption(idx);
           }
         }
       });
     },
 
+    // ── ONBOARDING FLOW METHODS ─────────────────────────────────────────────
+    submitLegalConsent() {
+      if (!this.playerAge || !this.legalConsent) return;
+      this.onboardingStep = 'tutorial';
+      this._updateMascot('celebrating', '¡Excelente! Iniciemos nuestro recorrido por la cuna del Tiple.');
+    },
+
+    startInductionCards() {
+      this.onboardingStep = 'induction_cards';
+      this._updateMascot('listening', 'Minilección: Comprende qué es un Intervalo y una Escala.');
+    },
+
+    startInductionQuiz() {
+      this.onboardingStep = 'induction_quiz';
+      this.inductionIndex = 0;
+      this.inductionAnswered = false;
+      this.inductionSelected = null;
+      this._updateMascot('idle', 'Mini-Quiz de Inducción: 3 preguntas rápidas para calibrar tu oído.');
+    },
+
+    selectInductionOption(optIdx) {
+      if (this.inductionAnswered) return;
+      const q = this.inductionQuestions[this.inductionIndex];
+      const opt = q.options[optIdx];
+      if (!opt) return;
+
+      this.inductionAnswered = true;
+      this.inductionSelected = opt;
+      this.inductionIsCorrect = (opt === q.correct);
+
+      if (this.inductionIsCorrect) {
+        this.audio.playSuccessSound();
+        this._updateMascot('celebrating', '¡Muy bien contestado!');
+      } else {
+        this.audio.playErrorSound();
+        this._updateMascot('sad', q.explanation);
+      }
+    },
+
+    nextInductionQuestion() {
+      if (this.inductionIndex < this.inductionQuestions.length - 1) {
+        this.inductionIndex++;
+        this.inductionAnswered = false;
+        this.inductionSelected = null;
+        this.inductionIsCorrect = false;
+      } else {
+        // Complete onboarding
+        this.onboardingStep = 'completed';
+        localStorage.setItem('senafonica_onboarding_done', 'true');
+        this.xp += 30;
+        this.coins += 10;
+        this.audio.playLevelCompleteSound();
+        this._triggerConfetti();
+        this._updateMascot('celebrating', '¡Inducción superada! Llegamos a Barbosa, Puerta de Oro de Santander.');
+        this._saveLocalState();
+      }
+    },
+
     // ── LOCAL STORAGE PERSISTENCE ───────────────────────────────────────────
     _loadLocalState() {
-      const saved = localStorage.getItem('senafonica_gamification_v2');
+      const saved = localStorage.getItem('senafonica_gamification_velez_v1');
       if (saved) {
         try {
           const parsed = JSON.parse(saved);
@@ -110,12 +193,15 @@ function senafonicaGame(initData) {
           this.streak = Math.max(parsed.streak || 1, this.user.streak || 1);
           this.levelStars = parsed.levelStars || {};
           this.unlockedLevels = parsed.unlockedLevels || [1];
+          this.totalQuestionsAnswered = parsed.totalQuestionsAnswered || 0;
+          this.totalCorrectAnswered = parsed.totalCorrectAnswered || 0;
+          this.unlockedCollectibles = parsed.unlockedCollectibles || [];
           this.equippedSkin = parsed.equippedSkin || 'skin_tiple_noble';
           this.equippedAccessories = parsed.equippedAccessories || { hat: '', body: '', eyes: '' };
           this.unlockedItems = parsed.unlockedItems || ['skin_tiple_noble'];
           return;
         } catch (e) {
-          console.warn('Could not parse local gamification state', e);
+          console.warn('Could not parse local state', e);
         }
       }
       this.xp = this.user.xp || 0;
@@ -131,14 +217,17 @@ function senafonicaGame(initData) {
         streak: this.streak,
         levelStars: this.levelStars,
         unlockedLevels: this.unlockedLevels,
+        totalQuestionsAnswered: this.totalQuestionsAnswered,
+        totalCorrectAnswered: this.totalCorrectAnswered,
+        unlockedCollectibles: this.unlockedCollectibles,
         equippedSkin: this.equippedSkin,
         equippedAccessories: this.equippedAccessories,
         unlockedItems: this.unlockedItems,
       };
-      localStorage.setItem('senafonica_gamification_v2', JSON.stringify(state));
+      localStorage.setItem('senafonica_gamification_velez_v1', JSON.stringify(state));
     },
 
-    // ── MASCOT STATE ────────────────────────────────────────────────────────
+    // ── MASCOT CONTROLLER ───────────────────────────────────────────────────
     _updateMascot(state, speech) {
       this.mascotState = state;
       if (speech) this.mascotSpeech = speech;
@@ -151,28 +240,23 @@ function senafonicaGame(initData) {
       }
     },
 
-    // ── NAVIGATION ──────────────────────────────────────────────────────────
-    setTab(tab) {
-      if (this.currentTab === 'training' && this.answered === false && this.activeLevel) {
-        if (!confirm('¿Deseas salir del nivel? Perderás el progreso de esta lección.')) {
-          return;
-        }
-      }
-      this.audio.stop();
-      this.currentTab = tab;
-      if (tab === 'path') {
-        this._updateMascot('idle', '¡Selecciona una lección para continuar tu viaje musical!');
-      } else if (tab === 'jam') {
-        this._updateMascot('idle', 'Modo Libre: Explora cualquier escala o intervalo sin presión.');
-      } else if (tab === 'shop') {
-        this._updateMascot('idle', '¡Personaliza tus instrumentos y viste a la mascota con tus logros!');
+    // ── STATIONS & MAP NAVIGATION ───────────────────────────────────────────
+    previewStation(station) {
+      this.selectedStation = station;
+      this.showStationModal = true;
+      this._updateMascot('listening', `${station.station_name}: ${station.subtitle}`);
+    },
+
+    startStationFromModal() {
+      this.showStationModal = false;
+      if (this.selectedStation) {
+        this.startStation(this.selectedStation);
       }
     },
 
-    // ── LEVEL LAUNCH & QUESTION GENERATOR ────────────────────────────────────
-    startLevel(level) {
-      if (!this.unlockedLevels.includes(level.id)) {
-        this._updateMascot('sad', 'Este nivel está bloqueado. Completa los niveles anteriores para desbloquearlo.');
+    startStation(station) {
+      if (!this.unlockedLevels.includes(station.id)) {
+        this._updateMascot('sad', 'Esta estación está bloqueada. Completa las estaciones previas para avanzar.');
         return;
       }
 
@@ -181,93 +265,71 @@ function senafonicaGame(initData) {
         return;
       }
 
-      this.activeLevel = level;
+      this.activeStation = station;
       this.qIndex = 0;
       this.sessionCorrect = 0;
       this.sessionWrong = 0;
-      this.levelQuestions = this._generateQuestionsForLevel(level);
+      this.levelQuestions = this._generateQuestionsForStation(station);
       this.currentQ = this.levelQuestions[0];
       this.answered = false;
       this.selectedOption = null;
       this.currentTab = 'training';
 
-      this._updateMascot('listening', `Nivel ${level.id}: ${level.title}. ¡Escucha con atención!`);
+      this._updateMascot('listening', `¡Llegamos a ${station.station_name}! Escucha con atención.`);
 
-      // Auto-play the first question audio
       this.$nextTick(() => {
         setTimeout(() => this.playCurrentAudio(), 400);
       });
     },
 
-    _generateQuestionsForLevel(level) {
+    _generateQuestionsForStation(station) {
       const questions = [];
-      const count = level.questions_count || 5;
+      const count = station.questions_count || 5;
 
-      if (level.type === 'theory') {
-        // Pure theoretical checkpoint
-        const shuffled = [...this.theoryQuestions].sort(() => 0.5 - Math.random());
-        return shuffled.slice(0, count).map((t, idx) => ({
-          id: idx + 1,
-          type: 'theory',
-          title: 'Desafío Teórico Folclórico',
-          question: t.question,
-          options: t.options,
-          correct: t.correct,
-          explanation: t.explanation,
-          instrument: level.instrument || 'Tiple',
-        }));
-      }
-
-      if (level.type === 'scale') {
-        // Scale recognition level
-        const scaleObj = this.scales.find(s => s.name.toLowerCase() === level.scale_name.toLowerCase()) || this.scales[0];
+      if (station.type === 'scale') {
+        const targetScale = this.scales.find(s => s.name.toLowerCase() === (station.scale_name || '').toLowerCase()) || this.scales[0];
         const allScaleNames = this.scales.map(s => s.name);
 
         for (let i = 0; i < count; i++) {
-          // Select root note from realistic range for instrument
-          const rootMidi = 55 + (i % 6); // G3 to C4
-          const targetScale = (i % 2 === 0) ? scaleObj : this.scales[Math.floor(Math.random() * this.scales.length)];
-          const pattern = targetScale.pattern ? targetScale.pattern.split(',').map(Number) : [2, 2, 1, 2, 2, 2, 1];
-
-          // 4 options
-          const options = this._makeOptions(targetScale.name, allScaleNames, 4);
+          const rootMidi = 55 + (i % 6);
+          const chosenScale = (i % 2 === 0) ? targetScale : this.scales[Math.floor(Math.random() * this.scales.length)];
+          const pattern = chosenScale.intervals_pattern ? chosenScale.intervals_pattern.split(',').map(Number) : [2, 2, 1, 2, 2, 2, 1];
+          const options = this._makeOptions(chosenScale.name, allScaleNames, 4);
 
           questions.push({
             id: i + 1,
             type: 'scale',
-            title: `Reconoce la Escala (${level.instrument})`,
-            instruction: 'Escucha la secuencia continua de notas e identifica qué escala suena.',
-            instrument: level.instrument,
+            title: `Reconoce la Escala (${station.instrument})`,
+            instruction: `Escucha la ejecución continua en ${station.station_name}.`,
+            instrument: station.instrument,
             rootMidi: rootMidi,
             pattern: pattern,
-            correct: targetScale.name,
+            correct: chosenScale.name,
             options: options,
-            explanation: targetScale.description || `La escala ${targetScale.name} se caracteriza por su patrón sonoro único.`
+            explanation: chosenScale.description || `La escala ${chosenScale.name} le da el carácter folclórico a esta estación.`
           });
         }
         return questions;
       }
 
-      // Interval recognition level (Core 1)
-      const targetIntervalNames = level.intervals && level.intervals.length ? level.intervals : this.intervals.map(i => i.name);
+      // Interval questions
+      const targetIntervalNames = station.intervals && station.intervals.length ? station.intervals : this.intervals.map(i => i.name);
       const allIntervalNames = this.intervals.map(i => i.name);
 
       for (let i = 0; i < count; i++) {
         const intervalName = targetIntervalNames[i % targetIntervalNames.length];
         const intervalObj = this.intervals.find(item => item.name === intervalName) || this.intervals[1];
-        const rootMidi = 55 + (i % 8); // G3 to D4
-
-        const allowedDirs = level.directions || ['ascendente'];
+        const rootMidi = 55 + (i % 8);
+        const allowedDirs = station.directions || ['ascendente'];
         const chosenDir = allowedDirs[Math.floor(Math.random() * allowedDirs.length)];
-
         const options = this._makeOptions(intervalName, allIntervalNames, 4);
 
         questions.push({
           id: i + 1,
           type: 'interval',
-          title: `¿Qué intervalo escuchas? (${level.instrument})`,
-          instruction: `Reproduce las dos notas (${chosenDir}) y reconoce la distancia.`,
-          instrument: level.instrument,
+          title: `¿Qué intervalo escuchas? (${station.instrument})`,
+          instruction: `Identifica la distancia entre las notas tocadas en ${station.station_name}.`,
+          instrument: station.instrument,
           rootMidi: rootMidi,
           semitones: intervalObj.semitones,
           direction: chosenDir,
@@ -287,11 +349,11 @@ function senafonicaGame(initData) {
       return opts.sort(() => 0.5 - Math.random());
     },
 
-    // ── AUDIO PLAYBACK IN SESSION ───────────────────────────────────────────
+    // ── AUDIO PLAYBACK ──────────────────────────────────────────────────────
     async playCurrentAudio() {
       if (!this.currentQ || this.isPlaying) return;
       this.isPlaying = true;
-      this._updateMascot('listening', 'Escucha atentamente el sonido del instrumento...');
+      this._updateMascot('listening', 'Escucha atentamente las cuerdas folclóricas...');
 
       const q = this.currentQ;
       if (q.type === 'scale') {
@@ -300,7 +362,7 @@ function senafonicaGame(initData) {
           q.rootMidi,
           q.pattern,
           1.0,
-          (idx, midi, name, total) => {
+          (idx, midi, name) => {
             this.activeNotePlayingIndex = idx;
             this.activeNoteName = name || '';
           }
@@ -343,23 +405,22 @@ function senafonicaGame(initData) {
       this.answered = true;
       this.selectedOption = option;
       this.isCorrect = (option === this.currentQ.correct);
+      this.totalQuestionsAnswered++;
 
       if (this.isCorrect) {
-        // Correct answer!
         this.sessionCorrect++;
+        this.totalCorrectAnswered++;
         this.xp += 15;
         this.coins += 3;
         this.audio.playSuccessSound();
         this._updateMascot('celebrating', '¡Excelente oído! Respuesta correcta.');
         this._triggerConfetti();
       } else {
-        // Wrong answer
         this.sessionWrong++;
         this.lives = Math.max(0, this.lives - 1);
         this.audio.playLifeLostSound();
-        this._updateMascot('sad', `¡Oh, no! La respuesta correcta era: ${this.currentQ.correct}.`);
+        this._updateMascot('sad', `La respuesta correcta era: ${this.currentQ.correct}. ¡Compara los sonidos!`);
 
-        // Check if lives hit 0
         if (this.lives <= 0) {
           setTimeout(() => {
             this.openRescueModal();
@@ -370,7 +431,7 @@ function senafonicaGame(initData) {
       this._saveLocalState();
     },
 
-    // ── AUDITORY COMPARISON ─────────────────────────────────────────────────
+    // ── AUDITORY COMPARISON (CHOSEN VS CORRECT) ─────────────────────────────
     async playAudioComparison() {
       if (!this.currentQ || this.currentQ.type !== 'interval' || this.isComparingAudio) return;
       const chosenName = this.selectedOption;
@@ -380,7 +441,7 @@ function senafonicaGame(initData) {
       const correctObj = this.intervals.find(i => i.name === correctName) || { semitones: 7 };
 
       this.isComparingAudio = true;
-      this._updateMascot('listening', `Comparando: Primero ${chosenName}, luego ${correctName}...`);
+      this._updateMascot('listening', `1. Tu respuesta (${chosenName}) -> 2. Respuesta correcta (${correctName})`);
 
       await this.audio.playComparison(
         this.currentQ.instrument,
@@ -396,7 +457,7 @@ function senafonicaGame(initData) {
       this.comparePhase = 'idle';
     },
 
-    // ── NEXT QUESTION OR COMPLETE LEVEL ─────────────────────────────────────
+    // ── NEXT QUESTION OR COMPLETE STATION ───────────────────────────────────
     nextQuestion() {
       if (this.lives <= 0) {
         this.openRescueModal();
@@ -415,31 +476,38 @@ function senafonicaGame(initData) {
           setTimeout(() => this.playCurrentAudio(), 300);
         });
       } else {
-        this._completeLevel();
+        this._completeStation();
       }
     },
 
-    _completeLevel() {
+    _completeStation() {
       const total = this.levelQuestions.length;
       const accuracy = Math.round((this.sessionCorrect / total) * 100);
       let stars = 1;
       if (accuracy >= 90) stars = 3;
       else if (accuracy >= 65) stars = 2;
 
-      const levelId = this.activeLevel.id;
-      const previousStars = this.levelStars[levelId] || 0;
+      const stationId = this.activeStation.id;
+      const previousStars = this.levelStars[stationId] || 0;
       if (stars > previousStars) {
-        this.levelStars[levelId] = stars;
+        this.levelStars[stationId] = stars;
       }
 
-      // Unlock next level
-      const nextLevelId = levelId + 1;
-      if (stars >= 1 && !this.unlockedLevels.includes(nextLevelId)) {
-        this.unlockedLevels.push(nextLevelId);
+      // Collectible reward on 3 stars
+      if (stars === 3 && this.activeStation.reward_item) {
+        if (!this.unlockedCollectibles.includes(this.activeStation.reward_item)) {
+          this.unlockedCollectibles.push(this.activeStation.reward_item);
+        }
       }
 
-      const xpBonus = this.activeLevel.xp_reward || 50;
-      const coinBonus = this.activeLevel.coins_reward || 10;
+      // Unlock next station
+      const nextStationId = stationId + 1;
+      if (stars >= 1 && !this.unlockedLevels.includes(nextStationId) && nextStationId <= this.stations.length) {
+        this.unlockedLevels.push(nextStationId);
+      }
+
+      const xpBonus = this.activeStation.xp_reward || 60;
+      const coinBonus = this.activeStation.coins_reward || 12;
       this.xp += xpBonus;
       this.coins += coinBonus;
 
@@ -457,7 +525,7 @@ function senafonicaGame(initData) {
       this.currentTab = 'path';
       this._updateMascot(
         'celebrating',
-        `¡Nivel completado con ${stars} estrella(s) y ${accuracy}% de precisión! Ganaste +${xpBonus} XP y +${coinBonus} Púas.`
+        `¡Estación ${this.activeStation.station_name} completada con ${stars} estrella(s)! Ganaste +${xpBonus} XP y +${coinBonus} Púas.`
       );
     },
 
@@ -486,10 +554,10 @@ function senafonicaGame(initData) {
         this.xp += 20;
         this.coins += 5;
         this.audio.playLifeRestoredSound();
-        this._updateMascot('celebrating', '¡Respuesta correcta! Has recuperado vidas al instante.');
+        this._updateMascot('celebrating', '¡Respuesta correcta! +2 Vidas recuperadas al instante.');
       } else {
         this.audio.playErrorSound();
-        this._updateMascot('sad', `Incorrecto. ${q.explanation}`);
+        this._updateMascot('sad', `Incorrecto: ${q.explanation}`);
       }
 
       this._saveLocalState();
@@ -502,38 +570,37 @@ function senafonicaGame(initData) {
         this.rescueSelected = null;
         this.rescueIsCorrect = false;
       } else {
-        // Finished rescue questions
         if (this.lives === 0) {
-          this.lives = 2; // Mercy fallback so student is never stranded
+          this.lives = 2; // Mercy fallback so player is never stranded
         }
         this.showRescueModal = false;
         this._saveLocalState();
-        this._updateMascot('idle', `¡Vidas recuperadas (${this.lives}/${this.maxLives})! Puedes continuar practicando.`);
+        this._updateMascot('idle', `¡Vidas recuperadas (${this.lives}/${this.maxLives})! Continúa tu viaje por Vélez.`);
       }
     },
 
-    // ── FREE JAM (MODO LIBRE / EXPLORADOR) ──────────────────────────────────
+    // ── FREE JAM (MODO LIBRE) ───────────────────────────────────────────────
     async playJamScale() {
       if (this.isPlaying) return;
       this.isPlaying = true;
       const scaleObj = this.scales[this.jamScaleIndex] || this.scales[0];
       const pattern = scaleObj.intervals_pattern ? scaleObj.intervals_pattern.split(',').map(Number) : [2, 2, 1, 2, 2, 2, 1];
 
-      this._updateMascot('listening', `Reproduciendo ${scaleObj.name} en ${this.jamInstrument} (optimizado y fluido)...`);
+      this._updateMascot('listening', `Reproduciendo ${scaleObj.name} en ${this.jamInstrument} (sostenido recortado fluido)...`);
 
       await this.audio.playScale(
         this.jamInstrument,
         Number(this.jamRootMidi),
         pattern,
         Number(this.jamTempo),
-        (idx, midi, name) => {
+        (idx) => {
           this.jamActiveNoteIndex = idx;
         }
       );
 
       this.isPlaying = false;
       this.jamActiveNoteIndex = -1;
-      this._updateMascot('idle', '¡Escala reproducida! Prueba cambiar la tónica o el instrumento.');
+      this._updateMascot('idle', '¡Escala terminada! Prueba cambiar el instrumento o la velocidad.');
     },
 
     async playJamInterval() {
@@ -541,14 +608,14 @@ function senafonicaGame(initData) {
       this.isPlaying = true;
       const intervalObj = this.intervals.find(i => i.semitones === Number(this.jamIntervalSemitones)) || this.intervals[1];
 
-      this._updateMascot('listening', `Intervalo: ${intervalObj.name} (${this.jamDirection}) en ${this.jamInstrument}...`);
+      this._updateMascot('listening', `Sonando ${intervalObj.name} (${this.jamDirection}) en ${this.jamInstrument}...`);
 
       await this.audio.playInterval(
         this.jamInstrument,
         Number(this.jamRootMidi),
         Number(this.jamIntervalSemitones),
         this.jamDirection,
-        (idx, midi, name) => {
+        (idx) => {
           this.jamActiveNoteIndex = idx;
         }
       );
@@ -558,10 +625,9 @@ function senafonicaGame(initData) {
       this._updateMascot('idle', `${intervalObj.name}: ${intervalObj.semitones} semitonos.`);
     },
 
-    // ── SHOP & REWARDS ──────────────────────────────────────────────────────
+    // ── SHOP & IN-GAME INVENTORY ────────────────────────────────────────────
     buyItem(item) {
       if (this.unlockedItems.includes(item.id)) {
-        // Already unlocked, equip it
         this.equipItem(item);
         return;
       }
@@ -577,7 +643,7 @@ function senafonicaGame(initData) {
       this.audio.playLifeRestoredSound();
       this._triggerConfetti();
       this._saveLocalState();
-      this._updateMascot('celebrating', `¡Desbloqueaste ${item.title}! Ya está equipado.`);
+      this._updateMascot('celebrating', `¡Desbloqueaste ${item.title}! Ya lo llevas equipado.`);
     },
 
     equipItem(item) {
@@ -602,12 +668,12 @@ function senafonicaGame(initData) {
       const particles = [];
       const colors = ['#39A900', '#FBBF24', '#3B82F6', '#EC4899', '#10B981', '#FFFFFF'];
 
-      for (let i = 0; i < 65; i++) {
+      for (let i = 0; i < 75; i++) {
         particles.push({
           x: canvas.width / 2,
           y: canvas.height * 0.35,
-          vx: (Math.random() - 0.5) * 14,
-          vy: (Math.random() - 1.0) * 12,
+          vx: (Math.random() - 0.5) * 16,
+          vy: (Math.random() - 1.0) * 13,
           size: Math.random() * 7 + 4,
           color: colors[Math.floor(Math.random() * colors.length)],
           rotation: Math.random() * 360,
@@ -624,7 +690,7 @@ function senafonicaGame(initData) {
         particles.forEach(p => {
           p.x += p.vx;
           p.y += p.vy;
-          p.vy += 0.35; // gravity
+          p.vy += 0.38;
           p.rotation += p.vrot;
           p.alpha -= 0.015;
 
@@ -668,11 +734,20 @@ function senafonicaGame(initData) {
           if (data.streak) this.streak = data.streak;
         }
       } catch (err) {
-        console.warn('Sync with server failed, local state preserved:', err);
+        console.warn('Server sync failed, local state preserved:', err);
       }
     },
+
+    // ── STATS HELPER ────────────────────────────────────────────────────────
+    getAccuracy() {
+      if (!this.totalQuestionsAnswered) return 0;
+      return Math.round((this.totalCorrectAnswered / this.totalQuestionsAnswered) * 100);
+    },
+
+    getTotalStars() {
+      return Object.values(this.levelStars).reduce((acc, val) => acc + val, 0);
+    }
   };
 }
 
-// Global hook
 window.senafonicaGame = senafonicaGame;
