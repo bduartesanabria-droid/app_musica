@@ -20,6 +20,7 @@ class SenafonicaAudioEngine {
     this.catalog = catalog; // { "Tiple": [...], "Requinto": [...], ... }
     this.ctx = null;
     this.sampleCache = new Map(); // url -> AudioBuffer
+    this.sampleOffsets = new Map(); // url -> first audible sample offset
     this.loadingPromises = new Map();
     this.activeNodes = [];
     this.activeMedia = new Set();
@@ -62,6 +63,7 @@ class SenafonicaAudioEngine {
         const arrayBuffer = await response.arrayBuffer();
         const audioBuffer = await this.ctx.decodeAudioData(arrayBuffer);
         this.sampleCache.set(url, audioBuffer);
+        this.sampleOffsets.set(url, this._findSampleOffset(audioBuffer));
         return audioBuffer;
       } catch (err) {
         console.warn("Could not preload sample:", url, err);
@@ -73,6 +75,47 @@ class SenafonicaAudioEngine {
 
     this.loadingPromises.set(url, promise);
     return promise;
+  }
+
+  _findSampleOffset(buffer) {
+    const frameSize = Math.max(1, Math.floor(buffer.sampleRate * 0.01));
+    const threshold = 10 ** (-45 / 20);
+    const channels = Array.from(
+      { length: buffer.numberOfChannels },
+      (_, channel) => buffer.getChannelData(channel)
+    );
+    const frameCount = Math.ceil(buffer.length / frameSize);
+
+    for (let frame = 0; frame < frameCount - 1; frame++) {
+      let energy = 0;
+      let sampleCount = 0;
+      for (const channel of channels) {
+        const start = frame * frameSize;
+        const end = Math.min(start + frameSize, channel.length);
+        for (let index = start; index < end; index++) {
+          energy += channel[index] * channel[index];
+          sampleCount++;
+        }
+      }
+      const rms = Math.sqrt(energy / Math.max(1, sampleCount));
+      if (rms < threshold) continue;
+
+      let nextEnergy = 0;
+      let nextSampleCount = 0;
+      for (const channel of channels) {
+        const start = (frame + 1) * frameSize;
+        const end = Math.min(start + frameSize, channel.length);
+        for (let index = start; index < end; index++) {
+          nextEnergy += channel[index] * channel[index];
+          nextSampleCount++;
+        }
+      }
+      if (Math.sqrt(nextEnergy / Math.max(1, nextSampleCount)) >= threshold) {
+        return Math.max(0, frame * frameSize / buffer.sampleRate - 0.02);
+      }
+    }
+
+    return 0;
   }
 
   // Find sample URL from catalog
@@ -129,20 +172,26 @@ class SenafonicaAudioEngine {
     const now = startTime || ctx.currentTime;
 
     const sampleUrl = this.getSampleUrl(instrument, midi);
-    if (sampleUrl && await this._playHtmlSample(sampleUrl, now, duration, volume)) {
-      return now + duration;
-    }
-
     let buffer = sampleUrl ? this.sampleCache.get(sampleUrl) : null;
     if (!buffer && sampleUrl) {
       buffer = await this.preloadSample(sampleUrl);
     }
 
     if (buffer) {
-      return this._playSampleBuffer(buffer, now, duration, volume);
-    } else {
-      return this._synthesizeFolkNote(instrument, midi, now, duration, volume);
+      return this._playSampleBuffer(
+        buffer,
+        now,
+        duration,
+        volume,
+        this.sampleOffsets.get(sampleUrl) || 0
+      );
     }
+
+    if (sampleUrl && await this._playHtmlSample(sampleUrl, now, duration, volume)) {
+      return now + duration;
+    }
+
+    return this._synthesizeFolkNote(instrument, midi, now, duration, volume);
   }
 
   async _playHtmlSample(url, startTime, duration, volume) {
@@ -214,7 +263,7 @@ class SenafonicaAudioEngine {
    * Optimized sample playback with trimmed sustain.
    * Standard sample tail has ~1.8-2.5s; we ramp down quickly to simulate live execution.
    */
-  _playSampleBuffer(buffer, startTime, duration, volume) {
+  _playSampleBuffer(buffer, startTime, duration, volume, sampleOffset = 0) {
     const ctx = this.ctx;
     const source = ctx.createBufferSource();
     source.buffer = buffer;
@@ -231,7 +280,7 @@ class SenafonicaAudioEngine {
     source.connect(gainNode);
     gainNode.connect(ctx.destination);
 
-    source.start(startTime);
+    source.start(startTime, Math.min(sampleOffset, Math.max(0, buffer.duration - 0.01)));
     source.stop(stopTime + 0.05);
 
     this.activeNodes.push(source);
