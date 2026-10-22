@@ -3,7 +3,7 @@ import io
 import mimetypes
 import os
 from flask import Blueprint, abort, render_template, jsonify, request, send_file, url_for
-from flask_login import current_user
+from flask_login import current_user, login_required
 from sqlalchemy.orm import joinedload
 from ..extensions import db
 from ..models.instrument import Instrument, Note, Interval, Scale
@@ -762,6 +762,28 @@ VELEZ_STATIONS_CONFIG = [
     }
 ]
 
+_STATION_BACKGROUNDS = {
+    1: "barbosa-river.svg",
+    2: "velez-plaza.svg",
+    3: "velez-cathedral.svg",
+    4: "puente-nacional.svg",
+    5: "penon.svg",
+    6: "guavata.svg",
+    7: "province-valley.svg",
+    8: "province-valley.svg",
+    9: "province-valley.svg",
+    10: "province-valley.svg",
+    11: "province-valley.svg",
+    12: "province-valley.svg",
+    13: "province-valley.svg",
+    14: "velez-plaza.svg",
+    15: "velez-cathedral.svg",
+}
+for _station in VELEZ_STATIONS_CONFIG:
+    _station["background_image"] = (
+        f"/static/img/locations/{_STATION_BACKGROUNDS[_station['id']]}"
+    )
+
 
 def _build_audio_catalog():
     """
@@ -839,6 +861,9 @@ def index():
         "coins": 0,
         "level": 1,
         "streak": 1,
+        "authenticated": False,
+        "equipped_skin": "skin_tiple_noble",
+        "unlocked_skins": ["skin_tiple_noble"],
     }
 
     if current_user and current_user.is_authenticated:
@@ -852,6 +877,13 @@ def index():
             "coins": gamification.coins if gamification else 0,
             "level": gamification.current_level if gamification else 1,
             "streak": progress.current_streak_days if progress else 1,
+            "authenticated": True,
+            "equipped_skin": gamification.equipped_skin if gamification else "skin_tiple_noble",
+            "unlocked_skins": json.loads(
+                gamification.unlocked_skins_json
+                if gamification and gamification.unlocked_skins_json
+                else '["skin_tiple_noble"]'
+            ),
         }
 
     catalog = _build_audio_catalog()
@@ -932,10 +964,15 @@ def get_data():
 def sync_progress():
     """Sync in-game progress to the DB for authenticated users."""
     data = request.get_json(silent=True) or {}
-    xp_to_add = int(data.get("xp_earned", 0))
-    coins_to_add = int(data.get("coins_earned", 0))
-    correct_count = int(data.get("correct_count", 0))
-    total_count = int(data.get("total_count", 0))
+    try:
+        xp_to_add = max(0, min(int(data.get("xp_earned", 0)), 10000))
+        coins_to_add = max(0, min(int(data.get("coins_earned", 0)), 1000))
+        correct_count = max(0, int(data.get("correct_count", 0)))
+        total_count = max(0, int(data.get("total_count", 0)))
+    except (TypeError, ValueError):
+        return jsonify({"error": "Los valores de progreso no son válidos."}), 400
+    if correct_count > total_count or total_count > 100:
+        return jsonify({"error": "El conteo de respuestas no es válido."}), 400
 
     if current_user and current_user.is_authenticated:
         gamification = UserGamification.query.filter_by(user_id=current_user.id).first()
@@ -991,4 +1028,49 @@ def sync_progress():
         "guest": True,
         "xp_added": xp_to_add,
         "coins_added": coins_to_add
+    })
+
+
+@senafonica_bp.route("/api/senafonica/skins", methods=["POST"])
+@login_required
+def update_skin():
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"error": "Se requiere una acción válida."}), 400
+    action = data.get("action")
+    item_id = data.get("item_id")
+    item = next(
+        (
+            shop_item for shop_item in SHOP_ITEMS
+            if shop_item["id"] == item_id and shop_item["type"] == "skin"
+        ),
+        None,
+    )
+    if action not in {"purchase", "equip"} or not item:
+        return jsonify({"error": "La skin o la acción no son válidas."}), 400
+
+    gamification = UserGamification.query.filter_by(user_id=current_user.id).first()
+    if not gamification:
+        gamification = UserGamification(user_id=current_user.id)
+        db.session.add(gamification)
+        db.session.flush()
+    unlocked = json.loads(gamification.unlocked_skins_json or '["skin_tiple_noble"]')
+
+    if action == "purchase" and item_id not in unlocked:
+        if (gamification.total_xp or 0) < item["cost_xp"] or (gamification.coins or 0) < item["cost_coins"]:
+            return jsonify({"error": "No tienes suficientes puntos o púas para comprar esta skin."}), 409
+        gamification.coins -= item["cost_coins"]
+        unlocked.append(item_id)
+    elif item_id not in unlocked:
+        return jsonify({"error": "Debes desbloquear esta skin antes de equiparla."}), 409
+
+    gamification.unlocked_skins_json = json.dumps(unlocked)
+    gamification.equipped_skin = item_id
+    db.session.commit()
+    return jsonify({
+        "status": "success",
+        "total_xp": gamification.total_xp or 0,
+        "coins": gamification.coins or 0,
+        "equipped_skin": gamification.equipped_skin,
+        "unlocked_skins": unlocked,
     })

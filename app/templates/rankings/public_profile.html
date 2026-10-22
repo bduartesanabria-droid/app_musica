@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Perfil de @{{ profile.username }}{% endblock %}
+{% block body %}
+<main class="mx-auto min-h-screen max-w-3xl px-4 py-10 text-white">
+  <a href="{{ url_for('main.public_ranking') }}" class="text-sm font-bold text-emerald-300 hover:text-emerald-200">← Volver al ranking</a>
+  <section class="mt-5 rounded-3xl border border-white/10 bg-slate-900/90 p-6">
+    <h1 class="text-2xl font-black">@{{ profile.username }}</h1>
+    <p class="mt-2 text-slate-300">{{ profile.age if profile.age is not none else "Edad no registrada" }}{% if profile.age is not none %} años{% endif %} · {{ profile.points }} puntos</p>
+    {% if profile.avatar_url %}<img src="{{ profile.avatar_url }}" alt="Avatar de @{{ profile.username }}" class="mt-4 h-20 w-20 rounded-full object-cover">{% endif %}
+    <h2 class="mt-7 text-lg font-black">Skin equipada</h2>
+    {% for skin in profile.skins if skin.equipped %}
+    <div class="mt-3 flex items-center gap-3 rounded-xl bg-slate-800 p-3">
+      <img src="{{ skin.image }}" alt="{{ skin.instrument }}" class="h-14 w-14 object-contain">
+      <span class="font-bold">{{ skin.title }}</span>
+    </div>
+    {% endfor %}
+    <h2 class="mt-7 text-lg font-black">Colección de skins</h2>
+    <div class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+      {% for skin in profile.skins %}
+      <div class="rounded-xl border border-white/10 bg-slate-800 p-3 text-center">
+        <img src="{{ skin.image }}" alt="{{ skin.instrument }}" class="mx-auto h-16 w-16 object-contain">
+        <p class="mt-2 text-xs font-bold">{{ skin.title }}</p>
+      </div>
+      {% else %}
+      <p class="text-sm text-slate-400">Sin skins desbloqueadas.</p>
+      {% endfor %}
+    </div>
+    <h2 class="mt-7 text-lg font-black">Logros</h2>
+    <ul class="mt-3 space-y-2">
+      {% for badge in profile.achievements %}
+      <li class="rounded-xl bg-slate-800 p-3">
+        <p class="font-bold">{{ badge.icon or "♪" }} {{ badge.name }}</p>
+        <p class="mt-1 text-xs text-slate-400">{{ badge.description }}</p>
+      </li>
+      {% else %}
+      <li class="text-sm text-slate-400">Todavía no tiene logros.</li>
+      {% endfor %}
+    </ul>
+  </section>
+</main>
+{% endblock %}

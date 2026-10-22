@@ -24,6 +24,13 @@ class UserGamification(db.Model):
     total_coins_earned = db.Column(db.Integer, default=0)
     weekly_xp          = db.Column(db.Integer, default=0)
     monthly_xp         = db.Column(db.Integer, default=0)
+    equipped_skin      = db.Column(db.String(80), nullable=False, default="skin_tiple_noble")
+    unlocked_skins_json = db.Column(
+        db.Text,
+        nullable=False,
+        default='["skin_tiple_noble"]',
+        server_default='["skin_tiple_noble"]',
+    )
     updated_at         = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc),
                                    onupdate=lambda: datetime.now(timezone.utc))
 

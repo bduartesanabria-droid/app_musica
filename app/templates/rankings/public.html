@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}Ranking público{% endblock %}
+{% block body %}
+<main x-data="publicRankingPage()" class="mx-auto min-h-screen max-w-4xl px-4 py-10 text-white">
+  <header class="mb-8 flex flex-wrap items-center justify-between gap-4">
+    <div>
+      <p class="text-xs font-black uppercase tracking-[0.2em] text-emerald-400">SEMIMUS</p>
+      <h1 class="mt-1 text-3xl font-black">Ranking de aprendices</h1>
+      <p class="mt-2 text-sm text-slate-400">Puntos acumulados · La edad se calcula desde la fecha de nacimiento.</p>
+    </div>
+    <a href="{{ url_for('senafonica.index') }}" class="rounded-xl bg-emerald-700 px-4 py-3 text-sm font-bold hover:bg-emerald-600">Volver al juego</a>
+  </header>
+
+  <div class="overflow-hidden rounded-2xl border border-white/10 bg-slate-900/90">
+    <div class="grid grid-cols-[3rem_minmax(0,1fr)_4rem_5rem] gap-3 border-b border-white/10 px-4 py-3 text-[11px] font-black uppercase tracking-wider text-slate-400 sm:grid-cols-[4rem_minmax(0,1fr)_6rem_7rem]">
+      <span>Pos.</span><span>Usuario</span><span class="text-right">Edad</span><span class="text-right">Puntos</span>
+    </div>
+    <ol class="divide-y divide-white/5">
+      {% for player in players %}
+      <li class="grid grid-cols-[3rem_minmax(0,1fr)_4rem_5rem] items-center gap-3 px-4 py-3 sm:grid-cols-[4rem_minmax(0,1fr)_6rem_7rem]">
+        <span class="font-black {% if player.position <= 3 %}text-amber-300{% else %}text-slate-400{% endif %}">{{ player.position }}</span>
+        <button type="button" @click="loadProfile({{ player.username|tojson }})" class="truncate text-left font-bold text-white hover:text-emerald-300">
+          {{ player.username }}
+        </button>
+        <span class="text-right text-sm text-slate-300">{{ player.age if player.age is not none else "—" }}</span>
+        <span class="text-right text-sm font-black text-amber-300">{{ player.points }}</span>
+      </li>
+      {% else %}
+      <li class="px-4 py-10 text-center text-sm text-slate-400">Todavía no hay jugadores registrados.</li>
+      {% endfor %}
+    </ol>
+  </div>
+
+  <div x-show="profileOpen" x-cloak x-transition.opacity
+       @keydown.escape.window="profileOpen = false"
+       class="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4"
+       @click.self="profileOpen = false"
+       role="dialog" aria-modal="true" aria-labelledby="public-profile-title">
+    <section class="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl border border-white/10 bg-slate-900 p-5 shadow-2xl">
+      <div class="mb-4 flex items-center justify-between">
+        <h2 id="public-profile-title" class="text-xl font-black">Perfil público</h2>
+        <button type="button" @click="profileOpen = false" aria-label="Cerrar perfil" class="rounded-lg px-3 py-2 text-slate-300 hover:bg-white/10">✕</button>
+      </div>
+      <p x-show="profileLoading" class="py-8 text-center text-sm text-slate-400">Cargando perfil…</p>
+      <p x-show="profileError" x-text="profileError" class="py-8 text-center text-sm text-rose-300"></p>
+      <template x-if="profile">
+        <div class="space-y-5">
+          <div class="flex items-center gap-4 rounded-2xl bg-slate-800 p-4">
+            <template x-if="profile.avatar_url">
+              <img :src="profile.avatar_url" alt="" class="h-16 w-16 rounded-full object-cover">
+            </template>
+            <div>
+              <p class="text-lg font-black text-white" x-text="'@' + profile.username"></p>
+              <p class="text-sm text-slate-300" x-text="(profile.age === null ? 'Edad no registrada' : profile.age + ' años') + ' · ' + profile.points + ' puntos'"></p>
+              <p class="mt-1 text-xs text-emerald-300" x-text="'Skin equipada: ' + (profile.skins.find(skin => skin.equipped)?.title || 'Tiple de Madera Noble')"></p>
+            </div>
+          </div>
+          <div>
+            <h3 class="mb-2 text-sm font-black uppercase tracking-wider text-slate-300">Colección de skins</h3>
+            <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              <template x-for="skin in profile.skins" :key="skin.id">
+                <div class="rounded-xl border p-3" :class="skin.equipped ? 'border-emerald-400 bg-emerald-950/40' : 'border-white/10 bg-slate-800'">
+                  <img :src="skin.image" :alt="skin.instrument" class="mx-auto h-14 w-14 object-contain">
+                  <p class="mt-2 text-center text-xs font-bold" x-text="skin.title"></p>
+                  <p class="text-center text-[10px] text-slate-400" x-text="skin.equipped ? 'Equipada' : skin.instrument"></p>
+                </div>
+              </template>
+              <p x-show="profile.skins.length === 0" class="col-span-full text-sm text-slate-400">Sin skins desbloqueadas.</p>
+            </div>
+          </div>
+          <div>
+            <h3 class="mb-2 text-sm font-black uppercase tracking-wider text-slate-300">Logros desbloqueados</h3>
+            <ul class="space-y-2">
+              <template x-for="badge in profile.achievements" :key="badge.name">
+                <li class="rounded-xl bg-slate-800 p-3">
+                  <p class="font-bold text-white"><span x-text="badge.icon || '♪'"></span> <span x-text="badge.name"></span></p>
+                  <p class="mt-1 text-xs text-slate-400" x-text="badge.description"></p>
+                </li>
+              </template>
+              <li x-show="profile.achievements.length === 0" class="text-sm text-slate-400">Todavía no tiene logros.</li>
+            </ul>
+          </div>
+          <a :href="profilePageUrl" class="block text-center text-sm font-bold text-emerald-300 hover:text-emerald-200">Abrir perfil completo</a>
+        </div>
+      </template>
+    </section>
+  </div>
+</main>
+<script>
+  function publicRankingPage() {
+    return {
+      profileOpen: false,
+      profileLoading: false,
+      profileError: '',
+      profile: null,
+      profileApiTemplate: {{ profile_api_url|tojson }},
+      profilePageTemplate: {{ profile_page_url|tojson }},
+      get profilePageUrl() {
+        return this.profile ? this.profilePageTemplate.replace('__username__', encodeURIComponent(this.profile.username)) : '#';
+      },
+      async loadProfile(username) {
+        this.profileOpen = true;
+        this.profileLoading = true;
+        this.profileError = '';
+        this.profile = null;
+        try {
+          const response = await fetch(this.profileApiTemplate.replace('__username__', encodeURIComponent(username)));
+          if (!response.ok) throw new Error('No fue posible cargar este perfil.');
+          this.profile = await response.json();
+        } catch (error) {
+          this.profileError = error.message || 'No fue posible cargar este perfil.';
+        } finally {
+          this.profileLoading = false;
+        }
+      },
+    };
+  }
+</script>
+{% endblock %}

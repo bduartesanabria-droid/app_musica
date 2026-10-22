@@ -45,6 +45,10 @@ function senafonicaGame(initData) {
 
     // ── IN-GAME MODALS & TABS ─────────────────────────────────────────────
     currentTab: 'path',           // 'path' | 'learn' | 'training' | 'jam'
+    backgroundImage: '',
+    backgroundColor: '#0B111A',
+    backgroundVisible: false,
+    backgroundTimer: null,
     showStationModal: false,
     selectedStation: null,
     showStatsModal: false,
@@ -227,8 +231,12 @@ function senafonicaGame(initData) {
         try {
           const parsed = JSON.parse(saved);
           this.lives = parsed.lives !== undefined ? Math.min(parsed.lives, this.maxLives) : 5;
-          this.xp = Math.max(parsed.xp || 0, this.user.xp || 0);
-          this.coins = Math.max(parsed.coins || 0, this.user.coins || 0);
+          this.xp = this.user.authenticated
+            ? this.user.xp || 0
+            : Math.max(parsed.xp || 0, this.user.xp || 0);
+          this.coins = this.user.authenticated
+            ? this.user.coins || 0
+            : Math.max(parsed.coins || 0, this.user.coins || 0);
           this.streak = Math.max(parsed.streak || 1, this.user.streak || 1);
           this.levelStars = parsed.levelStars || {};
           this.unlockedLevels = parsed.unlockedLevels || [1];
@@ -237,7 +245,17 @@ function senafonicaGame(initData) {
           this.unlockedCollectibles = parsed.unlockedCollectibles || [];
           this.equippedSkin = parsed.equippedSkin || 'skin_tiple_noble';
           this.equippedAccessories = parsed.equippedAccessories || { hat: '', body: '', eyes: '' };
-          this.unlockedItems = parsed.unlockedItems || ['skin_tiple_noble'];
+          const localItems = parsed.unlockedItems || ['skin_tiple_noble'];
+          if (this.user.authenticated) {
+            const skins = this.user.unlocked_skins || ['skin_tiple_noble'];
+            this.equippedSkin = this.user.equipped_skin || 'skin_tiple_noble';
+            this.unlockedItems = [...new Set([
+              ...localItems.filter(id => !this.shopItems.some(item => item.id === id && item.type === 'skin')),
+              ...skins,
+            ])];
+          } else {
+            this.unlockedItems = localItems;
+          }
           return;
         } catch (e) {
           console.warn('Could not parse local state', e);
@@ -246,6 +264,8 @@ function senafonicaGame(initData) {
       this.xp = this.user.xp || 0;
       this.coins = this.user.coins || 0;
       this.streak = this.user.streak || 1;
+      this.equippedSkin = this.user.equipped_skin || 'skin_tiple_noble';
+      this.unlockedItems = this.user.unlocked_skins || ['skin_tiple_noble'];
     },
 
     _saveLocalState() {
@@ -286,6 +306,7 @@ function senafonicaGame(initData) {
     // ══════════════════════════════════════════════════════════════════════
     previewStation(station) {
       this.selectedStation = station;
+      this.changeBackground(station.background_image, station.theme_color);
       this.showStationModal = true;
       this._updateMascot('listening', `${station.station_name}: ${station.subtitle}`);
     },
@@ -313,6 +334,7 @@ function senafonicaGame(initData) {
       }
 
       this.learnStation = station;
+      this.changeBackground(station.background_image, station.theme_color);
       this.learnPhase = 'intro';
       this.learnNote1Played = false;
       this.learnNote2Played = false;
@@ -363,6 +385,12 @@ function senafonicaGame(initData) {
           selected: '',
         };
       });
+      const instrument = station.instrument === 'Todos' ? 'Tiple' : station.instrument;
+      const preloadNotes = [...new Set([
+        ...this.learnDemoNotes,
+        ...sampleNotes.flat(),
+      ])];
+      void this.audio.preloadNotes(instrument, preloadNotes);
       this.currentTab = 'learn';
 
       this._updateMascot('listening', `Aprendiendo en ${station.station_name}. ${content.title || station.subtitle}`);
@@ -395,8 +423,9 @@ function senafonicaGame(initData) {
       const inst = this.learnStation.instrument === 'Todos' ? 'Tiple' : this.learnStation.instrument;
       this._updateMascot('listening', `Escucha la nota ${this.audio.midiToName(midi)}`);
       const played = await this._runLearnPlayback(async () => {
-        await this.audio.playNote(inst, midi, 0, 0.8, 0.95);
-        await new Promise(resolve => setTimeout(resolve, 900));
+        const duration = this.audio.scaleNoteDuration;
+        await this.audio.playNote(inst, midi, 0, duration, 0.95);
+        await new Promise(resolve => setTimeout(resolve, (duration + this.audio.scaleNoteGap) * 1000));
       });
       if (played) {
         this.learnNotePlayed[index] = true;
@@ -426,9 +455,10 @@ function senafonicaGame(initData) {
             this.activeNoteName = name || '';
           });
         } else {
+          const duration = this.audio.scaleNoteDuration;
           for (const midi of sample.notes) {
-            await this.audio.playNote(inst, midi, 0, 0.6, 0.95);
-            await new Promise(resolve => setTimeout(resolve, 680));
+            await this.audio.playNote(inst, midi, 0, duration, 0.95);
+            await new Promise(resolve => setTimeout(resolve, (duration + this.audio.scaleNoteGap) * 1000));
           }
           this.activeNoteName = '';
         }
@@ -459,9 +489,10 @@ function senafonicaGame(initData) {
       if (direction === 'descendente') notes.reverse();
       const inst = this.learnStation.instrument === 'Todos' ? 'Tiple' : this.learnStation.instrument;
       const played = await this._runLearnPlayback(async () => {
+        const duration = this.audio.scaleNoteDuration;
         for (const midi of notes) {
-          await this.audio.playNote(inst, midi, 0, 0.6, 0.95);
-          await new Promise(resolve => setTimeout(resolve, 680));
+          await this.audio.playNote(inst, midi, 0, duration, 0.95);
+          await new Promise(resolve => setTimeout(resolve, (duration + this.audio.scaleNoteGap) * 1000));
         }
       });
       if (played) {
@@ -476,8 +507,9 @@ function senafonicaGame(initData) {
       const root = this.learnDemoNotes[0] || 60;
       const chord = this.learnStation.learn_content.harmonic_notes || [root, root + 4, root + 7, root + 12];
       const played = await this._runLearnPlayback(async () => {
-        await Promise.all(chord.map(midi => this.audio.playNote(inst, midi, 0, 1.1, 0.65)));
-        await new Promise(resolve => setTimeout(resolve, 1150));
+        const duration = this.audio.scaleNoteDuration;
+        await Promise.all(chord.map(midi => this.audio.playNote(inst, midi, 0, duration, 0.65)));
+        await new Promise(resolve => setTimeout(resolve, (duration + this.audio.scaleNoteGap) * 1000));
       });
       if (played) {
         this.learnChordPlayed = true;
@@ -523,10 +555,12 @@ function senafonicaGame(initData) {
       }
 
       this.activeStation = station;
+      this.changeBackground(station.background_image, station.theme_color);
       this.qIndex = 0;
       this.sessionCorrect = 0;
       this.sessionWrong = 0;
       this.levelQuestions = this._generateQuestionsForStation(station);
+      this._preloadQuestionAudio(this.levelQuestions);
       this.currentQ = this.levelQuestions[0];
       this.answered = false;
       this.selectedOption = null;
@@ -537,6 +571,25 @@ function senafonicaGame(initData) {
       this.$nextTick(() => {
         setTimeout(() => this.playCurrentAudio(), 400);
       });
+    },
+
+    _preloadQuestionAudio(questions) {
+      const notes = questions.flatMap(question => {
+        if (question.type === 'melody') return question.melodyNotes;
+        if (question.type === 'scale') {
+          const scaleNotes = [question.rootMidi];
+          question.pattern.reduce((midi, semitones) => {
+            const nextMidi = midi + semitones;
+            scaleNotes.push(nextMidi);
+            return nextMidi;
+          }, question.rootMidi);
+          return scaleNotes;
+        }
+        const direction = question.direction === 'descendente' ? -1 : 1;
+        return [question.rootMidi, question.rootMidi + question.semitones * direction];
+      });
+      const instrument = questions[0] ? questions[0].instrument : 'Tiple';
+      void this.audio.preloadNotes(instrument, [...new Set(notes)]);
     },
 
     _generateQuestionsForStation(station) {
@@ -704,12 +757,13 @@ function senafonicaGame(initData) {
           }
         );
       } else if (q.type === 'melody') {
+        const duration = this.audio.scaleNoteDuration;
         for (let i = 0; i < q.melodyNotes.length; i++) {
           const midi = q.melodyNotes[i];
           this.activeNotePlayingIndex = i;
           this.activeNoteName = this.audio.midiToName(midi);
-          await this.audio.playNote(q.instrument, midi, 0, 0.55, 0.95);
-          await new Promise(resolve => setTimeout(resolve, 620));
+          await this.audio.playNote(q.instrument, midi, 0, duration, 0.95);
+          await new Promise(resolve => setTimeout(resolve, (duration + this.audio.scaleNoteGap) * 1000));
         }
       } else if (q.type === 'interval' || q.type === 'pitch') {
         await this.audio.playInterval(
@@ -942,7 +996,7 @@ function senafonicaGame(initData) {
         ? scaleObj.intervals_pattern.split(',').map(Number)
         : [2, 2, 1, 2, 2, 2, 1];
 
-      this._updateMascot('listening', `Reproduciendo ${scaleObj.name} en ${this.jamInstrument} (sostenido recortado fluido)...`);
+      this._updateMascot('listening', `Reproduciendo ${scaleObj.name} en ${this.jamInstrument} (notas de 2 s con resonancia natural)...`);
 
       await this.audio.playScale(
         this.jamInstrument,
@@ -981,9 +1035,9 @@ function senafonicaGame(initData) {
     // ══════════════════════════════════════════════════════════════════════
     // SHOP & IN-GAME INVENTORY
     // ══════════════════════════════════════════════════════════════════════
-    buyItem(item) {
+    async buyItem(item) {
       if (this.unlockedItems.includes(item.id)) {
-        this.equipItem(item);
+        await this.equipItem(item);
         return;
       }
 
@@ -992,16 +1046,47 @@ function senafonicaGame(initData) {
         return;
       }
 
-      this.coins -= item.cost_coins;
-      this.unlockedItems.push(item.id);
-      this.equipItem(item);
+      if (this.user.authenticated) {
+        try {
+          const response = await fetch('/api/senafonica/skins', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': this.csrfToken },
+            body: JSON.stringify({ action: 'purchase', item_id: item.id }),
+          });
+          const result = await response.json();
+          if (!response.ok) throw new Error(result.error || 'No se pudo comprar la skin.');
+          this._applyServerSkinState(result);
+        } catch (error) {
+          this._updateMascot('sad', error.message || 'No se pudo comprar la skin.');
+          return;
+        }
+      } else {
+        this.coins -= item.cost_coins;
+        this.unlockedItems.push(item.id);
+        await this.equipItem(item);
+      }
       this.audio.playLifeRestoredSound();
       this._triggerConfetti();
       this._saveLocalState();
       this._updateMascot('celebrating', `¡Desbloqueaste ${item.title}! Ya lo llevas equipado.`);
     },
 
-    equipItem(item) {
+    async equipItem(item) {
+      if (item.type === 'skin' && this.user.authenticated) {
+        try {
+          const response = await fetch('/api/senafonica/skins', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': this.csrfToken },
+            body: JSON.stringify({ action: 'equip', item_id: item.id }),
+          });
+          const result = await response.json();
+          if (!response.ok) throw new Error(result.error || 'No se pudo equipar la skin.');
+          this._applyServerSkinState(result);
+        } catch (error) {
+          this._updateMascot('sad', error.message || 'No se pudo equipar la skin.');
+        }
+        return;
+      }
       if (item.type === 'skin') {
         this.equippedSkin = item.id;
       } else if (item.type === 'accessory') {
@@ -1010,6 +1095,31 @@ function senafonicaGame(initData) {
         else if (item.slot === 'eyes') this.equippedAccessories.eyes = item.id;
       }
       this._saveLocalState();
+    },
+
+    _applyServerSkinState(data) {
+      this.xp = data.total_xp;
+      this.coins = data.coins;
+      this.equippedSkin = data.equipped_skin;
+      const accessories = this.unlockedItems.filter(
+        id => !this.shopItems.some(item => item.id === id && item.type === 'skin')
+      );
+      this.unlockedItems = [...new Set([...accessories, ...data.unlocked_skins])];
+      this._saveLocalState();
+    },
+
+    changeBackground(imageUrl, themeColor) {
+      const nextColor = themeColor || '#0B111A';
+      if (!imageUrl || (imageUrl === this.backgroundImage && nextColor === this.backgroundColor)) return;
+      this.backgroundVisible = false;
+      clearTimeout(this.backgroundTimer);
+      this.backgroundTimer = setTimeout(() => {
+        this.backgroundImage = imageUrl;
+        this.backgroundColor = nextColor;
+        this.$nextTick(() => {
+          requestAnimationFrame(() => { this.backgroundVisible = true; });
+        });
+      }, 250);
     },
 
     // ══════════════════════════════════════════════════════════════════════
@@ -1088,9 +1198,9 @@ function senafonicaGame(initData) {
         });
         if (res.ok) {
           const serverData = await res.json();
-          if (serverData.total_xp) this.xp = serverData.total_xp;
-          if (serverData.coins) this.coins = serverData.coins;
-          if (serverData.streak) this.streak = serverData.streak;
+          if (serverData.total_xp !== undefined) this.xp = serverData.total_xp;
+          if (serverData.coins !== undefined) this.coins = serverData.coins;
+          if (serverData.streak !== undefined) this.streak = serverData.streak;
         }
       } catch (err) {
         console.warn('Server sync failed, local state preserved:', err);

@@ -2,7 +2,7 @@ import hashlib
 import hmac
 import logging
 import secrets
-from datetime import datetime, timezone, timedelta
+from datetime import date, datetime, timezone, timedelta
 from urllib.parse import urlsplit
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_user, logout_user, login_required, current_user
@@ -13,6 +13,7 @@ from ..models.user import User
 from ..models.progress import Progress, UserStatistics
 from ..models.gamification import UserGamification
 from ..utils.validation import valid_email, valid_password, valid_username
+from ..utils.timezone import bogota_date
 
 log = logging.getLogger(__name__)
 
@@ -83,6 +84,7 @@ def register():
         email      = request.form.get("email", "").lower().strip()
         password   = request.form.get("password", "")
         confirm    = request.form.get("confirm_password", "")
+        birth_date_value = request.form.get("birth_date", "").strip()
 
         # Validaciones
         if not all([first_name, last_name, username, email, password]):
@@ -109,6 +111,15 @@ def register():
             flash("Las contraseñas no coinciden.", "danger")
             return render_template("auth/register.html")
 
+        try:
+            birth_date = date.fromisoformat(birth_date_value)
+        except ValueError:
+            flash("Ingresa una fecha de nacimiento válida.", "danger")
+            return render_template("auth/register.html")
+        if birth_date > bogota_date():
+            flash("La fecha de nacimiento no puede estar en el futuro.", "danger")
+            return render_template("auth/register.html")
+
         if User.query.filter_by(email=email).first():
             flash("El correo ya está registrado.", "danger")
             return render_template("auth/register.html")
@@ -122,6 +133,7 @@ def register():
             last_name=last_name,
             username=username,
             email=email,
+            birth_date=birth_date,
         )
         user.set_password(password)
         try:

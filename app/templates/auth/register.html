@@ -50,6 +50,15 @@
                  class="form-input">
         </div>
 
+        <div>
+          <label for="birth_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Fecha de nacimiento</label>
+          <input type="date" id="birth_date" name="birth_date" required
+                 value="{{ request.form.birth_date or '' }}"
+                 autocomplete="bday"
+                 class="form-input">
+          <p class="mt-1 text-xs text-gray-500">En el ranking solo se mostrará tu edad, nunca la fecha completa.</p>
+        </div>
+
         <div x-data="{ show: false }">
           <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Contraseña</label>
           <div class="relative">

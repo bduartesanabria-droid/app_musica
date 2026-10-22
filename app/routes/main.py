@@ -1,9 +1,10 @@
 import os
 import uuid
 import io
+import json
 from urllib.parse import urlsplit
 
-from flask import Blueprint, render_template, redirect, url_for, current_app, request, flash, send_from_directory, abort
+from flask import Blueprint, render_template, redirect, url_for, current_app, request, flash, send_from_directory, abort, jsonify
 from flask_login import login_required, current_user
 from PIL import Image, UnidentifiedImageError
 from sqlalchemy.exc import IntegrityError
@@ -13,6 +14,7 @@ from ..models.instrument import Interval, Scale, Instrument
 from ..models.audio import Audio
 from ..models.session import TrainingSession
 from ..models.gamification import UserBadge
+from ..models.user import User
 from ..extensions import db
 from datetime import datetime, timezone, timedelta
 from sqlalchemy.orm import joinedload
@@ -251,6 +253,127 @@ def rankings():
         top_xp=top_xp,
         top_accuracy=top_accuracy,
         user_rank=user_rank,
+    )
+
+
+def _public_age(birth_date, today=None):
+    if not birth_date:
+        return None
+    today = today or datetime.now(BOGOTA).date()
+    return today.year - birth_date.year - (
+        (today.month, today.day) < (birth_date.month, birth_date.day)
+    )
+
+
+def _public_profile_data(user):
+    gamification = UserGamification.query.filter_by(user_id=user.id).first()
+    badge_entries = []
+    from .senafonica import SHOP_ITEMS
+
+    equipped_skin = "skin_tiple_noble"
+    points = 0
+    unlocked_ids = ["skin_tiple_noble"]
+    if gamification:
+        points = gamification.total_xp or 0
+        equipped_skin = gamification.equipped_skin or equipped_skin
+        unlocked_ids = json.loads(
+            gamification.unlocked_skins_json or '["skin_tiple_noble"]'
+        ) or ["skin_tiple_noble"]
+        badge_entries = [
+            {
+                "name": earned.badge.name,
+                "description": earned.badge.description,
+                "icon": earned.badge.icon,
+                "earned_at": earned.earned_at.isoformat() if earned.earned_at else None,
+            }
+            for earned in (
+                UserBadge.query.join(UserGamification)
+                .filter(UserGamification.user_id == user.id)
+                .options(joinedload(UserBadge.badge))
+                .order_by(UserBadge.earned_at.desc())
+                .all()
+            )
+        ]
+    skin_items = [
+        {
+            "id": item["id"],
+            "title": item["title"],
+            "instrument": item["instrument"],
+            "image": url_for(
+                "static",
+                filename=f"img/{item['instrument'].lower()}.jpeg",
+            ),
+            "equipped": item["id"] == equipped_skin,
+        }
+        for item in SHOP_ITEMS
+        if item["type"] == "skin" and item["id"] in unlocked_ids
+    ]
+    return {
+        "username": user.username,
+        "age": _public_age(user.birth_date),
+        "points": points,
+        "avatar_url": user.avatar_url,
+        "equipped_skin": equipped_skin,
+        "skins": skin_items,
+        "achievements": badge_entries,
+    }
+
+
+def _public_ranking_data():
+    from sqlalchemy import func
+
+    rows = (
+        db.session.query(User, UserGamification)
+        .outerjoin(UserGamification, User.id == UserGamification.user_id)
+        .filter(User.is_active.is_(True))
+        .order_by(func.coalesce(UserGamification.total_xp, 0).desc(), User.username.asc())
+        .limit(100)
+        .all()
+    )
+    return [
+        {
+            "position": index,
+            "username": user.username,
+            "age": _public_age(user.birth_date),
+            "points": (gamification.total_xp or 0) if gamification else 0,
+        }
+        for index, (user, gamification) in enumerate(rows, start=1)
+    ]
+
+
+@main_bp.get("/public-ranking")
+def public_ranking():
+    return render_template(
+        "rankings/public.html",
+        players=_public_ranking_data(),
+        profile_api_url=url_for("main.public_profile_api", username="__username__"),
+        profile_page_url=url_for("main.public_profile", username="__username__"),
+    )
+
+
+@main_bp.get("/api/rankings")
+def public_ranking_api():
+    return jsonify({"players": _public_ranking_data()})
+
+
+@main_bp.get("/api/players/<username>")
+def public_profile_api(username):
+    user = User.query.filter(
+        db.func.lower(User.username) == username.lower(),
+        User.is_active.is_(True),
+    ).first_or_404()
+    return jsonify(_public_profile_data(user))
+
+
+@main_bp.get("/players/<username>")
+def public_profile(username):
+    user = User.query.filter(
+        db.func.lower(User.username) == username.lower(),
+        User.is_active.is_(True),
+    ).first_or_404()
+    return render_template(
+        "rankings/public_profile.html",
+        profile=_public_profile_data(user),
     )
 
 

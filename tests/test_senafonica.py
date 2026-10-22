@@ -1,7 +1,11 @@
 import json
+from datetime import date
 from app.extensions import db
 from app.models.audio import Audio
+from app.models.gamification import Badge, UserBadge, UserGamification
 from app.models.instrument import Instrument, Note
+from app.models.user import User
+from app.routes.main import _public_age
 
 
 def test_root_redirects_to_senafonica(client):
@@ -54,6 +58,76 @@ def test_senafonica_api_data(client):
     assert levels[10]["intervals"] == ["Octava"]
     assert levels[11]["type"] == "melody"
     assert len(levels[11]["melodies"][0]["offsets"]) == 3
+    assert all(level["background_image"].startswith("/static/img/locations/") for level in levels)
+    assert levels[2]["background_image"].endswith("velez-cathedral.svg")
+    assert levels[5]["background_image"].endswith("guavata.svg")
+
+
+def test_public_age_calculates_birthday_boundary():
+    assert _public_age(date(2000, 6, 15), today=date(2025, 6, 14)) == 24
+    assert _public_age(date(2000, 6, 15), today=date(2025, 6, 15)) == 25
+    assert _public_age(None, today=date(2025, 6, 15)) is None
+
+
+def test_public_ranking_and_profile_are_available_to_guests(client, app, make_user):
+    player_id = make_user(username="musician")
+    with app.app_context():
+        player = db.session.get(User, player_id)
+        player.birth_date = date(2000, 1, 1)
+        gamification = UserGamification.query.filter_by(user_id=player_id).one()
+        gamification.total_xp = 275
+        gamification.equipped_skin = "skin_bandola_dorada"
+        gamification.unlocked_skins_json = '["skin_tiple_noble","skin_bandola_dorada"]'
+        badge = Badge(name="Oído atento", description="Escuchó con cuidado.", icon="♪")
+        db.session.add(badge)
+        db.session.flush()
+        db.session.add(UserBadge(user_gamification_id=gamification.id, badge_id=badge.id))
+        db.session.commit()
+
+    ranking = client.get("/public-ranking")
+    assert ranking.status_code == 200
+    assert b"musician-0" in ranking.data
+    assert b"Ranking de aprendices" in ranking.data
+
+    ranking_data = client.get("/api/rankings").get_json()["players"]
+    assert ranking_data[0]["username"] == "musician-0"
+    assert ranking_data[0]["points"] == 275
+    assert ranking_data[0]["age"] is not None
+
+    profile = client.get("/api/players/musician-0")
+    assert profile.status_code == 200
+    data = profile.get_json()
+    assert data["points"] == 275
+    assert data["age"] is not None
+    assert data["equipped_skin"] == "skin_bandola_dorada"
+    assert {skin["id"] for skin in data["skins"]} == {
+        "skin_tiple_noble",
+        "skin_bandola_dorada",
+    }
+    assert data["achievements"][0]["name"] == "Oído atento"
+
+
+def test_authenticated_player_can_purchase_and_equip_skin(login_client):
+    client, user_id = login_client()
+    with client.application.app_context():
+        gamification = UserGamification.query.filter_by(user_id=user_id).one()
+        gamification.total_xp = 500
+        gamification.coins = 100
+        db.session.commit()
+
+    response = client.post(
+        "/api/senafonica/skins",
+        data=json.dumps({"action": "purchase", "item_id": "skin_bandola_dorada"}),
+        content_type="application/json",
+    )
+
+    assert response.status_code == 200
+    assert response.get_json()["equipped_skin"] == "skin_bandola_dorada"
+    with client.application.app_context():
+        gamification = UserGamification.query.filter_by(user_id=user_id).one()
+        assert gamification.total_xp == 500
+        assert gamification.coins == 55
+        assert "skin_bandola_dorada" in gamification.unlocked_skins_json
 
 
 def test_senafonica_catalog_streams_active_audio_from_database(client, app):

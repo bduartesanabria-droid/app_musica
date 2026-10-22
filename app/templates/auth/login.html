@@ -17,13 +17,8 @@
       <!-- Logo SENA -->
       <div class="flex flex-col items-start">
         <div class="flex items-center gap-4 mb-2">
-          <svg width="56" height="56" viewBox="0 0 52 52" fill="none">
-            <circle cx="26" cy="10" r="7" fill="#39A900"/>
-            <path d="M6 26 Q26 18 46 26" stroke="#39A900" stroke-width="4" stroke-linecap="round" fill="none"/>
-            <line x1="26" y1="20" x2="26" y2="38" stroke="#39A900" stroke-width="4" stroke-linecap="round"/>
-            <line x1="26" y1="38" x2="16" y2="50" stroke="#39A900" stroke-width="4" stroke-linecap="round"/>
-            <line x1="26" y1="38" x2="36" y2="50" stroke="#39A900" stroke-width="4" stroke-linecap="round"/>
-          </svg>
+          <img src="{{ url_for('static', filename='img/logoSenafonico.jpeg') }}"
+               alt="Senafónico" width="72" height="72" class="rounded-xl object-contain">
           <div>
             <p class="text-2xl font-black tracking-widest" style="color:#39A900">SEMIMUS</p>
             <p class="text-xs" style="color:rgba(255,255,255,0.4)">Sistema de Entrenamiento Melódico Musical</p>
@@ -98,13 +93,8 @@
 
       <!-- Mobile logo -->
       <div class="lg:hidden text-center mb-8">
-        <svg width="44" height="44" viewBox="0 0 52 52" fill="none" class="mx-auto mb-3">
-          <circle cx="26" cy="10" r="7" fill="#39A900"/>
-          <path d="M6 26 Q26 18 46 26" stroke="#39A900" stroke-width="4" stroke-linecap="round" fill="none"/>
-          <line x1="26" y1="20" x2="26" y2="38" stroke="#39A900" stroke-width="4" stroke-linecap="round"/>
-          <line x1="26" y1="38" x2="16" y2="50" stroke="#39A900" stroke-width="4" stroke-linecap="round"/>
-          <line x1="26" y1="38" x2="36" y2="50" stroke="#39A900" stroke-width="4" stroke-linecap="round"/>
-        </svg>
+        <img src="{{ url_for('static', filename='img/logoSenafonico.jpeg') }}"
+             alt="Senafónico" width="64" height="64" class="mx-auto mb-3 rounded-xl object-contain">
         <p class="text-xl font-black" style="color:#39A900">SEMIMUS</p>
       </div>
 

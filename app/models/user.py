@@ -12,6 +12,7 @@ class User(UserMixin, db.Model):
     password_hash = db.Column(db.String(255), nullable=False)
     first_name  = db.Column(db.String(80), nullable=False)
     last_name   = db.Column(db.String(80), nullable=False)
+    birth_date  = db.Column(db.Date, nullable=True)
     role        = db.Column(db.String(20), nullable=False, default="aprendiz")
     is_active   = db.Column(db.Boolean, default=True)
     is_verified = db.Column(db.Boolean, default=False)

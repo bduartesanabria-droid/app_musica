@@ -30,6 +30,21 @@
   overflow-x: hidden;
 }
 
+.scene-background {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0;
+  background-position: center;
+  background-size: cover;
+  transition: opacity 500ms ease;
+}
+
+.scene-background-visible {
+  opacity: 1;
+}
+
 /* Touch Accessibility standard (min 48x48px) */
 button, .touch-target {
   min-height: 48px;
@@ -377,4 +392,3 @@ button, .touch-target {
 .mascot-center-grid > * {
   pointer-events: auto;
 }
-

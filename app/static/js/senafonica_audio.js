@@ -3,7 +3,7 @@
  *
  * Provides:
  * 1. High-precision Web Audio API scheduling for scales and intervals.
- * 2. Optimized, trimmed note sustain (reduced by >1s for live virtuoso tempo).
+ * 2. Uniform 2-second teaching notes with a smooth release so resonance stays audible.
  * 3. 3 interval directions: Ascendente, Descendente, Intercalada/Aleatoria.
  * 4. Realistic acoustic synthesis for Colombian folk instruments:
  *    - Tiple (12-string triple orders, metallic chorus shimmer)
@@ -22,16 +22,18 @@ class SenafonicaAudioEngine {
     this.sampleCache = new Map(); // url -> AudioBuffer
     this.sampleOffsets = new Map(); // url -> first audible sample offset
     this.loadingPromises = new Map();
+    this.normalizedGains = new WeakMap();
     this.activeNodes = [];
     this.activeMedia = new Set();
     this.isPlaying = false;
     this.playToken = 0;
 
-    // Default note duration for scale playback (trimmed by >1s)
-    this.scaleNoteDuration = 0.42; // Seconds per note (rapid and fluid, live virtuoso execution)
-    this.scaleNoteGap = 0.02;      // No empty silence between notes
-    this.intervalNoteDuration = 0.55;
-    this.intervalNoteGap = 0.16;
+    // Teaching tempo: every note rings for 2 seconds with even spacing
+    this.scaleNoteDuration = 2.0;
+    this.scaleNoteGap = 0.1;
+    this.intervalNoteDuration = 2.0;
+    this.intervalNoteGap = 0.5;
+    this.releaseTime = 0.4;        // Gentle fade so the string resonance is not cut off
 
     // MIDI Note name map
     this.NOTE_NAMES = ["DO", "DO#", "RE", "RE#", "MI", "FA", "FA#", "SOL", "SOL#", "LA", "LA#", "SI"];
@@ -71,10 +73,16 @@ class SenafonicaAudioEngine {
       } finally {
         this.loadingPromises.delete(url);
       }
+
     })();
 
     this.loadingPromises.set(url, promise);
     return promise;
+  }
+
+  async preloadNotes(instrument, midis) {
+    const urls = [...new Set(midis.map(midi => this.getSampleUrl(instrument, midi)).filter(Boolean))];
+    await Promise.all(urls.map(url => this.preloadSample(url)));
   }
 
   _findSampleOffset(buffer) {
@@ -162,8 +170,8 @@ class SenafonicaAudioEngine {
   }
 
   /**
-   * Plays a single note with trimmed sustain.
-   * If a real sample exists, uses the AudioBuffer with an exponential decay envelope.
+   * Plays a single note with a natural, resonant sustain.
+   * If a real sample exists, uses the AudioBuffer with a gentle release envelope.
    * Otherwise uses high-fidelity Colombian folk synthesis.
    */
   async playNote(instrument, midi, startTime = 0, duration = 0.5, volume = 0.9) {
@@ -260,7 +268,7 @@ class SenafonicaAudioEngine {
   }
 
   /**
-   * Optimized sample playback with trimmed sustain.
+   * Sample playback that preserves the instrument's natural resonance.
    * Standard sample tail has ~1.8-2.5s; we ramp down quickly to simulate live execution.
    */
   _playSampleBuffer(buffer, startTime, duration, volume, sampleOffset = 0) {
@@ -269,22 +277,49 @@ class SenafonicaAudioEngine {
     source.buffer = buffer;
 
     const gainNode = ctx.createGain();
-    gainNode.gain.setValueAtTime(volume, startTime);
-    // Sustain trimmed: keep body, then apply clean exponential release
-    const decayStart = startTime + Math.max(0.12, duration - 0.15);
-    const stopTime = startTime + duration;
+    const normalizedGain = this._getNormalizedGain(buffer, sampleOffset);
+    const outputGain = Math.max(0, Math.min(1, volume)) * normalizedGain;
+    const stopTime = startTime + Math.max(0.05, duration);
+    const attackEnd = Math.min(startTime + 0.01, stopTime - 0.02);
+    const release = Math.min(this.releaseTime, Math.max(0.08, duration * 0.6));
+    const fadeStart = Math.max(attackEnd, stopTime - release);
 
-    gainNode.gain.setValueAtTime(volume, decayStart);
-    gainNode.gain.exponentialRampToValueAtTime(0.001, stopTime);
+    gainNode.gain.setValueAtTime(0.0001, startTime);
+    gainNode.gain.linearRampToValueAtTime(outputGain, attackEnd);
+    gainNode.gain.setValueAtTime(outputGain, fadeStart);
+    gainNode.gain.exponentialRampToValueAtTime(0.0001, stopTime);
 
     source.connect(gainNode);
     gainNode.connect(ctx.destination);
 
     source.start(startTime, Math.min(sampleOffset, Math.max(0, buffer.duration - 0.01)));
-    source.stop(stopTime + 0.05);
+    source.stop(stopTime);
 
     this.activeNodes.push(source);
     return stopTime;
+  }
+
+  _getNormalizedGain(buffer, sampleOffset) {
+    if (this.normalizedGains.has(buffer)) return this.normalizedGains.get(buffer);
+    const sampleRate = buffer.sampleRate;
+    const start = Math.min(buffer.length - 1, Math.floor(sampleOffset * sampleRate));
+    const end = Math.min(buffer.length, start + Math.floor(sampleRate * 0.5));
+    let squareSum = 0;
+    let peak = 0;
+    let count = 0;
+    for (let channel = 0; channel < buffer.numberOfChannels; channel++) {
+      const samples = buffer.getChannelData(channel);
+      for (let index = start; index < end; index++) {
+        const value = Math.abs(samples[index]);
+        squareSum += value * value;
+        peak = Math.max(peak, value);
+        count++;
+      }
+    }
+    const rms = Math.sqrt(squareSum / Math.max(count, 1));
+    const gain = Math.min(4, 0.18 / Math.max(rms, 0.01), 0.85 / Math.max(peak, 0.01));
+    this.normalizedGains.set(buffer, gain);
+    return gain;
   }
 
   /**
@@ -449,9 +484,9 @@ class SenafonicaAudioEngine {
 
     // Note 2
     if (onNoteCallback) onNoteCallback(1, note2Midi, this.midiToName(note2Midi));
-    await this.playNote(instrument, note2Midi, 0, dur + 0.15, 0.95);
+    await this.playNote(instrument, note2Midi, 0, dur, 0.95);
 
-    await new Promise(res => setTimeout(res, (dur + 0.15) * 1000));
+    await new Promise(res => setTimeout(res, (dur + gap) * 1000));
     if (token === this.playToken) {
       this.isPlaying = false;
       if (onNoteCallback) onNoteCallback(-1, null, null);
@@ -460,8 +495,8 @@ class SenafonicaAudioEngine {
 
   /**
    * NÚCLEO 2: SCALE PLAYER
-   * Plays the full scale with trimmed note sustains, notes firing one right after another
-   * simulating live authentic performance without silent gaps.
+   * Plays the full scale at a steady teaching tempo: each note rings for 2 seconds
+   * so the student can hear the instrument's resonance before the next one starts.
    *
    * @param {string} instrument - 'Tiple', 'Requinto', 'Bandola'
    * @param {number} rootMidi - Root note (e.g. 55 or 60)

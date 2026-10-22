@@ -159,6 +159,39 @@ def test_registration_rejects_malformed_email(client):
         assert User.query.count() == 0
 
 
+def test_registration_requires_valid_non_future_birth_date(client):
+    response = client.post("/auth/register", data={
+        "first_name": "Test",
+        "last_name": "User",
+        "username": "valid-user",
+        "email": "valid-user@example.test",
+        "password": "valid-password",
+        "confirm_password": "valid-password",
+        "birth_date": "2999-01-01",
+    })
+
+    assert response.status_code == 200
+    assert "no puede estar en el futuro".encode() in response.data
+    with client.application.app_context():
+        assert User.query.count() == 0
+
+
+def test_registration_persists_birth_date(client):
+    response = client.post("/auth/register", data={
+        "first_name": "Test",
+        "last_name": "User",
+        "username": "valid-user",
+        "email": "valid-user@example.test",
+        "password": "valid-password",
+        "confirm_password": "valid-password",
+        "birth_date": "2000-01-15",
+    })
+
+    assert response.status_code == 302
+    with client.application.app_context():
+        assert User.query.filter_by(username="valid-user").one().birth_date.isoformat() == "2000-01-15"
+
+
 def test_profile_rejects_password_over_72_bytes(app, login_client):
     client, user_id = login_client(password="old-password-123")
 
