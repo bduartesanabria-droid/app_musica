@@ -1,5 +1,9 @@
 /* SENAFÓNICA Custom Design System - Duolingo-style Andean Gamification */
 
+[x-cloak] {
+  display: none !important;
+}
+
 :root {
   --sena-green: #39A900;
   --sena-dark-green: #297A00;

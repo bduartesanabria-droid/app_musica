@@ -18,20 +18,23 @@
   <script defer src="{{ url_for('static', filename='vendor/alpine-3.14.9.min.js') }}"></script>
   <script src="{{ url_for('static', filename='js/senafonica_audio.js') }}"></script>
   <script src="{{ url_for('static', filename='js/senafonica_game.js') }}"></script>
+  <script id="senafonica-init-data" type="application/json">
+{{ {
+  "user": user_info,
+  "catalog": audio_catalog,
+  "intervals": intervals_data,
+  "scales": scales_data,
+  "levels": levels_config,
+  "theoryQuestions": theory_questions,
+  "inductionQuestions": induction_questions,
+  "shopItems": shop_items,
+  "csrfToken": csrf_token()
+}|tojson }}
+  </script>
 </head>
 
 <body class="senafonica-shell flex flex-col justify-between"
-      x-data="senafonicaGame({
-        user: {{ user_info|tojson }},
-        catalog: {{ audio_catalog|tojson }},
-        intervals: {{ intervals_data|tojson }},
-        scales: {{ scales_data|tojson }},
-        levels: {{ levels_config|tojson }},
-        theoryQuestions: {{ theory_questions|tojson }},
-        inductionQuestions: {{ induction_questions|tojson }},
-        shopItems: {{ shop_items|tojson }},
-        csrfToken: '{{ csrf_token() }}'
-      })">
+      x-data="senafonicaGame()">
 
   <!-- Confetti Canvas overlay -->
   <canvas id="senafonica-confetti"></canvas>
@@ -89,7 +92,7 @@
     <div x-show="onboardingStep === 'tutorial'" class="onboarding-card space-y-5 text-center">
       <div class="mascot-center-grid">
         <div class="w-32 h-32 flex items-center justify-center">
-          <img src="{{ url_for('static', filename='img/niños_traje.png') }}" alt="Mascota Veleña" class="w-full h-full object-contain filter drop-shadow">
+          <img src="{{ url_for('static', filename='img/ninos_traje.png') }}" alt="Mascota Veleña" class="w-full h-full object-contain filter drop-shadow">
         </div>
       </div>
 
@@ -263,7 +266,8 @@
     <div class="mascot-center-grid">
       <div class="mascot-avatar-wrap">
         <!-- PNG Sin Fondo Transparente -->
-        <img :src="mascotImg"
+        <img src="{{ url_for('static', filename='img/ninos_traje.png') }}"
+             :src="mascotImg"
              alt="Mascota Folclórica Veleña"
              class="mascot-img"
              :class="{

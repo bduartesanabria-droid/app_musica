@@ -4,17 +4,28 @@
  */
 
 function senafonicaGame(initData) {
+  let data = initData;
+  if (!data || typeof data !== 'object') {
+    try {
+      const el = document.getElementById('senafonica-init-data');
+      data = el ? JSON.parse(el.textContent) : {};
+    } catch (e) {
+      console.warn('Could not parse senafonica-init-data', e);
+      data = {};
+    }
+  }
+
   return {
     // ── DATA & CONFIG ────────────────────────────────────────────────────────
-    user: initData.user || { name: 'Aprendiz Veleño', xp: 0, coins: 0, level: 1, streak: 1 },
-    catalog: initData.catalog || {},
-    intervals: initData.intervals || [],
-    scales: initData.scales || [],
-    stations: initData.levels || [], // 9 Estaciones de Vélez
-    theoryQuestions: initData.theoryQuestions || [],
-    inductionQuestions: initData.inductionQuestions || [],
-    shopItems: initData.shopItems || [],
-    csrfToken: initData.csrfToken || '',
+    user: data.user || { name: 'Aprendiz Veleño', xp: 0, coins: 0, level: 1, streak: 1 },
+    catalog: data.catalog || {},
+    intervals: data.intervals || [],
+    scales: data.scales || [],
+    stations: data.levels || [], // 9 Estaciones de Vélez
+    theoryQuestions: data.theoryQuestions || [],
+    inductionQuestions: data.inductionQuestions || [],
+    shopItems: data.shopItems || [],
+    csrfToken: data.csrfToken || '',
 
     // ── ONBOARDING & LEGAL FLOW ─────────────────────────────────────────────
     // Steps: 'legal' -> 'tutorial' -> 'induction_cards' -> 'induction_quiz' -> 'completed'
@@ -84,7 +95,7 @@ function senafonicaGame(initData) {
     // ── MASCOT CONTROLLER (PNG SIN FONDO) ───────────────────────────────────
     mascotState: 'idle', // 'idle' | 'celebrating' | 'sad' | 'listening'
     mascotSpeech: '¡Bienvenido a SENAFÓNICA! Recorreremos la hermosa Provincia de Vélez.',
-    mascotImg: '/static/img/niños_traje.png',
+    mascotImg: '/static/img/ninos_traje.png',
 
     // ── AUDIO ENGINE ────────────────────────────────────────────────────────
     audio: null,
@@ -232,11 +243,11 @@ function senafonicaGame(initData) {
       this.mascotState = state;
       if (speech) this.mascotSpeech = speech;
       if (state === 'celebrating') {
-        this.mascotImg = '/static/img/niños_acertaste.png';
+        this.mascotImg = '/static/img/ninos_acertaste.png';
       } else if (state === 'sad') {
-        this.mascotImg = '/static/img/niños_tristes.png';
+        this.mascotImg = '/static/img/ninos_tristes.png';
       } else {
-        this.mascotImg = '/static/img/niños_traje.png';
+        this.mascotImg = '/static/img/ninos_traje.png';
       }
     },
 
