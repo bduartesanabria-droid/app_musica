@@ -54,11 +54,19 @@
 </div>
 {% endblock %}
 {% block scripts %}
+<script src="{{ url_for('static', filename='js/senafonica_audio.js') }}"></script>
 <script>
 function scalePlayer(catalog) {
   const scaleData = [{% for scale in scales %}{name: {{ scale.name|tojson }}, pattern: {{ scale.intervals_pattern|tojson }}},{% endfor %}];
   return {
-    catalog, scaleData, instrument: '', scaleIndex: '0', rootMidi: '', availableRoots: [], scaleNotes: [], playing: false, status: 'Selecciona las opciones para comenzar.', player: null, timer: null,
+    catalog, scaleData, instrument: '', scaleIndex: '0', rootMidi: '', availableRoots: [], scaleNotes: [], playing: false, status: 'Selecciona las opciones para comenzar.', engine: null,
+    init() {
+      const engineCatalog = {};
+      for (const [name, items] of Object.entries(this.catalog || {})) {
+        engineCatalog[name] = items.map(item => ({ midi: item.midi, stream_url: item.url }));
+      }
+      this.engine = new SenafonicaAudioEngine(engineCatalog);
+    },
     getCatalogNotes() {
       if (!this.catalog || !this.instrument) return [];
       const instLower = this.instrument.toLowerCase();
@@ -99,39 +107,30 @@ function scalePlayer(catalog) {
       this.scaleNotes = notes;
       this.status = notes.length ? `${notes.length} notas disponibles` : 'No hay audios suficientes para esta escala.';
     },
-    playScale() {
-      if (!this.scaleNotes.length) return;
+    async playScale() {
+      if (!this.scaleNotes.length || !this.engine) return;
       this.stop();
       this.playing = true;
-      let index = 0;
-      const next = () => {
-        if (!this.playing || index >= this.scaleNotes.length) {
+      const duration = this.engine.scaleNoteDuration;
+      try {
+        for (const note of this.scaleNotes) {
+          if (!this.playing) return;
+          this.status = `Reproduciendo ${note.name}`;
+          await this.engine.playNote(this.instrument, note.midi, 0, duration, 0.95);
+          await new Promise(resolve => setTimeout(resolve, (duration + this.engine.scaleNoteGap) * 1000));
+        }
+        if (this.playing) {
           this.status = 'Escala finalizada.';
           this.stop();
-          return;
         }
-        this.status = `Reproduciendo ${this.scaleNotes[index].name}`;
-        this.player = new Audio(this.scaleNotes[index++].url);
-        this.player.preload = 'auto';
-        this.player.onended = next;
-        this.player.onerror = () => {
-          this.status = 'No se pudo cargar este audio. Vuelve a cargarlo en formato WAV.';
-          this.stop();
-        };
-        this.player.play().catch(() => {
-          this.status = 'El navegador bloqueo la reproducción.';
-          this.stop();
-        });
-      };
-      next();
+      } catch (error) {
+        this.status = 'No se pudo reproducir la escala.';
+        this.stop();
+      }
     },
     stop() {
       this.playing = false;
-      if (this.player) {
-        this.player.pause();
-        this.player = null;
-      }
-      clearTimeout(this.timer);
+      if (this.engine) this.engine.stop();
     }
   };
 }
