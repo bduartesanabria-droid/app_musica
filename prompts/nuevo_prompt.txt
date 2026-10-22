@@ -1,0 +1,94 @@
+Actúa como un Arquitecto de Software Senior, Diseñador de Videojuegos (Game Designer) y Desarrollador Full-Stack experto en Gamificación Educativa y Web Audio API. Tu objetivo es refactorizar y reestructurar por completo la aplicación "SENAFÓNICA", transformándola en un VIDEOJUEGO WEB ÚNICO, AUTÓNOMO E INTEGRADO. 
+
+Deben eliminarse todos los apartados o secciones secundarias externas (módulos separados de entrenamiento, catálogos o vistas LMS tradicionales). El 100% de la experiencia de usuario debe transcurrir dentro del flujo continuo del juego.
+
+---
+
+### 1. FLUJO CONTINUO DEL JUEGO (ONBOARDING E INICIO LEGAL)
+
+Al ingresar a la aplicación, el usuario no ve menús externos ni dashboards generales, entra directamente al flujo interactivo del juego:
+
+1. Pantalla de Bienvenida y Consentimiento Legal:
+   - Formulario de inicio para capturar la Edad del jugador.
+   - Checkbox obligatorio para la "Autorización y Tratamiento de Datos Personales".
+2. Tutorial Integrado (Onboarding Narrativo):
+   - Diálogo interactivo con la Mascota Guía (aprendiz con traje folclórico veleño):
+     "¡Bienvenido a SENAFÓNICA! Recorreremos la hermosa Provincia de Vélez afinando tu oído musical con el Tiple, la Bandola y el Requinto."
+3. Inducción Teórica Interactiva (Nivel 0 / Bienvenida):
+   - Antes del mapa, se presenta una minilección gráfica ilustrada que explica de forma didáctica:
+     * ¿Qué es un Intervalo Musical? (La distancia entre dos notas).
+     * ¿Qué es una Escala Musical? (La escalera de notas que le da color a la música andina).
+   - Un mini-quiz de 3 preguntas de validación teórica inicial para desbloquear el viaje.
+
+---
+
+### 2. MAPA DE RUTA CULTURAL - RECORRIDO POR LA PROVINCIA DE VÉLEZ
+
+El núcleo principal del juego es un mapa de progression lineal y curvo estilo Duolingo/Candy Crush ambientado en la región autóctona:
+
+1. Estaciones Emblemáticas (Nodos del Mapa):
+   - Punto 1: Barbosa (Puerta de Oro de Santander) -> Introducción Teórica y 2ªs/3ªs Mayores.
+   - Punto 2: Catedral de Nuestra Señora de las Nieves (Vélez) -> Escala Pentatónica Tradicional.
+   - Punto 3: Puente Nacional (Cuna de la Libertad) -> Intervalos de 4ªs y 5ªs Justas.
+   - Punto 4: Guavatá (Capital Guayabera) -> Escala Mayor Alegre.
+   - Punto 5: Moniquirá / Fábricas de Bocadillo -> Intervalos de 6ªs y 7ªs.
+   - Puntos Subsiguientes (Veredas y municipios vecinos) -> Escalas Menores (Natural, Armónica, Melódica).
+
+2. Interactividad por Estación:
+   - Fondo Dinámico Temático: Al entrar a una estación (ej. la Iglesia de Vélez), el fondo de pantalla cambia a la ilustración/fotografía representativa sin fondo.
+   - Datos Curiosos e Históricos: Cada nodo despliega una tarjeta flotante con cultura, historia o datos del folclore veleño.
+   - Recompensas de Estación: Al completar cada punto con 3 estrellas, se otorgan coleccionables (Sombrero Vueltiao, Sombrero Aguadeño, Ruana Boyacense/Santandereana, Púas de Oro y Skins de Tiple de Madera Noble).
+
+---
+
+### 3. MECÁNICAS DE JUEGO, GAMIFICACIÓN Y TEORÍA INTEGRADA
+
+1. Sistema de Vidas y Tiempo:
+   - El jugador inicia con 5 vidas (íconos de púas o corazones).
+   - Cada fallo resta 1 vida. Si llega a 0 vidas, la partida se pausa y se activa el "Desafío Teórico de Rescate".
+2. Tarjetas de Desafío Teórico (Rescate y Bonus):
+   - Preguntas sobre semitonos, intervalos, tipos de escalas y folclore (ej. "¿Cuántos semitonos hay en una 5ª Justa?", "¿Qué caracteriza a la Escala Menor Armónica?").
+   - Responder bien otorga +2 vidas instantáneas y +20 XP.
+3. Panel de Juego y Estadísticas In-Game:
+   - HUD superior permanente: Vidas (❤️), Puntos de Experiencia (⭐ XP), Estelleras (★) y Botón de Tienda/Inventario de Skins.
+   - Las estadísticas de aciertos y progreso se consultan dentro de una tarjeta/modal sin salir de la pantalla del juego.
+
+---
+
+### 4. MOTOR DE AUDIO Y REPRODUCCIÓN FOLCLÓRICA OPTIMIZADA
+
+1. Tiempos Recortados y Ejecución Fluida:
+   - Para las escalas, el tiempo de sostenido por nota se reduce a 0.42s con caída suave, eliminando vacíos o silencios estáticos para simular un punteado virtuosístico real en vivo.
+2. Controles de Dirección de Audio:
+   - Selector dinámico activo para escuchar los intervalos y escalas en tres direcciones:
+     * Ascendente
+     * Descendente
+     * Intercalado / Aleatorio
+3. Síntesis y Muestras Reales (Tiple, Requinto, Bandola, Guitarra):
+   - Integración de los audios reales del repositorio y motor Web Audio API calibrado para simular órdenes triples de tiple, percusión de requinto y calidez de cuerdas.
+4. Comparación Auditiva de Errores:
+   - Al fallar un ejercicio, aparece el botón "Escuchar tu respuesta vs. Respuesta correcta" para educar el oído en el contraste de frequencias.
+
+---
+
+### 5. DISEÑO DE INTERFAZ (UI/UX) - MOBILE FIRST Y MASCOTA CENTRADA
+
+1. Mascota Guía Centrada y Reactiva (PNG Sin Fondo):
+   - Ubicar a la mascota (aprendiz con traje folclórico) estrictamente en el centro superior de la pantalla usando contenedores Flexbox/Grid aislados.
+   - Utilizar únicamente imágenes PNG con transparencia 100% (sin recuadros ni bordes blancos).
+   - Reacciones dinámicas en tiempo real:
+     * Acierto: Animación de salto/celebración, confeti y mensaje positivo.
+     * Fallo: Animación de agitación/tristeza empática invitando a comparar los sonidos.
+     * Equipamiento: La mascota refleja visualmente las ruanas y sombreros equipados en la Tienda.
+2. Botones y Táctil Estilo Duolingo:
+   - Botones 3D con relieve táctil de altura mínima de 48px a 64px, optimizados para celulares.
+   - Soporte para atajos de teclado (Barra espaciadora para repetir audio, teclas 1-4 para responder).
+
+---
+
+### 6. ENTREGABLE REQUERIDO
+
+Proporciona la refactorización en código modular (HTML5, Tailwind CSS/CSS3, JavaScript nativo con Web Audio API o Tone.js y Python/Flask en backend si aplica), asegurando:
+1. Reemplazo directo de las vistas previas: Todo el proyecto corre bajo la experiencia `/senafonica` como único punto de entrada.
+2. Lógica completa de onboarding, lección teórica inicial, mapa de la Provincia de Vélez, motor de audio y tienda de skins.
+3. Test suite / comprobación de que no existen subpáginas o secciones externas fuera del ciclo del juego.
