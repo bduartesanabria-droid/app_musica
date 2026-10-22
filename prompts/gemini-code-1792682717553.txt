@@ -1,0 +1,82 @@
+Actúa como un Arquitecto de Software Senior y Desarrollador Full-Stack experto en Gamificación Educativa y Aplicaciones Web Móviles (UI/UX). Tu objetivo es reestructurar y desarrollar la aplicación web "SENAFÓNICA", un juego pedagógico e intuitivo para el entrenamiento del oído musical enfocado en instrumentos folclóricos colombianos (Tiple, Requinto y Bandola).
+
+Debes integrar de manera rigurosa todos los requerimientos de diseño responsive (Mobile-First), optimización de tiempos de audio, arquitectura pedagógica y el sistema de ludificación tipo Duolingo.
+
+---
+
+### 1. ARQUITECTURA PEDAGÓGICA Y CONTENIDOS MUSICALES
+
+El núcleo pedagógico se divide estrictamente en dos bloques principales:
+
+#### A. Núcleo 1: Intervalos Musicales (Oído Melódico)
+- Ámbito: Dentro de una octava.
+- Intervalos a evaluar:
+  * 2ªs (menores y mayores)
+  * 3ªs (menores y mayores)
+  * 4ªs (justa y tritono)
+  * 5ª justa
+  * 6ªs (menores y mayores)
+  * 7ªs (menores y mayores)
+  * 8ª justa
+- Dinámica Melódica: Las notas de los intervalos deben reproducirse en 3 direcciones seleccionables por el usuario:
+  1. Ascendente
+  2. Descendente
+  3. Intercalada / Aleatoria
+
+#### B. Núcleo 2: Escalas y Tonalidades (Progresión por Dificultad)
+- Estructuras incluidas (ordenadas de menor a mayor dificultad para desbloqueo):
+  1. Escala Pentatónica (Sencilla / Tradicional)
+  2. Escala Mayor (Alegre)
+  3. Escala Menor Natural (Nostálgica)
+  4. Escala Menor Armónica (Misteriosa)
+  5. Escala Menor Melódica (Compleja)
+- Lógica de Reproducción de Audio de Escalas:
+  - Tiempos de audio recortados y optimizados: Las notas de la escala deben sonar inmediatamente una tras otra, simulando una ejecución en vivo en el instrumento (sin vacíos ni silencios entre notas).
+  - Reducir el tiempo de sostenido de cada nota (reducir 1 segundo respecto a la versión base) para darle velocidad y fluidez real al sonido.
+
+---
+
+### 2. MECÁNICAS DE JUEGO Y GAMIFICACIÓN (SISTEMA DUOLINGO)
+
+1. Sistema de Vidas y Tiempo:
+   - El estudiante inicia con 5 vidas (representadas con íconos de corazones o púas/plumillas).
+   - Cada respuesta incorrecta resta 1 vida.
+   - Si las vidas llegan a 0, se bloquea el progreso del nivel y se le presenta al usuario la opción de recuperar vidas respondiendo tarjetas de preguntas teóricas.
+
+2. Preguntas Teóricas e Integración:
+   - Insertar tarjetas/modales de preguntas teóricas rápidas entre niveles o como mecanismo de rescate cuando se agotan las vidas (ej. "¿Cuántos semitonos hay en una 5ª Justa?", "¿Qué emoción o estructura caracteriza a la Escala Menor Armónica?").
+   - Responder correctamente otorga Puntos de Experiencia (XP) o recuperación instantánea de vidas.
+
+3. Sistema de Recompensas y Tienda (Skins / Desbloqueables):
+   - Estructurar el estado para acumular XP y desbloquear:
+     * Skins visuales para los instrumentos (Tiple de Madera Noble, Bandola Dorada, Requinto de Gala).
+     * Sombreros y accesorios para la mascota guía.
+     * Vidas extras y medallas ("Oído de Oro", "Tiplista Mayor").
+
+4. Modos de Juego Claramente Separados:
+   - Modo Guiado (Ruta de Aprendizaje): Mapa interactivo de niveles estilo Duolingo con progresión obligatoria y estrellas por nivel.
+   - Modo Libre (Explorador / Jam): Acceso directo para practicar cualquier escala o intervalo sin presión de tiempo ni pérdida de vidas.
+
+---
+
+### 3. DISEÑO DE INTERFAZ Y EXPERIENCIA DE USUARIO (UI/UX) - MOBILE FIRST
+
+1. Optimización Móvil Accesible:
+   - Interfaz totalmente adaptable (Mobile-First) diseñada para acceso rápido desde teléfonos celulares y cualquier pantalla (botones táctiles de mínimo 48x48px).
+2. Personajes y Elementos Visuales Centrados:
+   - Ubicar la mascota/personaje (aprendiz con ruana/sombrero) de forma prominente en el centro visual superior de la pantalla.
+   - El personaje debe reaccionar en tiempo real mediante animaciones (celebración/salto al acertar, tristeza/desafín al fallar).
+3. Feedback Auditivo y Visual Inmediato:
+   - Acierto: Mensaje de felicitación, ganancia de XP, animación de confeti o rebote del personaje y sonido armónico.
+   - Fallo: Animación de agitación, pérdida de vida y reproducción inmediata del sonido correcto vs. el sonido seleccionado para permitir la comparación auditiva.
+
+---
+
+### 4. REQUERIMIENTO DE CÓDIGO Y ENTREGABLE
+
+Proporciona la solución completa en código modular, limpio y ejecutable (HTML5, Tailwind CSS y JavaScript con Tone.js o Web Audio API) que contenga:
+
+1. El reproductor y motor de audio optimizado con los tiempos recortados para escalas e intervalos (ascendente, descendente, intercalado).
+2. El maquetado Mobile-First con el personaje centrado y animado.
+3. El estado de gamificación (Vidas, XP, Modos de Juego).
+4. El sistema modal de preguntas teóricas interactivas.
