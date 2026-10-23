@@ -3,13 +3,56 @@
 
 {% block content %}
 <div class="dashboard-page space-y-6">
-  <section class="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
-    <div>
-      <p class="text-xs font-bold uppercase tracking-[.2em] text-sena">SEMIMUS · intervalos</p>
-      <h1 class="text-3xl font-black text-white mt-2">Hola, {{ current_user.first_name }}</h1>
-      <p class="text-sm mt-1" style="color:rgba(255,255,255,.5)">Entrena el reconocimiento de intervalos con tu instrumento favorito.</p>
+  <section class="dashboard-landscape relative overflow-hidden rounded-3xl p-6 sm:p-8 lg:p-10"
+           style="background-image:linear-gradient(90deg,rgba(8,15,20,.88),rgba(8,15,20,.52) 62%,rgba(8,15,20,.16)),linear-gradient(0deg,rgba(8,15,20,.34),transparent 65%),url('{{ url_for('static', filename='img/locations/province-valley.svg') }}')">
+    <div class="relative z-10 max-w-2xl">
+      <p class="text-xs font-bold uppercase tracking-[.2em] text-emerald-300">SEMIMUS · aprende escuchando</p>
+      <h1 class="text-3xl sm:text-4xl font-black text-white mt-2">Hola, {{ current_user.first_name }}</h1>
+      <p class="text-sm sm:text-base mt-2 text-slate-100">Un camino musical por los paisajes de Vélez. Elige un instrumento y entrena tu oído paso a paso.</p>
+      <div class="mt-5 flex flex-wrap gap-3">
+        <a href="{{ url_for('training.index') }}" class="btn-sena">Empezar a entrenar →</a>
+        <a href="#guia-rapida" class="dashboard-guide-link">Ver guía rápida ↓</a>
+      </div>
     </div>
-    <a href="{{ url_for('training.index') }}" class="btn-sena">Entrenar intervalos →</a>
+  </section>
+
+  <section id="guia-rapida" class="dashboard-guide card">
+    <div class="mb-4">
+      <p class="text-xs font-bold uppercase tracking-widest text-sena">Tu primera sesión</p>
+      <h2 class="section-title mt-1 mb-1">Guía rápida: ¿cómo entreno mi oído?</h2>
+      <p class="text-sm" style="color:rgba(255,255,255,.55)">Sigue estos pasos para reconocer la distancia entre dos notas.</p>
+    </div>
+    <ol class="dashboard-guide-steps">
+      <li class="dashboard-guide-step">
+        <span class="dashboard-guide-number">1</span>
+        <div>
+          <h3>Elige un instrumento</h3>
+          <p>Selecciona Tiple, Requinto, Bandola o Guitarra. Puedes cambiarlo antes de cada práctica.</p>
+        </div>
+      </li>
+      <li class="dashboard-guide-step">
+        <span class="dashboard-guide-number">2</span>
+        <div>
+          <h3>Escucha las notas</h3>
+          <p>En la sesión sonarán dos notas, una después de la otra. Usa el botón de audio para volver a escucharlas.</p>
+        </div>
+      </li>
+      <li class="dashboard-guide-step">
+        <span class="dashboard-guide-number">3</span>
+        <div>
+          <h3>Identifica el intervalo</h3>
+          <p>Compara qué tan separadas suenan las notas y elige el intervalo que mejor corresponda.</p>
+        </div>
+      </li>
+      <li class="dashboard-guide-step">
+        <span class="dashboard-guide-number">4</span>
+        <div>
+          <h3>Revisa tu progreso</h3>
+          <p>Al terminar, consulta tus aciertos, precisión y sesiones para ver cómo avanzas.</p>
+        </div>
+      </li>
+    </ol>
+    <a href="{{ url_for('training.index') }}" class="dashboard-guide-cta">Probar mi primera sesión →</a>
   </section>
 
   <section class="grid grid-cols-1 md:grid-cols-3 gap-4">

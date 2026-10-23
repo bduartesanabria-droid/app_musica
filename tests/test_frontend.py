@@ -65,6 +65,21 @@ def test_base_layout_uses_local_compiled_and_pinned_assets(client):
     assert "cdn.jsdelivr.net" not in html
 
 
+def test_dashboard_shows_landscape_and_basic_training_guide(login_client):
+    client, _ = login_client()
+    response = client.get("/dashboard")
+
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    assert "/static/img/locations/province-valley.svg" in html
+    assert 'id="guia-rapida"' in html
+    assert "Elige un instrumento" in html
+    assert "Escucha las notas" in html
+    assert "Identifica el intervalo" in html
+    assert "Revisa tu progreso" in html
+    assert 'href="/training/"' in html
+
+
 def test_training_player_precaches_each_question_audio():
     source = open("app/static/js/training.js", encoding="utf-8").read()
 
