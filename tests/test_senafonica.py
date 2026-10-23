@@ -148,25 +148,47 @@ def test_daily_challenge_is_three_questions_and_rewards_once(login_client, app):
     assert all(len(question["options"]) >= 2 for question in data["questions"])
     assert data["date"] == bogota_date().isoformat()
 
-    first_result = client.post(
+    forged_score = client.post(
         "/api/senafonica/daily-challenge",
         data=json.dumps({"score": 3}),
         content_type="application/json",
     )
+    assert forged_score.status_code == 400
+    with app.app_context():
+        gamification = UserGamification.query.filter_by(user_id=user_id).one()
+        assert gamification.total_xp == 0
+        assert gamification.daily_streak == 0
+
+    first_result = client.post(
+        "/api/senafonica/daily-challenge",
+        data=json.dumps({
+            "answers": [
+                {"id": question["id"], "answer": question["correct"]}
+                for question in data["questions"]
+            ],
+        }),
+        content_type="application/json",
+    )
     assert first_result.status_code == 200
+    assert first_result.get_json()["score"] == 3
     assert first_result.get_json()["medal"] is True
     assert first_result.get_json()["daily_streak"] == 1
 
     duplicate_result = client.post(
         "/api/senafonica/daily-challenge",
-        data=json.dumps({"score": 3}),
+        data=json.dumps({
+            "answers": [
+                {"id": question["id"], "answer": question["correct"]}
+                for question in data["questions"]
+            ],
+        }),
         content_type="application/json",
     )
     assert duplicate_result.get_json()["status"] == "already_completed"
     with app.app_context():
         gamification = UserGamification.query.filter_by(user_id=user_id).one()
-        assert gamification.total_xp == 25
-        assert gamification.coins == 5
+        assert gamification.total_xp == 70
+        assert gamification.coins == 14
         assert gamification.daily_streak == 1
         assert UserBadge.query.join(UserGamification).filter(
             UserGamification.user_id == user_id,

@@ -1171,9 +1171,27 @@ def daily_challenge():
     if not current_user.is_authenticated:
         return jsonify({"error": "Inicia sesión para guardar tu reto diario."}), 401
     data = request.get_json(silent=True)
-    score = data.get("score") if isinstance(data, dict) else None
-    if type(score) is not int or not 0 <= score <= 3:
-        return jsonify({"error": "El resultado del reto debe estar entre 0 y 3."}), 400
+    answers = data.get("answers") if isinstance(data, dict) else None
+    questions = _daily_challenge_for(today)
+    if not questions:
+        return jsonify({"error": "No hay preguntas disponibles para el desafío de hoy."}), 503
+    if not isinstance(answers, list) or len(answers) != len(questions):
+        return jsonify({"error": "Debes enviar las tres respuestas del desafío."}), 400
+
+    expected = {question["id"]: question for question in questions}
+    submitted_ids = set()
+    score = 0
+    for answer in answers:
+        if not isinstance(answer, dict) or type(answer.get("id")) is not int:
+            return jsonify({"error": "Una respuesta del desafío no es válida."}), 400
+        question = expected.get(answer["id"])
+        choice = answer.get("answer")
+        if question is None or answer["id"] in submitted_ids or choice not in question["options"]:
+            return jsonify({"error": "Las respuestas no coinciden con el desafío de hoy."}), 400
+        submitted_ids.add(answer["id"])
+        score += choice == question["correct"]
+    if submitted_ids != set(expected):
+        return jsonify({"error": "Debes responder cada pregunta exactamente una vez."}), 400
 
     gamification = UserGamification.query.filter_by(user_id=current_user.id).first()
     if not gamification:
@@ -1192,10 +1210,12 @@ def daily_challenge():
         else 1
     )
     gamification.last_daily_challenge = today
-    gamification.total_xp = (gamification.total_xp or 0) + 25
-    gamification.coins = (gamification.coins or 0) + 5
-    gamification.weekly_xp = (gamification.weekly_xp or 0) + 25
-    gamification.monthly_xp = (gamification.monthly_xp or 0) + 25
+    xp_reward = 25 + (score * 15)
+    coin_reward = 5 + (score * 3)
+    gamification.total_xp = (gamification.total_xp or 0) + xp_reward
+    gamification.coins = (gamification.coins or 0) + coin_reward
+    gamification.weekly_xp = (gamification.weekly_xp or 0) + xp_reward
+    gamification.monthly_xp = (gamification.monthly_xp or 0) + xp_reward
     gamification.recalculate_level()
     if score == 3:
         _game_badge(
@@ -1207,6 +1227,7 @@ def daily_challenge():
     db.session.commit()
     return jsonify({
         "status": "success",
+        "score": score,
         "daily_streak": gamification.daily_streak,
         "total_xp": gamification.total_xp,
         "coins": gamification.coins,

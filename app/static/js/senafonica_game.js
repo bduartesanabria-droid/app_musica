@@ -66,6 +66,7 @@ function senafonicaGame(initData) {
     timeTrialFinished: false,
     dailyQuestions: [],
     dailyScore: 0,
+    dailyAnswers: [],
     dailyFinished: false,
     dailyLoading: false,
     dailyMessage: '',
@@ -914,6 +915,9 @@ function senafonicaGame(initData) {
       if (this.currentTab === 'time-trial' && this.isCorrect) this.timeTrialScore++;
       if (this.currentTab === 'time-trial') this.timeTrialAttempted++;
       if (this.currentTab === 'daily' && this.isCorrect) this.dailyScore++;
+      if (this.currentTab === 'daily') {
+        this.dailyAnswers.push({ id: this.currentQ.id, answer: option });
+      }
       if (this.currentTab === 'training' || this.currentTab === 'time-trial' || this.currentTab === 'daily') {
         this.achievementSyncPending = true;
         try {
@@ -1149,8 +1153,8 @@ function senafonicaGame(initData) {
       this.xp += earnedXp;
       if (this.timeTrialAttempted > 0) {
         void this._syncWithServer({
-          xp_earned: earnedXp,
-          coins_earned: 0,
+          xp_earned: (this.timeTrialScore * 15) + earnedXp,
+          coins_earned: this.timeTrialScore * 3,
           correct_count: this.timeTrialScore,
           total_count: this.timeTrialAttempted,
         });
@@ -1163,6 +1167,7 @@ function senafonicaGame(initData) {
       this.dailyMessage = '';
       this.dailyFinished = false;
       this.dailyScore = 0;
+      this.dailyAnswers = [];
       this.qIndex = 0;
       try {
         const response = await fetch('/api/senafonica/daily-challenge');
@@ -1171,8 +1176,7 @@ function senafonicaGame(initData) {
         if (!data.questions.length) throw new Error('No hay intervalos cargados para preparar el reto.');
         this.dailyDate = data.date;
         this.dailyStreak = data.daily_streak || this.dailyStreak;
-        const localDone = localStorage.getItem(`senafonica_daily_${data.date}`) === 'done';
-        if (data.completed || localDone) {
+        if (data.completed) {
           this.dailyFinished = true;
           this.dailyMessage = 'Ya completaste el desafío de hoy. ¡Vuelve mañana para otra medalla!';
           return;
@@ -1201,12 +1205,11 @@ function senafonicaGame(initData) {
     async finishDailyChallenge() {
       if (this.dailyFinished) return;
       this.dailyFinished = true;
-      localStorage.setItem(`senafonica_daily_${this.dailyDate}`, 'done');
       try {
         const response = await fetch('/api/senafonica/daily-challenge', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'X-CSRFToken': this.csrfToken },
-          body: JSON.stringify({ score: this.dailyScore }),
+          body: JSON.stringify({ answers: this.dailyAnswers }),
         });
         const result = await response.json();
         if (response.status === 401) {
@@ -1215,6 +1218,7 @@ function senafonicaGame(initData) {
         }
         if (!response.ok) throw new Error(result.error || 'No se pudo guardar el desafío diario.');
         this.dailyStreak = result.daily_streak;
+        this.dailyScore = result.score;
         this.xp = result.total_xp;
         this.coins = result.coins;
         this.dailyMessage = result.status === 'already_completed'
@@ -1223,7 +1227,6 @@ function senafonicaGame(initData) {
         this.audio.playLevelCompleteSound();
         this._triggerConfetti();
       } catch (error) {
-        localStorage.removeItem(`senafonica_daily_${this.dailyDate}`);
         this.dailyFinished = false;
         this.dailyMessage = error.message || 'No se pudo guardar el desafío diario.';
       }
