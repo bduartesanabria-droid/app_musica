@@ -47,7 +47,7 @@ function senafonicaGame(initData) {
     currentTab: 'path',           // 'path' | 'learn' | 'training' | 'jam'
     selectedInstrument: 'Tiple',
     instrumentAccent: '#D99A45',
-    instrumentAccents: { Tiple: '#D99A45', Requinto: '#3AA6A0', Bandola: '#B889D6' },
+    instrumentAccents: { Tiple: '#D99A45', Requinto: '#3AA6A0', Bandola: '#B889D6', Guitarra: '#60A5FA' },
     backgroundImage: '',
     backgroundColor: '#0B111A',
     backgroundVisible: false,
@@ -155,7 +155,7 @@ function senafonicaGame(initData) {
     // ══════════════════════════════════════════════════════════════════════
     init() {
       this.audio = new SenafonicaAudioEngine(this.catalog);
-      this.selectedInstrument = ['Tiple', 'Requinto', 'Bandola'].includes(this.user.selected_instrument)
+      this.selectedInstrument = ['Tiple', 'Requinto', 'Bandola', 'Guitarra'].includes(this.user.selected_instrument)
         ? this.user.selected_instrument
         : 'Tiple';
       this.instrumentAccent = this.instrumentAccents[this.selectedInstrument];
@@ -852,7 +852,7 @@ function senafonicaGame(initData) {
     },
 
     async selectInstrument(instrument) {
-      if (!['Tiple', 'Requinto', 'Bandola'].includes(instrument) || this.isPlaying) return;
+      if (!['Tiple', 'Requinto', 'Bandola', 'Guitarra'].includes(instrument) || this.isPlaying) return;
       this.selectedInstrument = instrument;
       this.instrumentAccent = this.instrumentAccents[instrument];
       this.jamInstrument = instrument;

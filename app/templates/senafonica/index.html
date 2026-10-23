@@ -208,18 +208,18 @@
   <!-- ═════════════════════════════════════════════════════════════════════════
        2. PERMANENT IN-GAME HUD (VIDAS, XP, ESTRELLAS, INVENTARIO, ESTADÍSTICAS)
        ═════════════════════════════════════════════════════════════════════════ -->
-  <header class="sticky top-0 z-40 bg-[#0B111A]/95 backdrop-blur-md border-b border-white/10 px-3 py-2">
-    <div class="max-w-2xl mx-auto flex items-center justify-between">
+  <header class="senafonica-hud sticky top-0 z-40 bg-[#0B111A]/95 backdrop-blur-md border-b border-white/10 px-3 py-2">
+    <div class="game-hud max-w-2xl mx-auto">
       
       <!-- Brand & Home link -->
-      <button type="button" @click="currentTab = 'path'" class="flex items-center gap-2 p-1 rounded-xl hover:bg-white/10 text-white transition-colors">
+      <button type="button" @click="currentTab = 'path'" class="game-hud-brand flex items-center gap-2 p-1 rounded-xl hover:bg-white/10 text-white transition-colors">
         <img src="{{ url_for('static', filename='img/logoSenafonico.png') }}"
              alt="Senafónica" width="32" height="32" class="rounded-lg object-contain">
         <span class="text-xs font-black tracking-wider text-sena uppercase hidden sm:inline">SENAFÓNICA</span>
       </button>
 
       <!-- Central In-Game Counters -->
-      <div class="flex items-center gap-2 sm:gap-4 text-xs sm:text-sm font-black">
+      <div class="game-hud-counters flex items-center gap-2 sm:gap-4 text-xs sm:text-sm font-black">
         <!-- Vidas -->
         <div class="flex items-center gap-1 px-2.5 py-1 rounded-full bg-red-500/15 border border-red-500/30 text-red-400 cursor-pointer"
              @click="openRescueModal()" title="Vidas restantes. Toca para rescatar.">
@@ -247,7 +247,7 @@
       </div>
 
       <!-- Quick Modal Buttons: Stats & Shop -->
-      <div class="flex items-center gap-1.5">
+      <div class="game-hud-actions flex items-center gap-1.5">
         <button type="button"
                 @click="showStatsModal = true"
                 class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs"
@@ -260,26 +260,30 @@
                 title="Tienda e Inventario de Skins">
           🎒
         </button>
+        <div x-show="!user.authenticated" class="game-hud-auth flex items-center gap-1.5">
+          <a href="{{ url_for('auth.login') }}" class="hud-auth-link">Iniciar sesión</a>
+          <a href="{{ url_for('auth.register') }}" class="hud-auth-link hud-auth-register">Registrarse</a>
+        </div>
       </div>
     </div>
   </header>
 
   <section class="relative z-10 mx-auto w-full max-w-2xl px-4 pt-3" aria-label="Selector principal de instrumento">
     <p class="mb-2 text-center text-[10px] font-black uppercase tracking-[0.18em] text-slate-300">Elige tu instrumento · toca para escuchar su acorde</p>
-    <div class="grid grid-cols-3 gap-2">
-      <template x-for="instrument in ['Tiple', 'Requinto', 'Bandola']" :key="instrument">
+    <div class="instrument-picker-grid grid grid-cols-2 gap-2 md:grid-cols-4">
+      <template x-for="instrument in ['Tiple', 'Requinto', 'Bandola', 'Guitarra']" :key="instrument">
         <button type="button"
                 @click="selectInstrument(instrument)"
                 :aria-pressed="selectedInstrument === instrument"
                 :class="selectedInstrument === instrument ? 'instrument-card-active' : 'instrument-card'"
-                class="flex min-h-[76px] items-center gap-2 rounded-2xl border px-2 py-2 text-left transition-all sm:gap-3 sm:px-3">
-          <img class="h-12 w-12 shrink-0 rounded-xl object-cover sm:h-14 sm:w-14"
+                class="instrument-picker-card flex min-h-[76px] flex-col gap-2 rounded-2xl border p-2 text-left transition-all">
+          <img class="instrument-picker-image rounded-xl"
                :src="'/static/img/' + instrument.toLowerCase() + '.jpeg'"
                :alt="'Ilustración del ' + instrument"
                loading="lazy">
-          <span class="min-w-0">
+          <span class="min-w-0 text-center">
             <span class="block truncate text-xs font-black text-white sm:text-sm" x-text="instrument"></span>
-            <span class="block text-[9px] font-semibold text-slate-300" x-text="selectedInstrument === instrument ? 'Activo · oír acorde' : 'Oír acorde'"></span>
+            <span class="block text-[9px] font-semibold text-slate-300" x-text="selectedInstrument === instrument ? 'Activo · oír acorde' : 'Toca para escuchar'"></span>
           </span>
         </button>
       </template>
@@ -348,35 +352,38 @@
       <!-- Winding Path along the 9 Stations -->
       <div class="flex flex-col items-center space-y-6 pb-24 relative">
         <template x-for="(st, idx) in stations" :key="st.id">
-          <div class="flex flex-col items-center w-full"
-               :style="'transform: translateX(' + ((idx % 3 === 1 ? -36 : idx % 3 === 2 ? 36 : 0)) + 'px)'">
+          <div class="station-map-stop flex flex-col items-center w-full"
+               :style="'--station-background: url(' + st.background_image + '); --station-color: ' + st.theme_color">
+            <div class="relative z-10 flex flex-col items-center"
+                 :style="'transform: translateX(' + ((idx % 3 === 1 ? -36 : idx % 3 === 2 ? 36 : 0)) + 'px)'">
 
-            <!-- Station Node Button -->
-            <button type="button"
-                    @click="previewStation(st)"
-                    class="path-node"
-                    :class="{
-                      'unlocked': unlockedLevels.includes(st.id),
-                      'locked': !unlockedLevels.includes(st.id),
-                      'boss': st.type === 'final_boss'
-                    }">
-              <span x-show="unlockedLevels.includes(st.id)">
-                <span x-text="st.type === 'final_boss' ? '👑' : st.type === 'scale' ? '🎼' : '🎵'"></span>
-              </span>
-              <span x-show="!unlockedLevels.includes(st.id)" class="text-slate-400">🔒</span>
+              <!-- Station Node Button -->
+              <button type="button"
+                      @click="previewStation(st)"
+                      class="path-node"
+                      :class="{
+                        'unlocked': unlockedLevels.includes(st.id),
+                        'locked': !unlockedLevels.includes(st.id),
+                        'boss': st.type === 'final_boss'
+                      }">
+                <span x-show="unlockedLevels.includes(st.id)">
+                  <span x-text="st.type === 'final_boss' ? '👑' : st.type === 'scale' ? '🎼' : '🎵'"></span>
+                </span>
+                <span x-show="!unlockedLevels.includes(st.id)" class="text-slate-400">🔒</span>
 
-              <!-- Estrellas obtenidas en la estación -->
-              <div class="stars-badge" x-show="unlockedLevels.includes(st.id)">
-                <span :class="(levelStars[st.id] || 0) >= 1 ? 'text-amber-400' : 'text-slate-600'">★</span>
-                <span :class="(levelStars[st.id] || 0) >= 2 ? 'text-amber-400' : 'text-slate-600'">★</span>
-                <span :class="(levelStars[st.id] || 0) >= 3 ? 'text-amber-400' : 'text-slate-600'">★</span>
+                <!-- Estrellas obtenidas en la estación -->
+                <div class="stars-badge" x-show="unlockedLevels.includes(st.id)">
+                  <span :class="(levelStars[st.id] || 0) >= 1 ? 'text-amber-400' : 'text-slate-600'">★</span>
+                  <span :class="(levelStars[st.id] || 0) >= 2 ? 'text-amber-400' : 'text-slate-600'">★</span>
+                  <span :class="(levelStars[st.id] || 0) >= 3 ? 'text-amber-400' : 'text-slate-600'">★</span>
+                </div>
+              </button>
+
+              <!-- Station Name & Badge under node -->
+              <div class="text-center mt-2.5 max-w-[240px]">
+                <p class="text-xs font-black text-white" x-text="st.station_name"></p>
+                <p class="text-[10px] text-amber-400 font-bold" x-text="st.badge"></p>
               </div>
-            </button>
-
-            <!-- Station Name & Badge under node -->
-            <div class="text-center mt-2.5 max-w-[240px]">
-              <p class="text-xs font-black text-white" x-text="st.station_name"></p>
-              <p class="text-[10px] text-amber-400 font-bold" x-text="st.badge"></p>
             </div>
           </div>
         </template>
@@ -645,13 +652,13 @@
       <!-- Instrument Chooser -->
       <div class="bg-slate-900/90 border border-white/10 rounded-2xl p-4">
         <label class="text-xs font-bold text-slate-300 uppercase tracking-wider block mb-2">Instrumento</label>
-        <div class="grid grid-cols-3 gap-2">
-          <template x-for="inst in ['Tiple', 'Requinto', 'Bandola']" :key="inst">
+        <div class="jam-instrument-grid grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <template x-for="inst in ['Tiple', 'Requinto', 'Bandola', 'Guitarra']" :key="inst">
             <button type="button"
                     @click="jamInstrument = inst"
-                    class="py-2.5 px-2 rounded-xl text-xs font-bold text-center border transition-all"
+                    class="jam-instrument-card py-2.5 px-2 rounded-xl text-xs font-bold text-center border transition-all"
                     :class="jamInstrument === inst ? 'bg-sena border-sena text-white shadow-lg' : 'bg-slate-800 border-white/5 text-slate-400 hover:text-white'">
-              <img class="w-14 h-14 mx-auto mb-1 rounded-lg object-cover"
+              <img class="jam-instrument-image mx-auto mb-1 rounded-lg object-cover"
                    :src="'/static/img/' + inst.toLowerCase() + '.jpeg'"
                    :alt="'Imagen del instrumento ' + inst"
                    loading="lazy">
@@ -774,7 +781,7 @@
        5. BOTTOM MOBILE APP BAR (CONTROLES RÁPIDOS)
        ═════════════════════════════════════════════════════════════════════════ -->
   <nav class="sticky bottom-0 z-40 bg-[#0B111A]/95 backdrop-blur-lg border-t border-white/10 px-4 py-2">
-    <div class="mx-auto grid max-w-2xl grid-cols-6 gap-1">
+    <div class="game-bottom-nav-grid mx-auto grid max-w-2xl grid-cols-6 gap-1">
       <button type="button"
               @click="currentTab = 'path'"
               class="flex flex-col items-center justify-center py-2 px-1 rounded-2xl transition-all"

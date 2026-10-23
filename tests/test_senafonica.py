@@ -25,6 +25,11 @@ def test_senafonica_guest_access(client):
     assert "senafonica_game.js" in html
     assert "playLearnSample(sampleIndex)" in html
     assert "inst.toLowerCase() + '.jpeg'" in html
+    assert "instrument in ['Tiple', 'Requinto', 'Bandola', 'Guitarra']" in html
+    assert "Registrarse" in html
+    assert "Iniciar sesión" in html
+    assert "--station-background: url(" in html
+    assert "game-bottom-nav-grid" in html
 
 def test_senafonica_page_authenticated(login_client):
     auth_client, user_id = login_client()
