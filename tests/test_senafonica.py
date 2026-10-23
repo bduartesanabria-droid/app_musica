@@ -3,9 +3,10 @@ from datetime import date
 from app.extensions import db
 from app.models.audio import Audio
 from app.models.gamification import Badge, UserBadge, UserGamification
-from app.models.instrument import Instrument, Note
+from app.models.instrument import Instrument, Interval, Note, Scale
 from app.models.user import User
 from app.routes.main import _public_age
+from app.utils.timezone import bogota_date
 
 
 def test_root_redirects_to_senafonica(client):
@@ -128,6 +129,94 @@ def test_authenticated_player_can_purchase_and_equip_skin(login_client):
         assert gamification.total_xp == 500
         assert gamification.coins == 55
         assert "skin_bandola_dorada" in gamification.unlocked_skins_json
+
+
+def test_daily_challenge_is_three_questions_and_rewards_once(login_client, app):
+    client, user_id = login_client()
+    with app.app_context():
+        if Interval.query.count() < 4:
+            db.session.add_all([
+                Interval(name=f"Reto intervalo {index}", semitones=index + 1)
+                for index in range(4)
+            ])
+            db.session.commit()
+
+    challenge = client.get("/api/senafonica/daily-challenge")
+    assert challenge.status_code == 200
+    data = challenge.get_json()
+    assert len(data["questions"]) == 3
+    assert all(len(question["options"]) >= 2 for question in data["questions"])
+    assert data["date"] == bogota_date().isoformat()
+
+    first_result = client.post(
+        "/api/senafonica/daily-challenge",
+        data=json.dumps({"score": 3}),
+        content_type="application/json",
+    )
+    assert first_result.status_code == 200
+    assert first_result.get_json()["medal"] is True
+    assert first_result.get_json()["daily_streak"] == 1
+
+    duplicate_result = client.post(
+        "/api/senafonica/daily-challenge",
+        data=json.dumps({"score": 3}),
+        content_type="application/json",
+    )
+    assert duplicate_result.get_json()["status"] == "already_completed"
+    with app.app_context():
+        gamification = UserGamification.query.filter_by(user_id=user_id).one()
+        assert gamification.total_xp == 25
+        assert gamification.coins == 5
+        assert gamification.daily_streak == 1
+        assert UserBadge.query.join(UserGamification).filter(
+            UserGamification.user_id == user_id,
+            UserBadge.badge.has(name="Medalla del Reto Diario"),
+        ).count() == 1
+
+
+def test_specific_ear_and_tonic_achievements_are_awarded(login_client, app):
+    client, user_id = login_client()
+    with app.app_context():
+        scales = [
+            Scale(name=f"Prueba escala {index}", intervals_pattern="2,2,1,2,2,2,1")
+            for index in range(5)
+        ]
+        db.session.add_all(scales)
+        db.session.commit()
+        scale_ids = [scale.id for scale in scales]
+
+    for _ in range(10):
+        response = client.post(
+            "/api/senafonica/achievements",
+            data=json.dumps({"instrument": "Bandola", "correct": True}),
+            content_type="application/json",
+        )
+        assert response.status_code == 200
+
+    for scale_id in scale_ids:
+        response = client.post(
+            "/api/senafonica/achievements",
+            data=json.dumps({
+                "instrument": None,
+                "correct": True,
+                "tonic_scale_id": scale_id,
+            }),
+            content_type="application/json",
+        )
+        assert response.status_code == 200
+
+    with app.app_context():
+        awarded = {
+            badge.name
+            for badge in (
+                Badge.query.join(UserBadge)
+                .join(UserGamification)
+                .filter(UserGamification.user_id == user_id)
+                .all()
+            )
+        }
+        assert "Oído de Oro" in awarded
+        assert "Afinador Mayor" in awarded
 
 
 def test_senafonica_catalog_streams_active_audio_from_database(client, app):

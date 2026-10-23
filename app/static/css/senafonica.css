@@ -22,7 +22,12 @@
 /* Base Body & Reset for Senafonica */
 .senafonica-shell {
   min-height: 100vh;
-  background: radial-gradient(circle at 50% 0%, #1A2738 0%, #0B111A 60%, #070B11 100%);
+  background: radial-gradient(
+    circle at 50% 0%,
+    color-mix(in srgb, var(--instrument-accent, #1A2738) 18%, #1A2738) 0%,
+    #0B111A 60%,
+    #070B11 100%
+  );
   color: var(--text-main);
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   user-select: none;
@@ -43,6 +48,18 @@
 
 .scene-background-visible {
   opacity: 1;
+}
+
+.instrument-card {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(15, 23, 42, 0.9);
+}
+
+.instrument-card:hover,
+.instrument-card-active {
+  border-color: var(--instrument-accent, var(--sena-green));
+  background: color-mix(in srgb, var(--instrument-accent, var(--sena-green)) 18%, #0f172a);
+  box-shadow: 0 0 0 1px var(--instrument-accent, var(--sena-green)), 0 8px 22px rgba(0, 0, 0, 0.25);
 }
 
 /* Touch Accessibility standard (min 48x48px) */

@@ -31,6 +31,15 @@ class UserGamification(db.Model):
         default='["skin_tiple_noble"]',
         server_default='["skin_tiple_noble"]',
     )
+    bandola_correct_streak = db.Column(db.Integer, nullable=False, default=0, server_default="0")
+    tonic_scales_json = db.Column(
+        db.Text,
+        nullable=False,
+        default="[]",
+        server_default="[]",
+    )
+    daily_streak = db.Column(db.Integer, nullable=False, default=0, server_default="0")
+    last_daily_challenge = db.Column(db.Date, nullable=True)
     updated_at         = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc),
                                    onupdate=lambda: datetime.now(timezone.utc))
 

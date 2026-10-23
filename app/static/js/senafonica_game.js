@@ -45,6 +45,9 @@ function senafonicaGame(initData) {
 
     // ── IN-GAME MODALS & TABS ─────────────────────────────────────────────
     currentTab: 'path',           // 'path' | 'learn' | 'training' | 'jam'
+    selectedInstrument: 'Tiple',
+    instrumentAccent: '#D99A45',
+    instrumentAccents: { Tiple: '#D99A45', Requinto: '#3AA6A0', Bandola: '#B889D6' },
     backgroundImage: '',
     backgroundColor: '#0B111A',
     backgroundVisible: false,
@@ -54,6 +57,27 @@ function senafonicaGame(initData) {
     showStatsModal: false,
     showShopModal: false,
     showRescueModal: false,
+    replayCount: 0,
+    replayLimit: 2,
+    timeTrialSeconds: 30,
+    timeTrialTimer: null,
+    timeTrialScore: 0,
+    timeTrialAttempted: 0,
+    timeTrialFinished: false,
+    dailyQuestions: [],
+    dailyScore: 0,
+    dailyFinished: false,
+    dailyLoading: false,
+    dailyMessage: '',
+    dailyDate: '',
+    dailyStreak: 0,
+    tonicScales: [],
+    tonicChallengeOptions: [],
+    tonicChallengeMessage: '',
+    tonicChallengeAttempts: 0,
+    tonicChallengeIdentified: false,
+    bandolaCorrectStreak: 0,
+    achievementSyncPending: false,
 
     // ── LEARN PHASE (Exploración Activa) ──────────────────────────────────
     learnStation: null,           // station currently in learn mode
@@ -130,6 +154,14 @@ function senafonicaGame(initData) {
     // ══════════════════════════════════════════════════════════════════════
     init() {
       this.audio = new SenafonicaAudioEngine(this.catalog);
+      this.selectedInstrument = ['Tiple', 'Requinto', 'Bandola'].includes(this.user.selected_instrument)
+        ? this.user.selected_instrument
+        : 'Tiple';
+      this.instrumentAccent = this.instrumentAccents[this.selectedInstrument];
+      this.tonicScales = Array.isArray(this.user.tonic_scales) ? this.user.tonic_scales : [];
+      this.dailyStreak = this.user.daily_streak || 0;
+      this.bandolaCorrectStreak = this.user.bandola_correct_streak || 0;
+      this.prepareTonicChallenge();
 
       const savedOnboarding = localStorage.getItem('senafonica_onboarding_done');
       if (!savedOnboarding) {
@@ -245,6 +277,12 @@ function senafonicaGame(initData) {
           this.unlockedCollectibles = parsed.unlockedCollectibles || [];
           this.equippedSkin = parsed.equippedSkin || 'skin_tiple_noble';
           this.equippedAccessories = parsed.equippedAccessories || { hat: '', body: '', eyes: '' };
+          this.tonicScales = this.user.authenticated
+            ? (this.user.tonic_scales || [])
+            : (parsed.tonicScales || []);
+          this.bandolaCorrectStreak = this.user.authenticated
+            ? (this.user.bandola_correct_streak || 0)
+            : (parsed.bandolaCorrectStreak || 0);
           const localItems = parsed.unlockedItems || ['skin_tiple_noble'];
           if (this.user.authenticated) {
             const skins = this.user.unlocked_skins || ['skin_tiple_noble'];
@@ -282,6 +320,8 @@ function senafonicaGame(initData) {
         equippedSkin: this.equippedSkin,
         equippedAccessories: this.equippedAccessories,
         unlockedItems: this.unlockedItems,
+        tonicScales: this.tonicScales,
+        bandolaCorrectStreak: this.bandolaCorrectStreak,
       };
       localStorage.setItem('senafonica_gamification_velez_v2', JSON.stringify(state));
     },
@@ -560,9 +600,15 @@ function senafonicaGame(initData) {
       this.sessionCorrect = 0;
       this.sessionWrong = 0;
       this.levelQuestions = this._generateQuestionsForStation(station);
+      this.levelQuestions.forEach((question, index) => {
+        question.instrument = station.id === 3
+          ? (index % 2 === 0 ? 'Tiple' : 'Requinto')
+          : this.selectedInstrument;
+      });
       this._preloadQuestionAudio(this.levelQuestions);
       this.currentQ = this.levelQuestions[0];
       this.answered = false;
+      this.replayCount = 0;
       this.selectedOption = null;
       this.currentTab = 'training';
 
@@ -574,22 +620,28 @@ function senafonicaGame(initData) {
     },
 
     _preloadQuestionAudio(questions) {
-      const notes = questions.flatMap(question => {
-        if (question.type === 'melody') return question.melodyNotes;
-        if (question.type === 'scale') {
-          const scaleNotes = [question.rootMidi];
-          question.pattern.reduce((midi, semitones) => {
-            const nextMidi = midi + semitones;
-            scaleNotes.push(nextMidi);
-            return nextMidi;
-          }, question.rootMidi);
-          return scaleNotes;
-        }
-        const direction = question.direction === 'descendente' ? -1 : 1;
-        return [question.rootMidi, question.rootMidi + question.semitones * direction];
+      const notesByInstrument = new Map();
+      questions.forEach(question => {
+        const questionNotes = question.type === 'melody'
+          ? question.melodyNotes
+          : question.type === 'scale'
+            ? (() => {
+              const scaleNotes = [question.rootMidi];
+              question.pattern.reduce((midi, semitones) => {
+                const nextMidi = midi + semitones;
+                scaleNotes.push(nextMidi);
+                return nextMidi;
+              }, question.rootMidi);
+              return scaleNotes;
+            })()
+            : [question.rootMidi, question.rootMidi + question.semitones];
+        const group = notesByInstrument.get(question.instrument) || [];
+        group.push(...questionNotes);
+        notesByInstrument.set(question.instrument, group);
       });
-      const instrument = questions[0] ? questions[0].instrument : 'Tiple';
-      void this.audio.preloadNotes(instrument, [...new Set(notes)]);
+      for (const [instrument, instrumentNotes] of notesByInstrument) {
+        void this.audio.preloadNotes(instrument, [...new Set(instrumentNotes)]);
+      }
     },
 
     _generateQuestionsForStation(station) {
@@ -685,6 +737,8 @@ function senafonicaGame(initData) {
       // For final boss, use ALL intervals
       const poolIntervalNames = station.type === 'final_boss'
         ? this.intervals.map(i => i.name)
+        : station.id === 3
+          ? this.intervals.map(i => i.name)
         : targetIntervalNames;
 
       const allIntervalNames = this.intervals.map(i => i.name);
@@ -709,7 +763,9 @@ function senafonicaGame(initData) {
         const chosenDir = allowedDirs[Math.floor(Math.random() * allowedDirs.length)];
 
         // Generate 4 options: correct + 3 plausible distractors
-        const options = this._makeOptions(intervalName, allIntervalNames, 4);
+        const beginnerStage = station.id <= 2;
+        const optionPool = beginnerStage ? targetIntervalNames : allIntervalNames;
+        const options = this._makeOptions(intervalName, optionPool, beginnerStage ? 2 : 4);
 
         questions.push({
           id: i + 1,
@@ -782,15 +838,41 @@ function senafonicaGame(initData) {
     },
 
     replayAudio() {
-      if (!this.isPlaying) {
-        this.playCurrentAudio();
-      }
+      if (this.isPlaying || this.answered || this.replayCount >= this.replayLimit) return;
+      this.replayCount++;
+      this.playCurrentAudio();
     },
 
     changeDirection(dir) {
       this.intervalDirection = dir;
       if (!this.answered) {
-        this.playCurrentAudio();
+        this.replayAudio();
+      }
+    },
+
+    async selectInstrument(instrument) {
+      if (!['Tiple', 'Requinto', 'Bandola'].includes(instrument) || this.isPlaying) return;
+      this.selectedInstrument = instrument;
+      this.instrumentAccent = this.instrumentAccents[instrument];
+      this.jamInstrument = instrument;
+      const chord = [60, 64, 67, 72];
+      this.isPlaying = true;
+      try {
+        await Promise.all(chord.map(midi => this.audio.playNote(instrument, midi, 0, 0.8, 0.55)));
+      } catch (error) {
+        console.error('Could not play instrument chord:', error);
+        this._updateMascot('sad', 'No se pudo reproducir el acorde. Inténtalo de nuevo.');
+      } finally {
+        this.isPlaying = false;
+      }
+      if (this.currentQ && !this.answered && this.currentTab === 'training') {
+        this.levelQuestions.forEach((question, index) => {
+          question.instrument = this.activeStation && this.activeStation.id === 3
+            ? (index % 2 === 0 ? 'Tiple' : 'Requinto')
+            : instrument;
+        });
+        this.currentQ.instrument = this.levelQuestions[this.qIndex].instrument;
+        this._preloadQuestionAudio(this.levelQuestions.slice(this.qIndex));
       }
     },
 
@@ -798,7 +880,7 @@ function senafonicaGame(initData) {
     // ANSWER SUBMISSION
     // ══════════════════════════════════════════════════════════════════════
     async selectOption(optionIndex) {
-      if (this.answered || !this.currentQ) return;
+      if (this.answered || this.isPlaying || !this.currentQ) return;
       const option = this.currentQ.options[optionIndex];
       if (!option) return;
 
@@ -816,18 +898,30 @@ function senafonicaGame(initData) {
         this._updateMascot('celebrating', '¡Excelente oído! Respuesta correcta.');
         this._triggerConfetti();
       } else {
-        this.sessionWrong++;
-        this.lives = Math.max(0, this.lives - 1);
-        this.audio.playLifeLostSound();
-        this._updateMascot('sad', `La respuesta correcta era: ${this.currentQ.correct}. ¡Compara los sonidos!`);
-
-        if (this.lives <= 0) {
-          setTimeout(() => {
-            this.openRescueModal();
-          }, 1200);
+        if (!['time-trial', 'daily'].includes(this.currentTab)) {
+          this.sessionWrong++;
+          this.lives = Math.max(0, this.lives - 1);
+          this.audio.playLifeLostSound();
+          if (this.lives <= 0) {
+            setTimeout(() => this.openRescueModal(), 1200);
+          }
+        } else {
+          this.audio.playErrorSound();
         }
+        this._updateMascot('sad', `La respuesta correcta era: ${this.currentQ.correct}. ¡Compara los sonidos!`);
       }
 
+      if (this.currentTab === 'time-trial' && this.isCorrect) this.timeTrialScore++;
+      if (this.currentTab === 'time-trial') this.timeTrialAttempted++;
+      if (this.currentTab === 'daily' && this.isCorrect) this.dailyScore++;
+      if (this.currentTab === 'training' || this.currentTab === 'time-trial' || this.currentTab === 'daily') {
+        this.achievementSyncPending = true;
+        try {
+          await this._recordAchievement(this.currentQ.instrument, this.isCorrect);
+        } finally {
+          this.achievementSyncPending = false;
+        }
+      }
       this._saveLocalState();
     },
 
@@ -835,34 +929,86 @@ function senafonicaGame(initData) {
     // AUDITORY COMPARISON (Chosen vs Correct)
     // ══════════════════════════════════════════════════════════════════════
     async playAudioComparison() {
-      if (!this.currentQ || this.currentQ.type !== 'interval' || this.isComparingAudio) return;
+      if (!this.currentQ || this.isComparingAudio || this.isPlaying) return;
       const chosenName = this.selectedOption;
       const correctName = this.currentQ.correct;
 
-      const chosenObj = this.intervals.find(i => i.name === chosenName) || { semitones: 2 };
-      const correctObj = this.intervals.find(i => i.name === correctName) || { semitones: 7 };
-
       this.isComparingAudio = true;
+      this.isPlaying = true;
       this._updateMascot('listening', `1. Tu respuesta (${chosenName}) → 2. Respuesta correcta (${correctName})`);
+      try {
+        this.comparePhase = 'chosen';
+        await this._playQuestionVariant(this.currentQ, chosenName);
+        await new Promise(resolve => setTimeout(resolve, 350));
+        this.comparePhase = 'correct';
+        await this._playQuestionVariant(this.currentQ, correctName);
+      } catch (error) {
+        console.error('Could not compare answer audio:', error);
+      } finally {
+        this.isPlaying = false;
+        this.isComparingAudio = false;
+        this.comparePhase = 'idle';
+      }
+    },
 
-      await this.audio.playComparison(
-        this.currentQ.instrument,
-        this.currentQ.rootMidi,
-        chosenObj.semitones,
-        correctObj.semitones,
-        (phase) => {
-          this.comparePhase = phase;
+    async _playQuestionVariant(question, answer) {
+      if (question.type === 'scale') {
+        const scale = this.scales.find(item => item.name === answer);
+        if (!scale) return;
+        const pattern = (scale.intervals_pattern || '2,2,1,2,2,2,1').split(',').map(Number);
+        await this.audio.playScale(question.instrument, question.rootMidi, pattern, 1.0);
+        return;
+      }
+      if (question.type === 'melody') {
+        const melody = (this.activeStation.melodies || []).find(item => item.name === answer);
+        const notes = answer === question.correct
+          ? question.melodyNotes
+          : melody
+            ? melody.offsets.map(offset => question.melodyNotes[0] - melody.offsets[0] + offset)
+            : question.melodyNotes;
+        for (const midi of notes) {
+          await this.audio.playNote(question.instrument, midi, 0, this.audio.scaleNoteDuration, 0.95);
+          await new Promise(resolve => setTimeout(resolve, (this.audio.scaleNoteDuration + this.audio.scaleNoteGap) * 1000));
         }
+        return;
+      }
+      const interval = this.intervals.find(item => item.name === answer);
+      const semitones = interval ? interval.semitones : question.semitones;
+      const direction = question.type === 'pitch'
+        ? (answer === 'Agudo' ? 'ascendente' : 'descendente')
+        : question.direction || this.intervalDirection;
+      await this.audio.playInterval(
+        question.instrument,
+        question.rootMidi,
+        semitones,
+        direction
       );
-
-      this.isComparingAudio = false;
-      this.comparePhase = 'idle';
     },
 
     // ══════════════════════════════════════════════════════════════════════
     // NEXT QUESTION OR COMPLETE STATION
     // ══════════════════════════════════════════════════════════════════════
     nextQuestion() {
+      if (this.achievementSyncPending) return;
+      if (this.currentTab === 'time-trial') {
+        if (this.timeTrialFinished || this.timeTrialSeconds <= 0) return;
+        this.qIndex = (this.qIndex + 1) % this.levelQuestions.length;
+        this.currentQ = this.levelQuestions[this.qIndex];
+        this._resetQuestionAttempt();
+        this.$nextTick(() => setTimeout(() => this.playCurrentAudio(), 150));
+        return;
+      }
+      if (this.currentTab === 'daily') {
+        if (this.qIndex < this.dailyQuestions.length - 1) {
+          this.qIndex++;
+          this.currentQ = this.dailyQuestions[this.qIndex];
+          this._resetQuestionAttempt();
+          this.$nextTick(() => setTimeout(() => this.playCurrentAudio(), 150));
+        } else {
+          void this.finishDailyChallenge();
+        }
+        return;
+      }
       if (this.lives <= 0) {
         this.openRescueModal();
         return;
@@ -872,6 +1018,7 @@ function senafonicaGame(initData) {
         this.qIndex++;
         this.currentQ = this.levelQuestions[this.qIndex];
         this.answered = false;
+        this.replayCount = 0;
         this.selectedOption = null;
         this.isCorrect = false;
         this.activeNotePlayingIndex = -1;
@@ -881,6 +1028,234 @@ function senafonicaGame(initData) {
         });
       } else {
         this._completeStation();
+      }
+    },
+
+    _resetQuestionAttempt() {
+      this.answered = false;
+      this.selectedOption = null;
+      this.isCorrect = false;
+      this.replayCount = 0;
+      this.activeNotePlayingIndex = -1;
+    },
+
+    getOptionSymbol(option, question = this.currentQ) {
+      if (!question) return '♪';
+      if (question.type === 'pitch') return option === 'Agudo' ? '↑' : '↓';
+      if (question.type === 'scale') {
+        const name = option.toLowerCase();
+        if (name.includes('mayor')) return '☀️';
+        if (name.includes('menor armónica') || name.includes('menor armonica')) return '🌙';
+        if (name.includes('pentatónica') || name.includes('pentatonica')) return '🌾';
+        if (name.includes('menor')) return '🌧️';
+        return '🎼';
+      }
+      if (question.type === 'melody') return ['♪', '♫', '♬', '𝄞'][question.options.indexOf(option) % 4];
+      const interval = this.intervals.find(item => item.name === option);
+      return interval && interval.semitones <= 2 ? '↗' : interval && interval.semitones <= 4 ? '↗↗' : '⤴';
+    },
+
+    getOptionHint(option, question = this.currentQ) {
+      if (!question) return '';
+      if (question.type === 'pitch') return option === 'Agudo' ? 'Sube el sonido' : 'Baja el sonido';
+      if (question.type === 'scale') {
+        const scale = this.scales.find(item => item.name === option);
+        return scale ? scale.description || 'Escucha el carácter de la escala' : 'Escucha su carácter';
+      }
+      if (question.type === 'melody') return 'Reconoce el orden de las notas';
+      const interval = this.intervals.find(item => item.name === option);
+      if (!interval) return 'Escucha la distancia';
+      if (interval.semitones <= 2) return 'Paso corto';
+      if (interval.semitones <= 4) return 'Paso mediano';
+      if (interval.semitones <= 7) return 'Salto amplio';
+      return 'Salto grande';
+    },
+
+    async _recordAchievement(instrument, correct, tonicScaleId = null) {
+      if (!this.user.authenticated || !this.csrfToken) {
+        if (instrument === 'Bandola') {
+          this.bandolaCorrectStreak = correct ? this.bandolaCorrectStreak + 1 : 0;
+        }
+        return;
+      }
+      try {
+        const response = await fetch('/api/senafonica/achievements', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': this.csrfToken },
+          body: JSON.stringify({
+            instrument,
+            correct,
+            tonic_scale_id: tonicScaleId,
+          }),
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'No se pudo guardar el progreso de logros.');
+        this.bandolaCorrectStreak = result.bandola_correct_streak;
+        this.tonicScales = result.tonic_scales;
+        if (result.unlocked.length) {
+          this._updateMascot('celebrating', `¡Logro desbloqueado: ${result.unlocked.join(', ')}!`);
+          this._triggerConfetti();
+        }
+      } catch (error) {
+        console.error('Could not sync achievement progress:', error);
+      }
+    },
+
+    startTimeTrial() {
+      clearInterval(this.timeTrialTimer);
+      this.currentTab = 'time-trial';
+      this.timeTrialSeconds = 30;
+      this.timeTrialScore = 0;
+      this.timeTrialAttempted = 0;
+      this.timeTrialFinished = false;
+      this.qIndex = 0;
+      this.sessionCorrect = 0;
+      this.sessionWrong = 0;
+      this.levelQuestions = Array.from({ length: 30 }, (_, index) => {
+        const interval = this.intervals[Math.floor(Math.random() * this.intervals.length)];
+        const pool = this.intervals.map(item => item.name);
+        return {
+          id: index + 1,
+          type: 'interval',
+          title: '¿A qué suena este salto?',
+          instruction: 'Escucha el intervalo y elige su nombre.',
+          instrument: index % 2 === 0 ? 'Tiple' : 'Requinto',
+          rootMidi: 60,
+          semitones: interval.semitones,
+          direction: 'ascendente',
+          correct: interval.name,
+          options: this._makeOptions(interval.name, pool, 4),
+          explanation: `Era ${interval.name}: ${interval.semitones} semitonos.`,
+        };
+      });
+      this.currentQ = this.levelQuestions[0];
+      this.activeStation = { station_name: 'Contrarreloj', instrument: 'Tiple y Requinto' };
+      this._resetQuestionAttempt();
+      this._preloadQuestionAudio(this.levelQuestions);
+      this.timeTrialTimer = setInterval(() => {
+        this.timeTrialSeconds--;
+        if (this.timeTrialSeconds <= 0) this.finishTimeTrial();
+      }, 1000);
+      this.$nextTick(() => setTimeout(() => this.playCurrentAudio(), 100));
+    },
+
+    finishTimeTrial() {
+      if (this.timeTrialFinished) return;
+      clearInterval(this.timeTrialTimer);
+      this.timeTrialFinished = true;
+      this.audio.stop();
+      this.isPlaying = false;
+      const earnedXp = this.timeTrialScore * 5;
+      this.xp += earnedXp;
+      if (this.timeTrialAttempted > 0) {
+        void this._syncWithServer({
+          xp_earned: earnedXp,
+          coins_earned: 0,
+          correct_count: this.timeTrialScore,
+          total_count: this.timeTrialAttempted,
+        });
+      }
+    },
+
+    async startDailyChallenge() {
+      this.currentTab = 'daily';
+      this.dailyLoading = true;
+      this.dailyMessage = '';
+      this.dailyFinished = false;
+      this.dailyScore = 0;
+      this.qIndex = 0;
+      try {
+        const response = await fetch('/api/senafonica/daily-challenge');
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'No se pudo cargar el desafío diario.');
+        if (!data.questions.length) throw new Error('No hay intervalos cargados para preparar el reto.');
+        this.dailyDate = data.date;
+        this.dailyStreak = data.daily_streak || this.dailyStreak;
+        const localDone = localStorage.getItem(`senafonica_daily_${data.date}`) === 'done';
+        if (data.completed || localDone) {
+          this.dailyFinished = true;
+          this.dailyMessage = 'Ya completaste el desafío de hoy. ¡Vuelve mañana para otra medalla!';
+          return;
+        }
+        this.dailyQuestions = data.questions.map(question => ({
+          ...question,
+          type: 'interval',
+          title: 'Desafío diario · ¿Qué intervalo escuchas?',
+          instruction: `Pregunta ${question.id} de 3 · ${question.instrument}`,
+          direction: 'ascendente',
+          explanation: `La respuesta era ${question.correct}.`,
+        }));
+        this.levelQuestions = this.dailyQuestions;
+        this.currentQ = this.dailyQuestions[0];
+          this.activeStation = { station_name: 'Desafío diario', instrument: 'Tiple, Requinto y Bandola' };
+        this._resetQuestionAttempt();
+        this._preloadQuestionAudio(this.dailyQuestions);
+        this.$nextTick(() => setTimeout(() => this.playCurrentAudio(), 100));
+      } catch (error) {
+        this.dailyMessage = error.message || 'No se pudo cargar el desafío diario.';
+      } finally {
+        this.dailyLoading = false;
+      }
+    },
+
+    async finishDailyChallenge() {
+      if (this.dailyFinished) return;
+      this.dailyFinished = true;
+      localStorage.setItem(`senafonica_daily_${this.dailyDate}`, 'done');
+      try {
+        const response = await fetch('/api/senafonica/daily-challenge', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': this.csrfToken },
+          body: JSON.stringify({ score: this.dailyScore }),
+        });
+        const result = await response.json();
+        if (response.status === 401) {
+          this.dailyMessage = `Completaste ${this.dailyScore}/3. Inicia sesión para guardar tu racha y reclamar la recompensa.`;
+          return;
+        }
+        if (!response.ok) throw new Error(result.error || 'No se pudo guardar el desafío diario.');
+        this.dailyStreak = result.daily_streak;
+        this.xp = result.total_xp;
+        this.coins = result.coins;
+        this.dailyMessage = result.status === 'already_completed'
+          ? 'El desafío de hoy ya estaba registrado.'
+          : `¡Desafío completado! ${this.dailyScore}/3 · +25 XP · +5 púas${result.medal ? ' · ¡Medalla diaria!' : ''}`;
+        this.audio.playLevelCompleteSound();
+        this._triggerConfetti();
+      } catch (error) {
+        localStorage.removeItem(`senafonica_daily_${this.dailyDate}`);
+        this.dailyFinished = false;
+        this.dailyMessage = error.message || 'No se pudo guardar el desafío diario.';
+      }
+    },
+
+    prepareTonicChallenge() {
+      this.tonicChallengeMessage = '';
+      this.tonicChallengeAttempts = 0;
+      this.tonicChallengeIdentified = false;
+      const root = Number(this.jamRootMidi);
+      this.tonicChallengeOptions = [root, root + 2, root + 4, root + 7]
+        .sort(() => Math.random() - 0.5);
+    },
+
+    async playTonicChallenge() {
+      await this.audio.playNote(this.jamInstrument, Number(this.jamRootMidi), 0, 0.75, 0.95);
+    },
+
+    async answerTonicChallenge(midi) {
+      const scale = this.scales[Number(this.jamScaleIndex)];
+      if (this.tonicChallengeIdentified) return;
+      const correct = Number(midi) === Number(this.jamRootMidi);
+      const firstTry = this.tonicChallengeAttempts === 0;
+      this.tonicChallengeAttempts++;
+      this.tonicChallengeMessage = correct
+        ? `¡Correcto! ${this.audio.midiToName(Number(midi))} es la tónica.`
+        : 'No es esa nota. Escucha de nuevo y vuelve a intentarlo.';
+      if (correct) this.tonicChallengeIdentified = true;
+      if (correct && firstTry && scale && !this.tonicScales.includes(scale.id)) {
+        this.tonicScales.push(scale.id);
+        await this._recordAchievement(null, true, scale.id);
+        this._triggerConfetti();
       }
     },
 

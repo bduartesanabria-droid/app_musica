@@ -26,6 +26,27 @@ def upgrade():
     )
     op.add_column(
         "user_gamification",
+        sa.Column("bandola_correct_streak", sa.Integer(), nullable=False, server_default="0"),
+    )
+    op.add_column(
+        "user_gamification",
+        sa.Column(
+            "tonic_scales_json",
+            sa.Text(),
+            nullable=False,
+            server_default="[]",
+        ),
+    )
+    op.add_column(
+        "user_gamification",
+        sa.Column("daily_streak", sa.Integer(), nullable=False, server_default="0"),
+    )
+    op.add_column(
+        "user_gamification",
+        sa.Column("last_daily_challenge", sa.Date(), nullable=True),
+    )
+    op.add_column(
+        "user_gamification",
         sa.Column(
             "unlocked_skins_json",
             sa.Text(),
@@ -36,6 +57,10 @@ def upgrade():
 
 
 def downgrade():
+    op.drop_column("user_gamification", "last_daily_challenge")
+    op.drop_column("user_gamification", "daily_streak")
+    op.drop_column("user_gamification", "tonic_scales_json")
+    op.drop_column("user_gamification", "bandola_correct_streak")
     op.drop_column("user_gamification", "unlocked_skins_json")
     op.drop_column("user_gamification", "equipped_skin")
     op.drop_column("users", "birth_date")

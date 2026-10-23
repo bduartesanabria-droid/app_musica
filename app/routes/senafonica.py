@@ -1,14 +1,16 @@
 import json
+import hashlib
 import io
 import mimetypes
 import os
+from datetime import timedelta
 from flask import Blueprint, abort, render_template, jsonify, request, send_file, url_for
 from flask_login import current_user, login_required
 from sqlalchemy.orm import joinedload
 from ..extensions import db
 from ..models.instrument import Instrument, Note, Interval, Scale
 from ..models.audio import Audio
-from ..models.gamification import UserGamification
+from ..models.gamification import Badge, UserBadge, UserGamification
 from ..models.progress import Progress
 from ..utils.timezone import bogota_date
 
@@ -884,6 +886,13 @@ def index():
                 if gamification and gamification.unlocked_skins_json
                 else '["skin_tiple_noble"]'
             ),
+            "tonic_scales": json.loads(
+                gamification.tonic_scales_json
+                if gamification and gamification.tonic_scales_json
+                else "[]"
+            ),
+            "daily_streak": gamification.daily_streak if gamification else 0,
+            "bandola_correct_streak": gamification.bandola_correct_streak if gamification else 0,
         }
 
     catalog = _build_audio_catalog()
@@ -1028,6 +1037,180 @@ def sync_progress():
         "guest": True,
         "xp_added": xp_to_add,
         "coins_added": coins_to_add
+    })
+
+
+def _game_badge(gamification, name, description, icon):
+    badge = Badge.query.filter_by(name=name).first()
+    if not badge:
+        badge = Badge(
+            name=name,
+            description=description,
+            icon=icon,
+            category="senafonica",
+            is_active=True,
+        )
+        db.session.add(badge)
+        db.session.flush()
+    if not UserBadge.query.filter_by(
+        user_gamification_id=gamification.id,
+        badge_id=badge.id,
+    ).first():
+        db.session.add(UserBadge(
+            user_gamification_id=gamification.id,
+            badge_id=badge.id,
+        ))
+
+
+@senafonica_bp.route("/api/senafonica/achievements", methods=["POST"])
+@login_required
+def update_game_achievement():
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict) or type(data.get("correct")) is not bool:
+        return jsonify({"error": "La respuesta no es válida."}), 400
+
+    gamification = UserGamification.query.filter_by(user_id=current_user.id).first()
+    if not gamification:
+        gamification = UserGamification(user_id=current_user.id)
+        db.session.add(gamification)
+        db.session.flush()
+
+    unlocked = []
+    if data.get("instrument") == "Bandola":
+        gamification.bandola_correct_streak = (
+            (gamification.bandola_correct_streak or 0) + 1
+            if data["correct"]
+            else 0
+        )
+        if gamification.bandola_correct_streak == 10:
+            _game_badge(
+                gamification,
+                "Oído de Oro",
+                "Consigue 10 respuestas correctas consecutivas con la Bandola.",
+                "🥇",
+            )
+            unlocked.append("Oído de Oro")
+    else:
+        gamification.bandola_correct_streak = 0
+
+    scale_id = data.get("tonic_scale_id")
+    if data["correct"] and scale_id is not None:
+        try:
+            scale_id = int(scale_id)
+        except (TypeError, ValueError):
+            return jsonify({"error": "La escala indicada no es válida."}), 400
+        if not db.session.get(Scale, scale_id):
+            return jsonify({"error": "La escala indicada no existe."}), 400
+        tonic_scales = json.loads(gamification.tonic_scales_json or "[]")
+        if scale_id not in tonic_scales:
+            tonic_scales.append(scale_id)
+            gamification.tonic_scales_json = json.dumps(tonic_scales)
+        if len(tonic_scales) == 5:
+            _game_badge(
+                gamification,
+                "Afinador Mayor",
+                "Identifica la tónica a la primera en cinco escalas distintas.",
+                "🎼",
+            )
+            unlocked.append("Afinador Mayor")
+
+    db.session.commit()
+    return jsonify({
+        "status": "success",
+        "bandola_correct_streak": gamification.bandola_correct_streak or 0,
+        "tonic_scales": json.loads(gamification.tonic_scales_json or "[]"),
+        "unlocked": list(dict.fromkeys(unlocked)),
+    })
+
+
+def _daily_challenge_for(day):
+    intervals = Interval.query.order_by(Interval.semitones, Interval.id).all()
+    if not intervals:
+        return []
+    digest = hashlib.sha256(day.isoformat().encode("ascii")).digest()
+    instruments = ("Tiple", "Requinto", "Bandola")
+    challenge = []
+    for index in range(3):
+        chosen = intervals[digest[index] % len(intervals)]
+        options = [chosen.name]
+        offsets = (index + 1, index + 3, index + 5)
+        for offset in offsets:
+            candidate = intervals[(digest[(index + offset) % len(digest)] + offset) % len(intervals)]
+            if candidate.name not in options:
+                options.append(candidate.name)
+            if len(options) == 4:
+                break
+        challenge.append({
+            "id": index + 1,
+            "instrument": instruments[index],
+            "root_midi": 60,
+            "semitones": chosen.semitones,
+            "correct": chosen.name,
+            "options": options,
+        })
+    return challenge
+
+
+@senafonica_bp.route("/api/senafonica/daily-challenge", methods=["GET", "POST"])
+def daily_challenge():
+    today = bogota_date()
+    if request.method == "GET":
+        completed = False
+        daily_streak = 0
+        if current_user.is_authenticated:
+            gamification = UserGamification.query.filter_by(user_id=current_user.id).first()
+            completed = bool(gamification and gamification.last_daily_challenge == today)
+            daily_streak = gamification.daily_streak if gamification else 0
+        return jsonify({
+            "date": today.isoformat(),
+            "questions": _daily_challenge_for(today),
+            "completed": completed,
+            "daily_streak": daily_streak,
+        })
+
+    if not current_user.is_authenticated:
+        return jsonify({"error": "Inicia sesión para guardar tu reto diario."}), 401
+    data = request.get_json(silent=True)
+    score = data.get("score") if isinstance(data, dict) else None
+    if type(score) is not int or not 0 <= score <= 3:
+        return jsonify({"error": "El resultado del reto debe estar entre 0 y 3."}), 400
+
+    gamification = UserGamification.query.filter_by(user_id=current_user.id).first()
+    if not gamification:
+        gamification = UserGamification(user_id=current_user.id)
+        db.session.add(gamification)
+    if gamification.last_daily_challenge == today:
+        return jsonify({
+            "status": "already_completed",
+            "daily_streak": gamification.daily_streak or 0,
+        })
+
+    yesterday = today - timedelta(days=1)
+    gamification.daily_streak = (
+        (gamification.daily_streak or 0) + 1
+        if gamification.last_daily_challenge == yesterday
+        else 1
+    )
+    gamification.last_daily_challenge = today
+    gamification.total_xp = (gamification.total_xp or 0) + 25
+    gamification.coins = (gamification.coins or 0) + 5
+    gamification.weekly_xp = (gamification.weekly_xp or 0) + 25
+    gamification.monthly_xp = (gamification.monthly_xp or 0) + 25
+    gamification.recalculate_level()
+    if score == 3:
+        _game_badge(
+            gamification,
+            "Medalla del Reto Diario",
+            "Completa las tres preguntas del desafío diario con todas correctas.",
+            "🏅",
+        )
+    db.session.commit()
+    return jsonify({
+        "status": "success",
+        "daily_streak": gamification.daily_streak,
+        "total_xp": gamification.total_xp,
+        "coins": gamification.coins,
+        "medal": score == 3,
     })
 
 

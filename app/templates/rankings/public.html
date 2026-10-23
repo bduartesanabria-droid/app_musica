@@ -3,10 +3,15 @@
 {% block body %}
 <main x-data="publicRankingPage()" class="mx-auto min-h-screen max-w-4xl px-4 py-10 text-white">
   <header class="mb-8 flex flex-wrap items-center justify-between gap-4">
-    <div>
-      <p class="text-xs font-black uppercase tracking-[0.2em] text-emerald-400">SEMIMUS</p>
-      <h1 class="mt-1 text-3xl font-black">Ranking de aprendices</h1>
-      <p class="mt-2 text-sm text-slate-400">Puntos acumulados · La edad se calcula desde la fecha de nacimiento.</p>
+    <div class="flex items-center gap-3">
+      <img src="{{ url_for('static', filename='img/logoSenafonico.png') }}"
+           alt="Senafónico" width="56" height="56"
+           class="rounded-xl object-contain">
+      <div>
+        <p class="text-xs font-black uppercase tracking-[0.2em] text-emerald-400">SEMIMUS</p>
+        <h1 class="mt-1 text-3xl font-black">Ranking de aprendices</h1>
+        <p class="mt-2 text-sm text-slate-400">Puntos acumulados · La edad se calcula desde la fecha de nacimiento.</p>
+      </div>
     </div>
     <a href="{{ url_for('senafonica.index') }}" class="rounded-xl bg-emerald-700 px-4 py-3 text-sm font-bold hover:bg-emerald-600">Volver al juego</a>
   </header>
