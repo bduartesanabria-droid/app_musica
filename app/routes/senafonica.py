@@ -47,6 +47,16 @@ def _interval_data(intervals):
     return data
 
 
+def _saved_module_progress(progress):
+    if not progress or not progress.module_progress_json:
+        return {}
+    try:
+        stored = json.loads(progress.module_progress_json)
+    except (TypeError, ValueError):
+        return {}
+    return stored if isinstance(stored, dict) else {}
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 # INDUCTION QUESTIONS (3 preguntas teóricas de bienvenida)
 # ══════════════════════════════════════════════════════════════════════════════
@@ -924,6 +934,7 @@ def index():
             ),
             "daily_streak": gamification.daily_streak if gamification else 0,
             "bandola_correct_streak": gamification.bandola_correct_streak if gamification else 0,
+            "module_progress": _saved_module_progress(progress),
         }
 
     catalog = _build_audio_catalog()
@@ -963,6 +974,10 @@ def get_data():
     intervals = Interval.query.order_by(Interval.semitones).all()
     scales = Scale.query.order_by(Scale.id).all()
     modules_config = _game_data("modules_config.json")["modules"]
+    saved_progress = {}
+    if current_user and current_user.is_authenticated:
+        progress = Progress.query.filter_by(user_id=current_user.id).first()
+        saved_progress = _saved_module_progress(progress)
 
     return jsonify({
         "catalog": catalog,
@@ -978,6 +993,7 @@ def get_data():
         ],
         "levels": modules_config,
         "modules": modules_config,
+        "module_progress": saved_progress,
         "stations": VELEZ_STATIONS_CONFIG,
         "theory_questions": THEORY_QUESTIONS,
         "induction_questions": INITIAL_INDUCTION_QUESTIONS,
@@ -998,6 +1014,22 @@ def sync_progress():
         return jsonify({"error": "Los valores de progreso no son válidos."}), 400
     if correct_count > total_count or total_count > 100:
         return jsonify({"error": "El conteo de respuestas no es válido."}), 400
+    module_progress = data.get("module_progress")
+    if module_progress is not None:
+        if not isinstance(module_progress, dict) or len(module_progress) > 24:
+            return jsonify({"error": "El progreso de módulos no es válido."}), 400
+        for key, accuracy in module_progress.items():
+            parts = key.split(":") if isinstance(key, str) else []
+            if (
+                len(parts) != 2
+                or not all(part.isdigit() for part in parts)
+                or not 0 <= int(parts[0]) <= 5
+                or not 1 <= int(parts[1]) <= 4
+                or isinstance(accuracy, bool)
+                or not isinstance(accuracy, int)
+                or not 0 <= accuracy <= 100
+            ):
+                return jsonify({"error": "El progreso de módulos no es válido."}), 400
 
     if current_user and current_user.is_authenticated:
         gamification = UserGamification.query.filter_by(user_id=current_user.id).first()
@@ -1009,6 +1041,12 @@ def sync_progress():
         if not progress:
             progress = Progress(user_id=current_user.id)
             db.session.add(progress)
+
+        if module_progress is not None:
+            saved_progress = _saved_module_progress(progress)
+            for key, accuracy in module_progress.items():
+                saved_progress[key] = max(saved_progress.get(key, 0), accuracy)
+            progress.module_progress_json = json.dumps(saved_progress)
 
         if xp_to_add > 0:
             gamification.total_xp = (gamification.total_xp or 0) + xp_to_add

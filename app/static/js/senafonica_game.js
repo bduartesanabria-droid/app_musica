@@ -286,7 +286,12 @@ function senafonicaGame(initData) {
           this.streak = Math.max(parsed.streak || 1, this.user.streak || 1);
           this.levelStars = parsed.levelStars || {};
           this.unlockedLevels = parsed.unlockedLevels || [1];
-          this.moduleProgress = parsed.moduleProgress || {};
+          const localProgress = parsed.moduleProgress || {};
+          const serverProgress = this.user.module_progress || {};
+          this.moduleProgress = Object.fromEntries(
+            [...new Set([...Object.keys(localProgress), ...Object.keys(serverProgress)])]
+              .map(key => [key, Math.max(Number(localProgress[key]) || 0, Number(serverProgress[key]) || 0)])
+          );
           this.totalQuestionsAnswered = parsed.totalQuestionsAnswered || 0;
           this.totalCorrectAnswered = parsed.totalCorrectAnswered || 0;
           this.unlockedCollectibles = parsed.unlockedCollectibles || [];
@@ -317,6 +322,7 @@ function senafonicaGame(initData) {
       this.xp = this.user.xp || 0;
       this.coins = this.user.coins || 0;
       this.streak = this.user.streak || 1;
+      this.moduleProgress = this.user.module_progress || {};
       this.equippedSkin = this.user.equipped_skin || 'skin_tiple_noble';
       this.unlockedItems = this.user.unlocked_skins || ['skin_tiple_noble'];
     },
@@ -645,15 +651,42 @@ function senafonicaGame(initData) {
       });
     },
 
-    isModuleLevelUnlocked(moduleId, levelNumber) {
+    isModuleUnlocked(moduleId) {
       const module = this.levels.find(item => item.id === moduleId);
       if (!module) return false;
+      if (moduleId === 0 || moduleId === 1 || moduleId === 5) return true;
+      const previousModule = this.levels.find(item => item.id === moduleId - 1);
+      if (!previousModule || !previousModule.levels || !previousModule.levels.length) return false;
+      const previousLevels = [...previousModule.levels].sort((a, b) => a.level - b.level);
+      const finalLevel = previousLevels[previousLevels.length - 1];
+      return (this.moduleProgress[`${previousModule.id}:${finalLevel.level}`] || 0) >= finalLevel.minCorrectPct;
+    },
+
+    isModuleLevelUnlocked(moduleId, levelNumber) {
+      const module = this.levels.find(item => item.id === moduleId);
+      if (!module || !this.isModuleUnlocked(moduleId)) return false;
       if (moduleId === 0 || moduleId === 5 || !module.levels || levelNumber === 1) return true;
       const levels = [...module.levels].sort((a, b) => a.level - b.level);
       const index = levels.findIndex(item => item.level === levelNumber);
       if (index <= 0) return false;
       const previous = levels[index - 1];
       return (this.moduleProgress[`${moduleId}:${previous.level}`] || 0) >= previous.minCorrectPct;
+    },
+
+    isModuleCompleted(moduleId) {
+      const module = this.levels.find(item => item.id === moduleId);
+      if (!module) return false;
+      const moduleLevels = [...(module.levels || [])].sort((a, b) => a.level - b.level);
+      if (!moduleLevels.length) {
+        const minimum = module.unlockCriteria?.minCorrectPct || 80;
+        return (this.moduleProgress[`${moduleId}:1`] || 0) >= minimum;
+      }
+      const finalLevel = moduleLevels[moduleLevels.length - 1];
+      return (this.moduleProgress[`${moduleId}:${finalLevel.level}`] || 0) >= finalLevel.minCorrectPct;
+    },
+
+    isModuleLevelCompleted(moduleId, levelConfig) {
+      return (this.moduleProgress[`${moduleId}:${levelConfig.level}`] || 0) >= levelConfig.minCorrectPct;
     },
 
     startModuleLevel(moduleId, levelNumber = 1) {
@@ -1517,9 +1550,8 @@ function senafonicaGame(initData) {
       const accuracy = Math.round((this.sessionCorrect / total) * 100);
       if (this.activeStation.moduleId !== undefined) {
         const { moduleId, moduleLevel, moduleLevelConfig } = this.activeStation;
-        if (moduleLevelConfig) {
-          this.moduleProgress[`${moduleId}:${moduleLevel}`] = accuracy;
-        }
+        const progressKey = `${moduleId}:${moduleLevel}`;
+        this.moduleProgress[progressKey] = Math.max(this.moduleProgress[progressKey] || 0, accuracy);
         const module = this.levels.find(item => item.id === moduleId);
         const hasNextLevel = (module && module.levels || [])
           .some(item => item.level > moduleLevel);
@@ -1527,6 +1559,7 @@ function senafonicaGame(initData) {
           ? accuracy >= moduleLevelConfig.minCorrectPct
           : true;
         this._saveLocalState();
+        void this._syncWithServer({ module_progress: this.moduleProgress });
         this.currentTab = 'path';
         this._updateMascot(
           passed ? 'celebrating' : 'sad',

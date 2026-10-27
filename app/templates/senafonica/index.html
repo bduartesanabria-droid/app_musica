@@ -400,7 +400,11 @@
         <div class="mt-3 grid gap-3 sm:grid-cols-2">
           <template x-for="module in levels" :key="module.id">
             <article class="rounded-xl border border-white/10 bg-slate-950/70 p-3">
-              <p class="text-sm font-bold text-emerald-200" x-text="`Módulo ${module.id} · ${module.name}`"></p>
+              <div class="flex items-start justify-between gap-2">
+                <p class="text-sm font-bold text-emerald-200" x-text="`Módulo ${module.id} · ${module.name}`"></p>
+                <span class="shrink-0 text-[10px] font-black text-amber-200"
+                      x-text="isModuleCompleted(module.id) ? 'Completado ✓' : isModuleUnlocked(module.id) ? 'Abierto' : 'Cerrado 🔒'"></span>
+              </div>
               <template x-if="module.levels && module.levels.length">
                 <div class="mt-2 flex flex-wrap gap-2">
                   <template x-for="moduleLevel in module.levels" :key="moduleLevel.level">
@@ -408,15 +412,16 @@
                             @click="startModuleLevel(module.id, moduleLevel.level)"
                             :disabled="!isModuleLevelUnlocked(module.id, moduleLevel.level)"
                             class="rounded-lg bg-emerald-800 px-3 py-2 text-xs font-black text-white disabled:cursor-not-allowed disabled:opacity-40"
-                            x-text="`Nivel ${moduleLevel.level}${moduleProgress[`${module.id}:${moduleLevel.level}`] !== undefined ? ` · ${moduleProgress[`${module.id}:${moduleLevel.level}`]}%` : ''}`"></button>
+                            x-text="`${isModuleLevelCompleted(module.id, moduleLevel) ? '✓ ' : isModuleLevelUnlocked(module.id, moduleLevel.level) ? '♪ ' : '🔒 '}Nivel ${moduleLevel.level}${moduleProgress[`${module.id}:${moduleLevel.level}`] !== undefined ? ` · ${moduleProgress[`${module.id}:${moduleLevel.level}`]}%` : ''}`"></button>
                   </template>
                 </div>
               </template>
               <button x-show="!module.levels || !module.levels.length"
                       type="button"
                       @click="startModuleLevel(module.id, 1)"
+                      :disabled="!isModuleLevelUnlocked(module.id, 1)"
                       class="mt-2 rounded-lg bg-emerald-800 px-3 py-2 text-xs font-black text-white">
-                Iniciar módulo
+                <span x-text="isModuleCompleted(module.id) ? '✓ Iniciar de nuevo' : 'Iniciar módulo'"></span>
               </button>
             </article>
           </template>

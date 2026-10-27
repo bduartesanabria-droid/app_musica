@@ -17,6 +17,7 @@ class Progress(db.Model):
     last_activity_date         = db.Column(db.Date, nullable=True)
     weakest_notes_json         = db.Column(db.Text, nullable=True)
     weakest_intervals_json     = db.Column(db.Text, nullable=True)
+    module_progress_json       = db.Column(db.Text, nullable=True)
     updated_at                 = db.Column(db.DateTime,
                                            default=lambda: datetime.now(timezone.utc),
                                            onupdate=lambda: datetime.now(timezone.utc))

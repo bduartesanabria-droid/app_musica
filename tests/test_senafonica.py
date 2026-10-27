@@ -4,6 +4,7 @@ from app.extensions import db
 from app.models.audio import Audio
 from app.models.gamification import Badge, UserBadge, UserGamification
 from app.models.instrument import Instrument, Interval, Note, Scale
+from app.models.progress import Progress
 from app.models.user import User
 from app.routes.main import _public_age
 from app.utils.timezone import bogota_date
@@ -325,7 +326,8 @@ def test_senafonica_api_sync_authenticated(login_client):
         "xp_earned": 50,
         "coins_earned": 10,
         "correct_count": 5,
-        "total_count": 5
+        "total_count": 5,
+        "module_progress": {"1:1": 80},
     }
     res = auth_client.post(
         "/api/senafonica/sync",
@@ -337,3 +339,19 @@ def test_senafonica_api_sync_authenticated(login_client):
     assert data["status"] == "success"
     assert data["total_xp"] == 50
     assert data["coins"] == 10
+    with auth_client.application.app_context():
+        progress = Progress.query.filter_by(user_id=user_id).one()
+        assert json.loads(progress.module_progress_json) == {"1:1": 80}
+    assert auth_client.get("/api/senafonica/data").get_json()["module_progress"] == {"1:1": 80}
+    page_data = auth_client.get("/senafonica").data.decode("utf-8")
+    assert '"module_progress": {"1:1": 80}' in page_data
+
+
+def test_senafonica_sync_rejects_invalid_module_progress(login_client):
+    auth_client, _ = login_client()
+    response = auth_client.post(
+        "/api/senafonica/sync",
+        data=json.dumps({"module_progress": {"1:1": 101}}),
+        content_type="application/json",
+    )
+    assert response.status_code == 400
