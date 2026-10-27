@@ -1,0 +1,90 @@
+[
+  {
+    "id": "2m",
+    "name": "Segunda menor",
+    "semitones": 1,
+    "tonos": "medio tono",
+    "trastes": 1,
+    "texto_instrumento": ""
+  },
+  {
+    "id": "2M",
+    "name": "Segunda mayor",
+    "semitones": 2,
+    "tonos": "1 tono completo",
+    "trastes": 2,
+    "texto_instrumento": ""
+  },
+  {
+    "id": "3m",
+    "name": "Tercera menor",
+    "semitones": 3,
+    "tonos": "tono y medio",
+    "trastes": 3,
+    "texto_instrumento": ""
+  },
+  {
+    "id": "3M",
+    "name": "Tercera mayor",
+    "semitones": 4,
+    "tonos": "2 tonos",
+    "trastes": 4,
+    "texto_instrumento": ""
+  },
+  {
+    "id": "4J",
+    "name": "Cuarta justa",
+    "semitones": 5,
+    "tonos": "2 tonos y medio",
+    "trastes": 5,
+    "texto_instrumento": ""
+  },
+  {
+    "id": "5J",
+    "name": "Quinta justa",
+    "semitones": 7,
+    "tonos": "3 tonos y medio",
+    "trastes": 7,
+    "texto_instrumento": ""
+  },
+  {
+    "id": "6m",
+    "name": "Sexta menor",
+    "semitones": 8,
+    "tonos": "4 tonos",
+    "trastes": 8,
+    "texto_instrumento": ""
+  },
+  {
+    "id": "6M",
+    "name": "Sexta mayor",
+    "semitones": 9,
+    "tonos": "4 tonos y medio",
+    "trastes": 9,
+    "texto_instrumento": ""
+  },
+  {
+    "id": "7m",
+    "name": "Séptima menor",
+    "semitones": 10,
+    "tonos": "5 tonos",
+    "trastes": 10,
+    "texto_instrumento": ""
+  },
+  {
+    "id": "7M",
+    "name": "Séptima mayor",
+    "semitones": 11,
+    "tonos": "5 tonos y medio",
+    "trastes": 11,
+    "texto_instrumento": ""
+  },
+  {
+    "id": "8J",
+    "name": "Octava justa",
+    "semitones": 12,
+    "tonos": "6 tonos",
+    "trastes": 12,
+    "texto_instrumento": ""
+  }
+]

@@ -11,33 +11,68 @@
       "id": 1,
       "name": "Segundas (menor/mayor)",
       "type": "interval",
-      "intervals": [1, 2],
-      "description": "Reconocer intervalos de segunda menor (1 semitono) y mayor (2 semitonos).",
-      "unlockCriteria": { "minCorrectPct": 80 }
+      "levels": [
+        {
+          "level": 1,
+          "intervalIds": ["2m", "2M"],
+          "minCorrectPct": 80
+        }
+      ],
+      "description": "Reconocer intervalos de segunda menor (1 semitono) y mayor (2 semitonos)."
     },
     {
       "id": 2,
       "name": "Terceras",
       "type": "interval",
-      "intervals": [3, 4],
-      "description": "Reconocer intervalos de tercera menor (3) y mayor (4).",
-      "unlockCriteria": { "minCorrectPct": 80 }
+      "levels": [
+        {
+          "level": 1,
+          "intervalIds": ["3m", "3M"],
+          "minCorrectPct": 80
+        }
+      ],
+      "description": "Reconocer intervalos de tercera menor (3 semitonos) y mayor (4 semitonos)."
     },
     {
       "id": 3,
       "name": "Cuartas y Quintas",
       "type": "interval",
-      "intervals": [5, 7],
-      "description": "Reconocer cuartas (5 semitonos) y quintas (7 semitonos).",
-      "unlockCriteria": { "minCorrectPct": 80 }
+      "levels": [
+        {
+          "level": 1,
+          "intervalIds": ["4J", "5J"],
+          "minCorrectPct": 80
+        }
+      ],
+      "description": "Reconocer cuartas (5 semitonos) y quintas (7 semitonos)."
     },
     {
       "id": 4,
       "name": "Sextas, Séptimas y Octavas",
       "type": "interval",
-      "intervals": [8, 9, 10, 11, 12],
-      "description": "Reconocer intervalos mayores: sextas, séptimas y octava.",
-      "unlockCriteria": { "minCorrectPct": 80 }
+      "levels": [
+        {
+          "level": 1,
+          "intervalIds": ["6m", "6M"],
+          "minCorrectPct": 80
+        },
+        {
+          "level": 2,
+          "intervalIds": ["6m", "6M", "7m"],
+          "minCorrectPct": 80
+        },
+        {
+          "level": 3,
+          "intervalIds": ["6m", "6M", "7m", "7M"],
+          "minCorrectPct": 80
+        },
+        {
+          "level": 4,
+          "intervalIds": ["6m", "6M", "7m", "7M", "8J"],
+          "minCorrectPct": 80
+        }
+      ],
+      "description": "Reconocer intervalos mayores: sextas, séptimas y octava."
     },
     {
       "id": 5,
@@ -46,6 +81,6 @@
       "description": "Reconocer la escala mayor completa, sus notas y patrón.",
       "unlockCriteria": { "minCorrectPct": 80 }
     }
-  ],
-  "globalUnlockPct": 80
+  ]
 }
+
