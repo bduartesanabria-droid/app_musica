@@ -9,6 +9,10 @@
   color: #fff;
 }
 
+.level-intro-overlay {
+  z-index: 1000;
+}
+
 .senafonica-tv :is(p, span, h1, h2, h3, label, button, a, strong) {
   font-size: 1.8rem !important;
 }
