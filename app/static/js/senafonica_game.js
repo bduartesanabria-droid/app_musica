@@ -1876,7 +1876,12 @@ function senafonicaGame(initData) {
     // BACKEND SERVER SYNC
     // ══════════════════════════════════════════════════════════════════════
     async _syncWithServer(payload) {
-      if (!this.csrfToken) return;
+      if (!this.csrfToken) {
+        if (this.user.authenticated) {
+          console.error('Authenticated progress was not synced because the CSRF token is missing.');
+        }
+        return;
+      }
       try {
         const res = await fetch('/api/senafonica/sync', {
           method: 'POST',
@@ -1886,12 +1891,14 @@ function senafonicaGame(initData) {
           },
           body: JSON.stringify(payload),
         });
-        if (res.ok) {
-          const serverData = await res.json();
-          if (serverData.total_xp !== undefined) this.xp = serverData.total_xp;
-          if (serverData.coins !== undefined) this.coins = serverData.coins;
-          if (serverData.streak !== undefined) this.streak = serverData.streak;
+        if (!res.ok) {
+          console.error(`Server sync failed with HTTP ${res.status}.`);
+          return;
         }
+        const serverData = await res.json();
+        if (serverData.total_xp !== undefined) this.xp = serverData.total_xp;
+        if (serverData.coins !== undefined) this.coins = serverData.coins;
+        if (serverData.streak !== undefined) this.streak = serverData.streak;
       } catch (err) {
         console.warn('Server sync failed, local state preserved:', err);
       }
