@@ -27,9 +27,14 @@ def _game_data(filename):
 def _interval_data(intervals):
     metadata = {item["id"]: item for item in _game_data("intervals.json")}
     data = []
+    seen_ids = set()
     for interval in intervals:
+        interval_id = interval.abbreviation or interval.id
+        if interval_id in seen_ids:
+            continue
+        seen_ids.add(interval_id)
         item = {
-            "id": interval.abbreviation or interval.id,
+            "id": interval_id,
             "name": interval.name,
             "semitones": interval.semitones,
             "abbreviation": interval.abbreviation or "",

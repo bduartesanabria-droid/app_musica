@@ -56,6 +56,8 @@ def test_senafonica_api_data(client):
     assert "shop_items" in data
     assert len(data["levels"]) == 6
     assert len(data["stations"]) == 15
+    interval_ids = [interval["id"] for interval in data["intervals"]]
+    assert len(interval_ids) == len(set(interval_ids))
     assert [module["id"] for module in data["modules"]] == [0, 1, 2, 3, 4, 5]
     assert data["modules"][1]["levels"][0] == {
         "level": 1,
