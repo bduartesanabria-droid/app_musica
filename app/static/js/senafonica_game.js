@@ -1298,9 +1298,11 @@ function senafonicaGame(initData) {
 
     getAnswerFeedback() {
       const question = this.currentQ;
-      if (!question || question.type !== 'interval') {
-        return question ? question.explanation : '';
+      if (!question) return '';
+      if (question.type === 'scale') {
+        return `${question.explanation || 'Escucha el patrón de la escala.'} Escala mayor: T T S T T T S; en trastes: 2, 2, 1, 2, 2, 2, 1.`;
       }
+      if (question.type !== 'interval') return question.explanation;
       const interval = this.intervals.find(item =>
         item.id === question.intervalId
         || (item.semitones === question.semitones && item.name === question.correct)

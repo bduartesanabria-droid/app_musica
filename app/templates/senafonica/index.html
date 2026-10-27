@@ -59,6 +59,11 @@
            : introModule && introModule.type === 'scale'
              ? 'Aprenderás a reconocer cómo suena una escala mayor.'
              : 'Aprenderás a reconocer este intervalo al escucharlo.'"></p>
+      <div x-show="introModule && introModule.type === 'scale'"
+           class="mt-4 rounded-2xl border border-amber-300/40 bg-amber-500/10 p-4 text-left text-lg text-amber-100">
+        <p class="font-black">Escala mayor: T T S T T T S</p>
+        <p class="mt-1">En trastes: 2, 2, 1, 2, 2, 2, 1.</p>
+      </div>
 
       <div x-show="introIntervals.length" class="mt-4 space-y-3">
         <template x-for="interval in introIntervals" :key="interval.id">
