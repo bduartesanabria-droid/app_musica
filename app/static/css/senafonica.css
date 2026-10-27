@@ -37,6 +37,29 @@
   }
 }
 
+@media (max-width: 600px) {
+  .senafonica-tv main {
+    width: 100%;
+    min-width: 0;
+    padding-inline: 0.75rem;
+  }
+
+  .senafonica-tv main section.mb-6 article {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  .senafonica-tv main section.mb-6 article > div:first-child {
+    flex-wrap: wrap;
+  }
+
+  .senafonica-tv main section.mb-6 article > div:first-child :is(p, span) {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+}
+
 :root {
   --sena-green: #39A900;
   --sena-dark-green: #297A00;

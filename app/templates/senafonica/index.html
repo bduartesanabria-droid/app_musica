@@ -402,7 +402,7 @@
             <article class="rounded-xl border border-white/10 bg-slate-950/70 p-3">
               <div class="flex items-start justify-between gap-2">
                 <p class="text-sm font-bold text-emerald-200" x-text="`Módulo ${module.id} · ${module.name}`"></p>
-                <span class="shrink-0 text-[10px] font-black text-amber-200"
+                <span class="text-[10px] font-black text-amber-200"
                       x-text="isModuleCompleted(module.id) ? 'Completado ✓' : isModuleUnlocked(module.id) ? 'Abierto' : 'Cerrado 🔒'"></span>
               </div>
               <template x-if="module.levels && module.levels.length">
