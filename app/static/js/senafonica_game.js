@@ -59,6 +59,12 @@ function senafonicaGame(initData) {
     backgroundTimer: null,
     showStationModal: false,
     selectedStation: null,
+    showLevelIntro: false,
+    introModule: null,
+    introLevel: null,
+    introIntervals: [],
+    introRootMidi: null,
+    introPlaying: false,
     showStatsModal: false,
     showShopModal: false,
     showRescueModal: false,
@@ -655,11 +661,63 @@ function senafonicaGame(initData) {
         this._updateMascot('sad', 'No se encontró la configuración del módulo.');
         return;
       }
+      if (!this.isModuleLevelUnlocked(moduleId, levelNumber)) {
+        this._updateMascot('idle', 'Completa el nivel anterior para abrir este.');
+        return;
+      }
       const levelConfig = (module.levels || []).find(item => item.level === levelNumber);
       if (module.levels && !levelConfig) {
         this._updateMascot('sad', 'No se encontró la configuración de este nivel.');
         return;
       }
+      const previousIntervalIds = (module.levels || [])
+        .filter(item => item.level < levelNumber)
+        .flatMap(item => item.intervalIds || []);
+      this.introIntervals = (levelConfig?.intervalIds || [])
+        .filter(id => !previousIntervalIds.includes(id))
+        .map(id => this.intervals.find(item => item.id === id))
+        .filter(Boolean);
+      this.introModule = module;
+      this.introLevel = levelNumber;
+      const exampleSemitones = this.introIntervals[0]?.semitones || 12;
+      this.introRootMidi = this._validRootMidis(this.selectedInstrument, exampleSemitones)[0] ?? null;
+      this.showLevelIntro = true;
+    },
+
+    async playLevelIntroExample() {
+      if (this.introPlaying || !this.introModule) return;
+      const module = this.introModule;
+      const interval = this.introIntervals[0];
+      const rootMidi = this.introRootMidi;
+      if (rootMidi === null) {
+        console.warn('No real sample root is available for this introduction.');
+        return;
+      }
+      this.introPlaying = true;
+      try {
+        if (module.type === 'scale') {
+          await this.audio.playScale(this.selectedInstrument, rootMidi, [2, 2, 1, 2, 2, 2, 1], 1.4);
+        } else {
+          await this.audio.playInterval(
+            this.selectedInstrument,
+            rootMidi,
+            interval?.semitones || 12,
+            'ascendente'
+          );
+        }
+      } catch (error) {
+        console.warn('Could not play level introduction example:', error);
+      } finally {
+        this.introPlaying = false;
+      }
+    },
+
+    continueLevelIntro() {
+      if (!this.introModule) return;
+      const module = this.introModule;
+      const levelNumber = this.introLevel;
+      const levelConfig = (module.levels || []).find(item => item.level === levelNumber);
+      this.showLevelIntro = false;
       const station = {
         id: module.id,
         moduleId: module.id,

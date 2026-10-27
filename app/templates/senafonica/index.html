@@ -44,6 +44,49 @@
        :style="backgroundImage ? `background-image: linear-gradient(180deg, ${backgroundColor}66, rgba(7, 12, 20, .88)), url('${backgroundImage}')` : ''"
        :class="backgroundVisible ? 'scene-background-visible' : ''"></div>
 
+  <section x-show="showLevelIntro" x-cloak x-transition
+           class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/90 p-4"
+           role="dialog" aria-modal="true" aria-labelledby="level-intro-title">
+    <article class="w-full max-w-xl rounded-3xl border border-emerald-300/40 bg-slate-900 p-6 text-center shadow-2xl">
+      <p class="text-sm font-black uppercase tracking-widest text-emerald-300"
+         x-text="introModule ? `Módulo ${introModule.id} · Nivel ${introLevel}` : ''"></p>
+      <h2 id="level-intro-title" class="mt-2 text-3xl font-black text-white"
+          x-text="introModule ? introModule.name : ''"></h2>
+      <p class="mt-3 text-lg text-slate-200"
+         x-text="introModule && introModule.type === 'pitch'
+           ? 'Aprenderás a distinguir sonidos graves y agudos.'
+           : introModule && introModule.type === 'scale'
+             ? 'Aprenderás a reconocer cómo suena una escala mayor.'
+             : 'Aprenderás a reconocer este intervalo al escucharlo.'"></p>
+
+      <div x-show="introIntervals.length" class="mt-4 space-y-3">
+        <template x-for="interval in introIntervals" :key="interval.id">
+          <div class="rounded-2xl border border-white/10 bg-slate-800 p-4 text-left">
+            <p class="text-xl font-black text-amber-200" x-text="interval.name"></p>
+            <p class="mt-1 text-slate-100">
+              Distancia: <strong x-text="interval.tonos"></strong>
+              · <strong x-text="interval.trastes"></strong>
+              <span x-text="interval.trastes === 1 ? 'traste' : 'trastes'"></span>
+            </p>
+          </div>
+        </template>
+      </div>
+
+      <p x-show="introModule && introModule.type === 'pitch'" class="mt-4 text-slate-100">
+        Escucha cómo cambia la altura entre dos sonidos.
+      </p>
+
+      <button type="button" @click="playLevelIntroExample()" :disabled="introPlaying"
+              class="mt-5 min-h-14 w-full rounded-xl border border-amber-300/40 bg-slate-800 px-5 py-3 text-lg font-black text-amber-100 disabled:opacity-50">
+        <span x-text="introPlaying ? 'Escuchando…' : '♫ Escuchar un ejemplo'"></span>
+      </button>
+      <button type="button" @click="continueLevelIntro()"
+              class="mt-3 min-h-16 w-full rounded-xl bg-emerald-600 px-5 py-4 text-2xl font-black text-white hover:bg-emerald-500">
+        ¡Vamos!
+      </button>
+    </article>
+  </section>
+
   <!-- ═════════════════════════════════════════════════════════════════════════
        1. ONBOARDING & LEGAL FLOW (PANTALLA DE INICIO Y CONSENTIMIENTO)
        ═════════════════════════════════════════════════════════════════════════ -->
