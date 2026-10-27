@@ -46,14 +46,24 @@ def test_senafonica_api_data(client):
     assert res.status_code == 200
     data = res.get_json()
     assert "levels" in data
+    assert "modules" in data
+    assert "stations" in data
     assert "intervals" in data
     assert "scales" in data
     assert "theory_questions" in data
     assert "induction_questions" in data
     assert "shop_items" in data
-    assert len(data["levels"]) == 15
+    assert len(data["levels"]) == 6
+    assert len(data["stations"]) == 15
+    assert [module["id"] for module in data["modules"]] == [0, 1, 2, 3, 4, 5]
+    assert data["modules"][1]["levels"][0] == {
+        "level": 1,
+        "intervalIds": ["2m", "2M"],
+        "minCorrectPct": 80,
+    }
+    assert data["modules"][4]["levels"][1]["intervalIds"] == ["6m", "6M", "7m"]
     assert len(data["induction_questions"]) == 3
-    levels = data["levels"]
+    levels = data["stations"]
     assert levels[0]["subtitle"].startswith("Agudo vs.")
     assert levels[0]["type"] == "pitch"
     assert levels[1]["learn_content"]["demo_notes"] == [60, 62, 64, 65, 67, 69, 71]
@@ -67,6 +77,18 @@ def test_senafonica_api_data(client):
     assert all(level["background_image"].startswith("/static/img/locations/") for level in levels)
     assert levels[2]["background_image"].endswith("velez-cathedral.svg")
     assert levels[5]["background_image"].endswith("guavata.svg")
+
+
+def test_senafonica_api_includes_interval_feedback_metadata(client, app):
+    with app.app_context():
+        db.session.add(Interval(name="Segunda mayor", semitones=2, abbreviation="2M"))
+        db.session.commit()
+
+    intervals = client.get("/api/senafonica/data").get_json()["intervals"]
+    second_major = next(item for item in intervals if item["id"] == "2M")
+    assert second_major["tonos"] == "1 tono completo"
+    assert second_major["trastes"] == 2
+    assert second_major["texto_instrumento"] == ""
 
 
 def test_public_age_calculates_birthday_boundary():

@@ -1,5 +1,13 @@
 [
   {
+    "id": "U",
+    "name": "Unísono",
+    "semitones": 0,
+    "tonos": "sin distancia",
+    "trastes": 0,
+    "texto_instrumento": ""
+  },
+  {
     "id": "2m",
     "name": "Segunda menor",
     "semitones": 1,
@@ -37,6 +45,14 @@
     "semitones": 5,
     "tonos": "2 tonos y medio",
     "trastes": 5,
+    "texto_instrumento": ""
+  },
+  {
+    "id": "4A",
+    "name": "Cuarta aumentada",
+    "semitones": 6,
+    "tonos": "3 tonos completos",
+    "trastes": 6,
     "texto_instrumento": ""
   },
   {

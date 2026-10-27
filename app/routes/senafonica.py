@@ -3,6 +3,7 @@ import hashlib
 import io
 import mimetypes
 import os
+from pathlib import Path
 from datetime import timedelta
 from flask import Blueprint, abort, render_template, jsonify, request, send_file, url_for
 from flask_login import current_user, login_required
@@ -15,6 +16,36 @@ from ..models.progress import Progress
 from ..utils.timezone import bogota_date
 
 senafonica_bp = Blueprint("senafonica", __name__)
+
+
+def _game_data(filename):
+    data_path = Path(__file__).resolve().parents[1] / "static" / "data" / filename
+    with data_path.open(encoding="utf-8") as data_file:
+        return json.load(data_file)
+
+
+def _interval_data(intervals):
+    metadata = {item["id"]: item for item in _game_data("intervals.json")}
+    data = []
+    for interval in intervals:
+        item = {
+            "id": interval.abbreviation or interval.id,
+            "name": interval.name,
+            "semitones": interval.semitones,
+            "abbreviation": interval.abbreviation or "",
+            "consonance": interval.consonance or "consonante",
+            "description": interval.description or "",
+        }
+        configured = metadata.get(item["id"])
+        if configured:
+            item["name"] = configured["name"]
+            item.update({
+                key: configured[key]
+                for key in ("tonos", "trastes", "texto_instrumento")
+            })
+        data.append(item)
+    return data
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 # INDUCTION QUESTIONS (3 preguntas teóricas de bienvenida)
@@ -899,17 +930,7 @@ def index():
     intervals = Interval.query.order_by(Interval.semitones).all()
     scales = Scale.query.order_by(Scale.id).all()
 
-    intervals_data = [
-        {
-            "id": i.id,
-            "name": i.name,
-            "semitones": i.semitones,
-            "abbreviation": i.abbreviation or "",
-            "consonance": i.consonance or "consonante",
-            "description": i.description or ""
-        }
-        for i in intervals
-    ]
+    intervals_data = _interval_data(intervals)
 
     scales_data = [
         {
@@ -927,6 +948,7 @@ def index():
         audio_catalog=catalog,
         intervals_data=intervals_data,
         scales_data=scales_data,
+        modules_config=_game_data("modules_config.json")["modules"],
         levels_config=VELEZ_STATIONS_CONFIG,
         theory_questions=THEORY_QUESTIONS,
         induction_questions=INITIAL_INDUCTION_QUESTIONS,
@@ -940,19 +962,11 @@ def get_data():
     catalog = _build_audio_catalog()
     intervals = Interval.query.order_by(Interval.semitones).all()
     scales = Scale.query.order_by(Scale.id).all()
+    modules_config = _game_data("modules_config.json")["modules"]
 
     return jsonify({
         "catalog": catalog,
-        "intervals": [
-            {
-                "id": i.id,
-                "name": i.name,
-                "semitones": i.semitones,
-                "abbreviation": i.abbreviation,
-                "description": i.description
-            }
-            for i in intervals
-        ],
+        "intervals": _interval_data(intervals),
         "scales": [
             {
                 "id": s.id,
@@ -962,7 +976,9 @@ def get_data():
             }
             for s in scales
         ],
-        "levels": VELEZ_STATIONS_CONFIG,
+        "levels": modules_config,
+        "modules": modules_config,
+        "stations": VELEZ_STATIONS_CONFIG,
         "theory_questions": THEORY_QUESTIONS,
         "induction_questions": INITIAL_INDUCTION_QUESTIONS,
         "shop_items": SHOP_ITEMS

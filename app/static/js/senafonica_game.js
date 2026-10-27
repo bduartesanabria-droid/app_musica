@@ -20,6 +20,10 @@ function senafonicaGame(initData) {
       data = {};
     }
   }
+  const initialLevels = data.levels || [];
+  const hasModuleLevels = initialLevels.some(item =>
+    item && (item.id === 0 || Array.isArray(item.levels))
+  );
 
   return {
     // ── DATA & CONFIG ──────────────────────────────────────────────────────
@@ -27,7 +31,8 @@ function senafonicaGame(initData) {
     catalog: data.catalog || {},
     intervals: data.intervals || [],
     scales: data.scales || [],
-    stations: data.levels || [],
+    levels: data.modules || (hasModuleLevels ? initialLevels : []),
+    stations: data.stations || (hasModuleLevels ? [] : initialLevels),
     theoryQuestions: data.theoryQuestions || [],
     inductionQuestions: data.inductionQuestions || [],
     shopItems: data.shopItems || [],
@@ -102,6 +107,7 @@ function senafonicaGame(initData) {
     streak: 1,
     levelStars: {},
     unlockedLevels: [1],
+    moduleProgress: {},
     totalQuestionsAnswered: 0,
     totalCorrectAnswered: 0,
     unlockedCollectibles: [],
@@ -273,6 +279,7 @@ function senafonicaGame(initData) {
           this.streak = Math.max(parsed.streak || 1, this.user.streak || 1);
           this.levelStars = parsed.levelStars || {};
           this.unlockedLevels = parsed.unlockedLevels || [1];
+          this.moduleProgress = parsed.moduleProgress || {};
           this.totalQuestionsAnswered = parsed.totalQuestionsAnswered || 0;
           this.totalCorrectAnswered = parsed.totalCorrectAnswered || 0;
           this.unlockedCollectibles = parsed.unlockedCollectibles || [];
@@ -315,6 +322,7 @@ function senafonicaGame(initData) {
         streak: this.streak,
         levelStars: this.levelStars,
         unlockedLevels: this.unlockedLevels,
+        moduleProgress: this.moduleProgress,
         totalQuestionsAnswered: this.totalQuestionsAnswered,
         totalCorrectAnswered: this.totalCorrectAnswered,
         unlockedCollectibles: this.unlockedCollectibles,
@@ -585,7 +593,9 @@ function senafonicaGame(initData) {
     // STATION QUIZ INITIALIZATION
     // ══════════════════════════════════════════════════════════════════════
     startStation(station) {
-      if (!this.unlockedLevels.includes(station.id)) {
+      if (station.moduleId !== undefined
+        ? !this.isModuleLevelUnlocked(station.moduleId, station.moduleLevel)
+        : !this.unlockedLevels.includes(station.id)) {
         this._updateMascot('sad', 'Esta estación está bloqueada. Completa las estaciones previas para avanzar.');
         return;
       }
@@ -600,11 +610,19 @@ function senafonicaGame(initData) {
       this.qIndex = 0;
       this.sessionCorrect = 0;
       this.sessionWrong = 0;
-      this.levelQuestions = this._generateQuestionsForStation(station);
+      this.levelQuestions = station.moduleId !== undefined
+        ? this._generateQuestionsForModule(station.moduleId, station.moduleLevel)
+        : this._generateQuestionsForStation(station);
+      if (!this.levelQuestions.length) {
+        this._updateMascot('sad', `No hay muestras de audio disponibles para ${station.station_name}. No se generaron notas sintéticas.`);
+        return;
+      }
       this.levelQuestions.forEach((question, index) => {
-        question.instrument = station.id === 3
-          ? (index % 2 === 0 ? 'Tiple' : 'Requinto')
-          : this.selectedInstrument;
+        if (station.moduleId === undefined && station.id === 3) {
+          question.instrument = index % 2 === 0 ? 'Tiple' : 'Requinto';
+        } else if (station.moduleId === undefined && question.type !== 'pitch') {
+          question.instrument = this.selectedInstrument;
+        }
       });
       this._preloadQuestionAudio(this.levelQuestions);
       this.currentQ = this.levelQuestions[0];
@@ -618,6 +636,141 @@ function senafonicaGame(initData) {
       this.$nextTick(() => {
         setTimeout(() => this.playCurrentAudio(), 400);
       });
+    },
+
+    isModuleLevelUnlocked(moduleId, levelNumber) {
+      const module = this.levels.find(item => item.id === moduleId);
+      if (!module) return false;
+      if (moduleId === 0 || moduleId === 5 || !module.levels || levelNumber === 1) return true;
+      const levels = [...module.levels].sort((a, b) => a.level - b.level);
+      const index = levels.findIndex(item => item.level === levelNumber);
+      if (index <= 0) return false;
+      const previous = levels[index - 1];
+      return (this.moduleProgress[`${moduleId}:${previous.level}`] || 0) >= previous.minCorrectPct;
+    },
+
+    startModuleLevel(moduleId, levelNumber = 1) {
+      const module = this.levels.find(item => item.id === moduleId);
+      if (!module) {
+        this._updateMascot('sad', 'No se encontró la configuración del módulo.');
+        return;
+      }
+      const levelConfig = (module.levels || []).find(item => item.level === levelNumber);
+      if (module.levels && !levelConfig) {
+        this._updateMascot('sad', 'No se encontró la configuración de este nivel.');
+        return;
+      }
+      const station = {
+        id: module.id,
+        moduleId: module.id,
+        moduleLevel: levelNumber,
+        moduleLevelConfig: levelConfig || null,
+        station_name: `${module.name} · Nivel ${levelNumber}`,
+        instrument: this.selectedInstrument,
+        type: module.type,
+        intervals: [],
+        questions_count: 5,
+        scale_name: module.type === 'scale' ? 'Escala Mayor' : undefined,
+      };
+      this.startStation(station);
+    },
+
+    _validRootMidis(instrument, semitones) {
+      const comfortableRanges = {
+        Requinto: [52, 62],
+        Tiple: [52, 64],
+        Bandola: [55, 72],
+        Guitarra: [48, 64],
+      };
+      const range = comfortableRanges[instrument];
+      if (!range) return [];
+      const notes = new Set((this.catalog[instrument] || [])
+        .map(sample => Number(sample.midi))
+        .filter(Number.isInteger));
+      return [...notes]
+        .filter(midi => midi >= range[0] && midi <= range[1] && notes.has(midi + semitones))
+        .sort((a, b) => a - b);
+    },
+
+    _generateQuestionsForModule(moduleId, levelNumber) {
+      const module = this.levels.find(item => item.id === moduleId);
+      const level = (module && module.levels || []).find(item => item.level === levelNumber);
+      if (moduleId === 0) {
+        const questions = [];
+        const instrument = this.selectedInstrument;
+        const roots = this._validRootMidis(instrument, 12);
+        for (let i = 0; i < Math.min(5, roots.length); i++) {
+          const direction = i % 2 === 0 ? 'ascendente' : 'descendente';
+          questions.push({
+            id: i + 1,
+            type: 'pitch',
+            title: '¿El segundo sonido es agudo o grave?',
+            instruction: 'Compara la altura de las dos notas.',
+            instrument,
+            rootMidi: roots[i],
+            semitones: 12,
+            direction,
+            correct: direction === 'ascendente' ? 'Agudo' : 'Grave',
+            options: ['Agudo', 'Grave'],
+            explanation: direction === 'ascendente'
+              ? 'La segunda nota tiene una frecuencia más alta: es aguda.'
+              : 'La segunda nota tiene una frecuencia más baja: es grave.',
+          });
+        }
+        return questions;
+      }
+      if (moduleId === 5) {
+        const scaleStation = {
+          id: moduleId,
+          type: 'scale',
+          instrument: this.selectedInstrument,
+          station_name: module.name,
+          scale_name: 'Escala Mayor',
+          questions_count: 5,
+        };
+        return this._generateQuestionsForStation(scaleStation);
+      }
+      if (module.type !== 'interval' || !level) return [];
+
+      const configuredIntervals = level.intervalIds
+        .map(id => this.intervals.find(item => item.id === id))
+        .filter(Boolean);
+      const availableIntervals = configuredIntervals
+        .map(interval => ({
+          interval,
+          roots: this._validRootMidis(this.selectedInstrument, interval.semitones),
+        }))
+        .filter(item => item.roots.length);
+      const commonRoots = availableIntervals.length
+        ? availableIntervals[0].roots.filter(root =>
+          availableIntervals.every(item => item.roots.includes(root))
+        )
+        : [];
+      const questions = [];
+      for (let i = 0; i < 5; i++) {
+        if (!availableIntervals.length) break;
+        const chosen = availableIntervals[Math.floor(Math.random() * availableIntervals.length)];
+        const rootPool = commonRoots.length ? commonRoots : chosen.roots;
+        const rootMidi = rootPool[Math.floor(Math.random() * rootPool.length)];
+        const optionPool = availableIntervals
+          .filter(item => item.roots.includes(rootMidi))
+          .map(item => item.interval.name);
+        questions.push({
+          id: i + 1,
+          type: 'interval',
+          title: `¿Qué intervalo escuchas? (${this.selectedInstrument})`,
+          instruction: `Identifica la distancia entre las notas tocadas en ${module.name}.`,
+          instrument: this.selectedInstrument,
+          rootMidi,
+          semitones: chosen.interval.semitones,
+          intervalId: chosen.interval.id,
+          direction: 'ascendente',
+          correct: chosen.interval.name,
+          options: this._makeOptions(chosen.interval.name, optionPool, optionPool.length),
+          explanation: `El intervalo de ${chosen.interval.name} consta de ${chosen.interval.semitones} semitonos.`,
+        });
+      }
+      return questions;
     },
 
     _preloadQuestionAudio(questions) {
@@ -650,15 +803,17 @@ function senafonicaGame(initData) {
       const count = station.questions_count || 5;
 
       if (station.type === 'pitch') {
-        for (let i = 0; i < count; i++) {
+        const instrument = this.selectedInstrument;
+        const roots = this._validRootMidis(instrument, 12);
+        for (let i = 0; i < Math.min(count, roots.length); i++) {
           const direction = i % 2 === 0 ? 'ascendente' : 'descendente';
           questions.push({
             id: i + 1,
             type: 'pitch',
             title: '¿El segundo sonido es agudo o grave?',
             instruction: 'Compara la altura de las dos notas.',
-            instrument: station.instrument,
-            rootMidi: 48,
+            instrument,
+            rootMidi: roots[i],
             semitones: 12,
             direction,
             correct: direction === 'ascendente' ? 'Agudo' : 'Grave',
@@ -744,22 +899,18 @@ function senafonicaGame(initData) {
 
       const allIntervalNames = this.intervals.map(i => i.name);
 
-      // Mix station-specific and pool intervals for variety
-      const questionIntervals = [];
       for (let i = 0; i < count; i++) {
-        const fromStation = targetIntervalNames[i % targetIntervalNames.length];
-        const fromPool = poolIntervalNames[Math.floor(Math.random() * poolIntervalNames.length)];
-        questionIntervals.push(i % 3 === 0 ? fromPool : fromStation);
-      }
-
-      for (let i = 0; i < count; i++) {
-        const intervalName = questionIntervals[i];
-        const intervalObj = this.intervals.find(item => item.name === intervalName)
-          || this.intervals[Math.floor(Math.random() * this.intervals.length)];
-
-        if (!intervalObj) continue;
-
-        const rootMidi = 55 + (i % 8);
+        const instrument = station.id === 3
+          ? (i % 2 === 0 ? 'Tiple' : 'Requinto')
+          : this.selectedInstrument;
+        const eligible = poolIntervalNames
+          .map(name => this.intervals.find(item => item.name === name))
+          .filter(interval => interval && this._validRootMidis(instrument, interval.semitones).length);
+        if (!eligible.length) continue;
+        const intervalObj = eligible[Math.floor(Math.random() * eligible.length)];
+        const intervalName = intervalObj.name;
+        const roots = this._validRootMidis(instrument, intervalObj.semitones);
+        const rootMidi = roots[Math.floor(Math.random() * roots.length)];
         const allowedDirs = station.directions || ['ascendente'];
         const chosenDir = allowedDirs[Math.floor(Math.random() * allowedDirs.length)];
 
@@ -773,7 +924,7 @@ function senafonicaGame(initData) {
           type: 'interval',
           title: `¿Qué intervalo escuchas? (${station.instrument === 'Todos' ? 'Tiple' : station.instrument})`,
           instruction: `Identifica la distancia entre las notas tocadas en ${station.station_name}.`,
-          instrument: station.instrument === 'Todos' ? 'Tiple' : station.instrument,
+          instrument,
           rootMidi: rootMidi,
           semitones: intervalObj.semitones,
           direction: chosenDir,
@@ -802,40 +953,45 @@ function senafonicaGame(initData) {
       this._updateMascot('listening', 'Escucha atentamente las cuerdas folclóricas...');
 
       const q = this.currentQ;
-      if (q.type === 'scale') {
-        await this.audio.playScale(
-          q.instrument,
-          q.rootMidi,
-          q.pattern,
-          1.0,
-          (idx, midi, name) => {
-            this.activeNotePlayingIndex = idx;
-            this.activeNoteName = name || '';
+      try {
+        if (q.type === 'scale') {
+          await this.audio.playScale(
+            q.instrument,
+            q.rootMidi,
+            q.pattern,
+            1.0,
+            (idx, midi, name) => {
+              this.activeNotePlayingIndex = idx;
+              this.activeNoteName = name || '';
+            }
+          );
+        } else if (q.type === 'melody') {
+          const duration = this.audio.scaleNoteDuration;
+          for (let i = 0; i < q.melodyNotes.length; i++) {
+            const midi = q.melodyNotes[i];
+            this.activeNotePlayingIndex = i;
+            this.activeNoteName = this.audio.midiToName(midi);
+            await this.audio.playNote(q.instrument, midi, 0, duration, 0.95);
+            await new Promise(resolve => setTimeout(resolve, (duration + this.audio.scaleNoteGap) * 1000));
           }
-        );
-      } else if (q.type === 'melody') {
-        const duration = this.audio.scaleNoteDuration;
-        for (let i = 0; i < q.melodyNotes.length; i++) {
-          const midi = q.melodyNotes[i];
-          this.activeNotePlayingIndex = i;
-          this.activeNoteName = this.audio.midiToName(midi);
-          await this.audio.playNote(q.instrument, midi, 0, duration, 0.95);
-          await new Promise(resolve => setTimeout(resolve, (duration + this.audio.scaleNoteGap) * 1000));
+        } else if (q.type === 'interval' || q.type === 'pitch') {
+          await this.audio.playInterval(
+            q.instrument,
+            q.rootMidi,
+            q.semitones,
+            q.type === 'pitch' ? q.direction : this.intervalDirection || q.direction || 'ascendente',
+            (idx, midi, name) => {
+              this.activeNotePlayingIndex = idx;
+              this.activeNoteName = name || '';
+            }
+          );
         }
-      } else if (q.type === 'interval' || q.type === 'pitch') {
-        await this.audio.playInterval(
-          q.instrument,
-          q.rootMidi,
-          q.semitones,
-          q.type === 'pitch' ? q.direction : this.intervalDirection || q.direction || 'ascendente',
-          (idx, midi, name) => {
-            this.activeNotePlayingIndex = idx;
-            this.activeNoteName = name || '';
-          }
-        );
+      } catch (error) {
+        console.warn('Could not play question audio:', error);
+      } finally {
+        this.isPlaying = false;
+        this.activeNotePlayingIndex = -1;
       }
-      this.isPlaying = false;
-      this.activeNotePlayingIndex = -1;
     },
 
     replayAudio() {
@@ -853,6 +1009,10 @@ function senafonicaGame(initData) {
 
     async selectInstrument(instrument) {
       if (!['Tiple', 'Requinto', 'Bandola', 'Guitarra'].includes(instrument) || this.isPlaying) return;
+      if (this.currentQ && this.currentTab === 'training') {
+        this._updateMascot('idle', 'Termina esta pregunta antes de cambiar de instrumento.');
+        return;
+      }
       this.selectedInstrument = instrument;
       this.instrumentAccent = this.instrumentAccents[instrument];
       this.jamInstrument = instrument;
@@ -985,7 +1145,9 @@ function senafonicaGame(initData) {
         question.instrument,
         question.rootMidi,
         semitones,
-        direction
+        direction,
+        null,
+        false
       );
     },
 
@@ -1073,6 +1235,33 @@ function senafonicaGame(initData) {
       if (interval.semitones <= 4) return 'Paso mediano';
       if (interval.semitones <= 7) return 'Salto amplio';
       return 'Salto grande';
+    },
+
+    getAnswerFeedback() {
+      const question = this.currentQ;
+      if (!question || question.type !== 'interval') {
+        return question ? question.explanation : '';
+      }
+      const interval = this.intervals.find(item =>
+        item.id === question.intervalId
+        || (item.semitones === question.semitones && item.name === question.correct)
+      );
+      if (!interval) return question.explanation;
+      const intervalName = interval.name
+        .split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+      const opening = this.isCorrect
+        ? `¡Excelente! Identificaste una ${intervalName}.`
+        : `No pasa nada. La respuesta correcta es ${intervalName}.`;
+      const fretText = interval.texto_instrumento
+        || `En tu ${question.instrument.toLowerCase()}: avanzar ${interval.trastes} ${interval.trastes === 1 ? 'traste' : 'trastes'} en la misma cuerda.`;
+      return `${opening} Distancia: ${interval.tonos}. ${fretText}`;
+    },
+
+    replayAnsweredAudio() {
+      if (!this.answered || this.isPlaying) return;
+      void this.playCurrentAudio();
     },
 
     async _recordAchievement(instrument, correct, tonicScaleId = null) {
@@ -1265,6 +1454,31 @@ function senafonicaGame(initData) {
     _completeStation() {
       const total = this.levelQuestions.length;
       const accuracy = Math.round((this.sessionCorrect / total) * 100);
+      if (this.activeStation.moduleId !== undefined) {
+        const { moduleId, moduleLevel, moduleLevelConfig } = this.activeStation;
+        if (moduleLevelConfig) {
+          this.moduleProgress[`${moduleId}:${moduleLevel}`] = accuracy;
+        }
+        const module = this.levels.find(item => item.id === moduleId);
+        const hasNextLevel = (module && module.levels || [])
+          .some(item => item.level > moduleLevel);
+        const passed = moduleLevelConfig
+          ? accuracy >= moduleLevelConfig.minCorrectPct
+          : true;
+        this._saveLocalState();
+        this.currentTab = 'path';
+        this._updateMascot(
+          passed ? 'celebrating' : 'sad',
+          passed
+            ? `¡Nivel ${moduleLevel} completado con ${accuracy}%!`
+            : `Obtuviste ${accuracy}%. Necesitas ${moduleLevelConfig.minCorrectPct}% para ${hasNextLevel ? 'desbloquear el siguiente nivel' : 'completar este módulo'}.`
+        );
+        if (passed) {
+          this.audio.playLevelCompleteSound();
+          this._triggerConfetti();
+        }
+        return;
+      }
       let stars = 1;
       if (accuracy >= 90) stars = 3;
       else if (accuracy >= 65) stars = 2;

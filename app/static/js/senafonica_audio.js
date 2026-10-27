@@ -174,7 +174,7 @@ class SenafonicaAudioEngine {
    * If a real sample exists, uses the AudioBuffer with a gentle release envelope.
    * Otherwise uses high-fidelity Colombian folk synthesis.
    */
-  async playNote(instrument, midi, startTime = 0, duration = 0.5, volume = 0.9) {
+  async playNote(instrument, midi, startTime = 0, duration = 0.5, volume = 0.9, allowSynthesis = true) {
     await this.initContext();
     const ctx = this.ctx;
     const now = startTime || ctx.currentTime;
@@ -199,6 +199,13 @@ class SenafonicaAudioEngine {
       return now + duration;
     }
 
+    if (!allowSynthesis) {
+      throw new Error(`No hay una muestra de audio disponible para ${instrument}, MIDI ${midi}.`);
+    }
+
+    if (!sampleUrl || !buffer) {
+      console.warn(`Using synthesized fallback for ${instrument}, MIDI ${midi}.`);
+    }
     return this._synthesizeFolkNote(instrument, midi, now, duration, volume);
   }
 
@@ -449,7 +456,7 @@ class SenafonicaAudioEngine {
    * @param {string} direction - 'ascendente', 'descendente', 'intercalada'
    * @param {function} onNoteCallback - (noteIndex, midi, noteName)
    */
-  async playInterval(instrument, rootMidi, semitones, direction = "ascendente", onNoteCallback = null) {
+  async playInterval(instrument, rootMidi, semitones, direction = "ascendente", onNoteCallback = null, allowSynthesis = true) {
     this.stop();
     const token = this.playToken;
     this.isPlaying = true;
@@ -477,14 +484,14 @@ class SenafonicaAudioEngine {
 
     // Note 1
     if (onNoteCallback) onNoteCallback(0, note1Midi, this.midiToName(note1Midi));
-    await this.playNote(instrument, note1Midi, 0, dur, 0.95);
+    await this.playNote(instrument, note1Midi, 0, dur, 0.95, allowSynthesis);
 
     await new Promise(res => setTimeout(res, (dur + gap) * 1000));
     if (token !== this.playToken) return;
 
     // Note 2
     if (onNoteCallback) onNoteCallback(1, note2Midi, this.midiToName(note2Midi));
-    await this.playNote(instrument, note2Midi, 0, dur, 0.95);
+    await this.playNote(instrument, note2Midi, 0, dur, 0.95, allowSynthesis);
 
     await new Promise(res => setTimeout(res, (dur + gap) * 1000));
     if (token === this.playToken) {

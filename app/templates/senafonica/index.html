@@ -24,7 +24,8 @@
   "catalog": audio_catalog,
   "intervals": intervals_data,
   "scales": scales_data,
-  "levels": levels_config,
+  "levels": modules_config,
+  "stations": levels_config,
   "theoryQuestions": theory_questions,
   "inductionQuestions": induction_questions,
   "shopItems": shop_items,
@@ -132,7 +133,7 @@
       <!-- Card 1: Intervalo -->
       <div class="p-4 rounded-2xl bg-slate-800/80 border border-emerald-500/30">
         <div class="flex items-center gap-3 mb-1">
-          <span class="text-2xl">📏</span>
+          <span class="text-2xl" aria-hidden="true">♫</span>
           <h3 class="font-black text-white text-sm">1. ¿Qué es un Intervalo Musical?</h3>
         </div>
         <p class="text-xs text-slate-300 leading-relaxed mt-1">
@@ -143,7 +144,7 @@
       <!-- Card 2: Escala -->
       <div class="p-4 rounded-2xl bg-slate-800/80 border border-amber-500/30">
         <div class="flex items-center gap-3 mb-1">
-          <span class="text-2xl">🌈</span>
+          <span class="text-2xl" aria-hidden="true">♪</span>
           <h3 class="font-black text-white text-sm">2. ¿Qué es una Escala Musical?</h3>
         </div>
         <p class="text-xs text-slate-300 leading-relaxed mt-1">
@@ -344,6 +345,34 @@
           Ver ranking público
         </a>
       </div>
+
+      <section class="mb-6 rounded-2xl border border-white/10 bg-slate-900/80 p-4">
+        <h3 class="text-sm font-black text-white">Práctica por módulos</h3>
+        <div class="mt-3 grid gap-3 sm:grid-cols-2">
+          <template x-for="module in levels" :key="module.id">
+            <article class="rounded-xl border border-white/10 bg-slate-950/70 p-3">
+              <p class="text-sm font-bold text-emerald-200" x-text="`Módulo ${module.id} · ${module.name}`"></p>
+              <template x-if="module.levels && module.levels.length">
+                <div class="mt-2 flex flex-wrap gap-2">
+                  <template x-for="moduleLevel in module.levels" :key="moduleLevel.level">
+                    <button type="button"
+                            @click="startModuleLevel(module.id, moduleLevel.level)"
+                            :disabled="!isModuleLevelUnlocked(module.id, moduleLevel.level)"
+                            class="rounded-lg bg-emerald-800 px-3 py-2 text-xs font-black text-white disabled:cursor-not-allowed disabled:opacity-40"
+                            x-text="`Nivel ${moduleLevel.level}${moduleProgress[`${module.id}:${moduleLevel.level}`] !== undefined ? ` · ${moduleProgress[`${module.id}:${moduleLevel.level}`]}%` : ''}`"></button>
+                  </template>
+                </div>
+              </template>
+              <button x-show="!module.levels || !module.levels.length"
+                      type="button"
+                      @click="startModuleLevel(module.id, 1)"
+                      class="mt-2 rounded-lg bg-emerald-800 px-3 py-2 text-xs font-black text-white">
+                Iniciar módulo
+              </button>
+            </article>
+          </template>
+        </div>
+      </section>
 
       <!-- Winding Path along the 9 Stations -->
       <div class="flex flex-col items-center space-y-6 pb-24 relative">
@@ -581,10 +610,17 @@
           <div class="flex items-start justify-between gap-3">
             <div>
               <p class="font-black text-lg" x-text="isCorrect ? '¡Excelente oído veleño!' : '¡Respuesta incorrecta!'"></p>
-              <p class="text-xs mt-1 text-slate-300" x-text="currentQ ? currentQ.explanation : ''"></p>
+              <p class="text-sm mt-1 text-slate-200" x-text="getAnswerFeedback()"></p>
             </div>
             <span class="text-3xl" x-text="isCorrect ? '🎉' : '💔'"></span>
           </div>
+
+          <button type="button"
+                  @click="replayAnsweredAudio()"
+                  :disabled="isPlaying"
+                  class="mt-4 rounded-xl border border-white/20 bg-slate-800 px-4 py-2.5 text-xs font-bold text-white disabled:opacity-50">
+            <span x-text="isPlaying ? 'Reproduciendo…' : 'Escuchar de nuevo'"></span>
+          </button>
 
           <!-- Botón de Comparación Auditiva en Fallos -->
           <div x-show="!isCorrect && currentQ" class="mt-4 pt-3 border-t border-red-500/20">
