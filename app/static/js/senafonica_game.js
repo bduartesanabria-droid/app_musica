@@ -50,6 +50,7 @@ function senafonicaGame(initData) {
 
     // ── IN-GAME MODALS & TABS ─────────────────────────────────────────────
     currentTab: 'path',           // 'path' | 'learn' | 'training' | 'jam'
+    tvMode: new URLSearchParams(window.location.search).get('tv') === '1',
     selectedInstrument: 'Tiple',
     instrumentAccent: '#D99A45',
     instrumentAccents: { Tiple: '#D99A45', Requinto: '#3AA6A0', Bandola: '#B889D6', Guitarra: '#60A5FA' },

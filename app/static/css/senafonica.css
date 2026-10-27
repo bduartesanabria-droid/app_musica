@@ -4,6 +4,35 @@
   display: none !important;
 }
 
+.senafonica-tv {
+  font-size: 1.8rem;
+  color: #fff;
+}
+
+.senafonica-tv :is(p, span, h1, h2, h3, label, button, a, strong) {
+  font-size: 1.8rem !important;
+}
+
+.senafonica-tv :is(button, input, select, a) {
+  min-height: 80px;
+  font-size: inherit;
+}
+
+.senafonica-tv button:disabled {
+  color: #d1d5db;
+  opacity: 0.8;
+}
+
+@media (min-width: 1200px) {
+  .senafonica-tv main {
+    max-width: 80rem;
+  }
+
+  .senafonica-tv :is(section, article) {
+    border-color: rgba(255, 255, 255, 0.35);
+  }
+}
+
 :root {
   --sena-green: #39A900;
   --sena-dark-green: #297A00;

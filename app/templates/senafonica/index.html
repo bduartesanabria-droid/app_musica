@@ -36,6 +36,7 @@
 
 <body class="senafonica-shell flex flex-col justify-between"
       x-data="senafonicaGame()"
+      :class="{ 'senafonica-tv': tvMode }"
       :style="'--instrument-accent:' + instrumentAccent">
 
   <!-- Confetti Canvas overlay -->
