@@ -1348,8 +1348,12 @@ function senafonicaGame(initData) {
       const opening = this.isCorrect
         ? `¡Excelente! Identificaste una ${intervalName}.`
         : `No pasa nada. La respuesta correcta es ${intervalName}.`;
+      const neutralInstrumentNote = ['6m', '6M', '7m', '7M', '8J'].includes(interval.id)
+        ? 'Este salto se toca cambiando de cuerda o de posición; consúltalo con tu profesor.'
+        : '';
       const fretText = interval.texto_instrumento
-        || `En tu ${question.instrument.toLowerCase()}: avanzar ${interval.trastes} ${interval.trastes === 1 ? 'traste' : 'trastes'} en la misma cuerda.`;
+        || `Trastes: ${interval.trastes}. ${neutralInstrumentNote
+          || `En tu ${question.instrument.toLowerCase()}: avanzar ${interval.trastes} ${interval.trastes === 1 ? 'traste' : 'trastes'} en la misma cuerda.`}`;
       return `${opening} Distancia: ${interval.tonos}. ${fretText}`;
     },
 

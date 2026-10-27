@@ -90,6 +90,7 @@ def test_senafonica_api_includes_interval_feedback_metadata(client, app):
     assert second_major["tonos"] == "1 tono completo"
     assert second_major["trastes"] == 2
     assert second_major["texto_instrumento"] == ""
+    assert all(item["texto_instrumento"] == "" for item in intervals)
 
 
 def test_public_age_calculates_birthday_boundary():
