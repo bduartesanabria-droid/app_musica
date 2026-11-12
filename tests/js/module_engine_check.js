@@ -79,11 +79,11 @@ assert.strictEqual(M.distanceLabel(21), '6 tonos + 4 tonos y medio (21 trastes)'
 // 8. Escalas escritas desde la raíz (sostenidos o bemoles, sin dobles alteraciones).
 const major = [2, 2, 1, 2, 2, 2, 1];
 const letters = notes => notes.map(n => `${n.pitch}${n.accidental}`).join(' ');
-assert.strictEqual(letters(M.spellScale(60, major)), 'C  D  E  F  G  A  B  C ');
-assert.strictEqual(letters(M.spellScale(58, major)), 'Bb C  D  Eb F  G  A  Bb'); // Si bemol mayor
-assert.strictEqual(letters(M.spellScale(66, major)), 'F# G# A# B  C# D# E# F#'); // Fa sostenido mayor
+assert.strictEqual(letters(M.spellScale(60, major)), 'C D E F G A B C');
+assert.strictEqual(letters(M.spellScale(58, major)), 'Bb C D Eb F G A Bb'); // Si bemol mayor
+assert.strictEqual(letters(M.spellScale(66, major)), 'F# G# A# B C# D# E# F#'); // Fa sostenido mayor
 const locrio = [1, 2, 2, 1, 2, 2, 2];
-assert.strictEqual(letters(M.spellScale(60, locrio)), 'C  Db Eb F  Gb Ab Bb C ');
+assert.strictEqual(letters(M.spellScale(60, locrio)), 'C Db Eb F Gb Ab Bb C');
 const focusNotes = M.spellScale(60, [2, 1, 2, 2, 1, 3, 1], [5, 6]);
 assert.deepStrictEqual(focusNotes.map(n => n.focus), [false, false, false, false, false, true, true, false]);
 const phrygian = M.spellScale(60, [1, 2, 2, 2, 1, 2, 2], [1]);
