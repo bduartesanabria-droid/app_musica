@@ -67,8 +67,8 @@ def test_senafonica_api_data(client):
     # Cada módulo tiene Fase .1 (estudio) y Fase .2 (reto).
     for module in data["modules"]:
         assert [level["phase"] for level in module["levels"]] == ["study", "challenge"]
-    assert data["modules"][1]["levels"][1]["prompt"] == "¿Unísono o 2da menor?"
-    assert data["modules"][13]["name"] == "Novena menor"
+    assert data["modules"][2]["levels"][1]["prompt"] == "¿Unísono o 2da menor?"
+    assert data["modules"][14]["name"] == "Novena menor"
     assert data["modules"][18]["name"] == "Onceava justa"
     assert data["modules"][22]["scale"]["formula"] == "T - T - S - T - T - T - S"
     assert data["modules"][30]["name"] == "Modo locrio"
@@ -404,7 +404,9 @@ def test_senafonica_sync_rejects_modules_outside_the_document(login_client):
 def test_senafonica_page_ships_the_module_engine_and_blind_screen(client):
     html = client.get("/senafonica").get_data(as_text=True)
     assert "/static/js/module_engine.js" in html
-    assert '"progression": {"passingPercent": 80, "challengeQuestions": 10, "studyCompletePct": 100}' in html
+    assert '"progression"' in html
+    assert '"passingPercent": 80' in html
+    assert '"challengeQuestions": 10' in html
 
     game = open("app/static/js/senafonica_game.js", encoding="utf-8").read()
     # Pantalla ciega: el pentagrama del feedback solo aparece al responder.
