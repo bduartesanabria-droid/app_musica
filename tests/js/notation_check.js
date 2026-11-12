@@ -8,7 +8,7 @@ const path = require('path');
 const src = fs.readFileSync(path.join(__dirname, '..', '..', 'app', 'static', 'js', 'score_renderer.js'), 'utf8');
 
 // VexFlow falso que graba lo que el widget le pide dibujar.
-const recorded = { annotations: [], keys: [], modifiers: [] };
+const recorded = { annotations: [], keys: [], modifiers: [], styledKeys: [] };
 const FakeVex = {
   Flow: {
     Renderer: class {
@@ -24,8 +24,9 @@ const FakeVex = {
       draw() { return this; }
     },
     StaveNote: class {
-      constructor(opts) { recorded.keys.push(opts.keys[0]); }
+      constructor(opts) { this.key = opts.keys[0]; recorded.keys.push(this.key); }
       addModifier() { return this; }
+      setStyle() { recorded.styledKeys.push(this.key); return this; }
     },
     Accidental: class { constructor(type) { recorded.modifiers.push(type); } },
     Voice: class {
@@ -63,10 +64,21 @@ function drawn(instrument, midis) {
   recorded.annotations.length = 0;
   recorded.keys.length = 0;
   recorded.modifiers.length = 0;
+  recorded.styledKeys.length = 0;
   const S = loadRenderer(true);
   const container = fakeElement('div');
   S.renderNotes(container, instrument, midis, 'x');
-  return { S, annotation: recorded.annotations[0] || '', keys: recorded.keys.slice(), modifiers: recorded.modifiers.slice() };
+  return { S, annotation: recorded.annotations[0] || '', keys: recorded.keys.slice(), modifiers: recorded.modifiers.slice(), styledKeys: recorded.styledKeys.slice() };
+}
+
+function drawnPayload(payload) {
+  recorded.annotations.length = 0;
+  recorded.keys.length = 0;
+  recorded.modifiers.length = 0;
+  recorded.styledKeys.length = 0;
+  const S = loadRenderer(true);
+  S.render(fakeElement('div'), payload);
+  return { annotation: recorded.annotations[0] || '', keys: recorded.keys.slice(), modifiers: recorded.modifiers.slice(), styledKeys: recorded.styledKeys.slice() };
 }
 
 // 1. Payload con la estructura del documento (sin campos extra).
@@ -143,6 +155,26 @@ function drawn(instrument, midis) {
   const stem = key => new VF.StaveNote({ keys: [key], duration: 'q', clef: 'treble', auto_stem: true }).getStemDirection();
   assert.strictEqual(stem('e/6'), VF.Stem.DOWN, 'E6 debe tener la plica hacia abajo');
   assert.strictEqual(stem('c/3'), VF.Stem.UP, 'C3 debe tener la plica hacia arriba');
+}
+
+// 8. Escalas (Etapa C): la ortografía se conserva al escribir la guitarra 8vb
+//    y los grados de foco quedan marcados (no solo con color: ★ en la leyenda).
+{
+  const M = require(path.join(__dirname, '..', '..', 'app', 'static', 'js', 'module_engine.js'));
+  const major = [2, 2, 1, 2, 2, 2, 1];
+  const notes = M.spellScale(58, major, [3]); // Si bemol mayor, foco en el 4.º grado
+  assert.deepStrictEqual(notes.map(n => n.scientific_name), [
+    'Bb3', 'C4', 'D4', 'Eb4', 'F4', 'G4', 'A4', 'Bb4',
+  ]);
+  const r = drawnPayload({
+    instrument: 'guitarra',
+    interval_type: 'escala',
+    notation_display: { clef: 'treble', notes },
+  });
+  // Guitarra: una octava arriba de cómo suena; bemoles conservados.
+  assert.deepStrictEqual(r.keys, ['bb/4', 'c/5', 'd/5', 'eb/5', 'f/5', 'g/5', 'a/5', 'bb/5']);
+  assert.deepStrictEqual(r.modifiers, ['b', 'b', 'b']);
+  assert.deepStrictEqual(r.styledKeys, ['eb/5']);
 }
 
 console.log('notation_check: OK');
