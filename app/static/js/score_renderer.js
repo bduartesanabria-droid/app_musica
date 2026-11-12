@@ -99,7 +99,7 @@ const SemimusScore = (() => {
 
   /*
    * findFingering(instrument, scientificPitch) — regla de digitación.
-   * PENDIENTE DE VALIDACIÓN DEL PROF. RICARDO FIGUEROA.
+   * Pendiente de validación del Prof. Ricardo Figueroa.
    *
    * 1. Recorre todas las cuerdas (órdenes) donde la nota existe dentro de
    *    TUNINGS y del traste máximo visible del instrumento.
