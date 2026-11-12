@@ -420,9 +420,22 @@ const SemimusScore = (() => {
 
     // Altura escrita: la guitarra se escribe una octava arriba de cómo suena.
     // Sin transposición se conserva la ortografía de la nota (bemoles de escalas).
+    // La octava escrita también conserva la letra y la alteración (y el foco).
     const written = notes.map(note => {
       const midi = midiOfNote(note);
-      return midi === null || writtenShift === 0 ? note : noteInfoFromMidi(midi + writtenShift);
+      if (midi === null || writtenShift === 0) return note;
+      if (writtenShift === 12 && note.pitch) {
+        const octave = Number(note.octave) + 1;
+        const baseName = String(note.spanish_name || note.pitch).replace(/\s*-?\d+$/, '');
+        return {
+          ...note,
+          octave,
+          scientific_name: `${note.pitch}${note.accidental || ''}${octave}`,
+          spanish_name: `${baseName} ${octave}`,
+        };
+      }
+      const info = noteInfoFromMidi(midi + writtenShift);
+      return note.focus ? { ...info, focus: true } : info;
     });
 
     const width = 320;

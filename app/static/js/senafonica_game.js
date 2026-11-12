@@ -32,6 +32,7 @@ function senafonicaGame(initData) {
     intervals: data.intervals || [],
     scales: data.scales || [],
     levels: data.modules || (hasModuleLevels ? initialLevels : []),
+    progression: data.progression || { passingPercent: 80, challengeQuestions: 10, studyCompletePct: 100 },
     stations: data.stations || (hasModuleLevels ? [] : initialLevels),
     theoryQuestions: data.theoryQuestions || [],
     inductionQuestions: data.inductionQuestions || [],
@@ -66,6 +67,7 @@ function senafonicaGame(initData) {
     introIntervals: [],
     introRootMidi: null,
     introPlaying: false,
+    introDemoPlayed: false,
     showStatsModal: false,
     showShopModal: false,
     showRescueModal: false,
@@ -658,76 +660,127 @@ function senafonicaGame(initData) {
     },
 
     isModuleUnlocked(moduleId) {
-      const module = this.levels.find(item => item.id === moduleId);
-      if (!module) return false;
-      if (moduleId === 0 || moduleId === 1 || moduleId === 5) return true;
-      const previousModule = this.levels.find(item => item.id === moduleId - 1);
-      if (!previousModule || !previousModule.levels || !previousModule.levels.length) return false;
-      const previousLevels = [...previousModule.levels].sort((a, b) => a.level - b.level);
-      const finalLevel = previousLevels[previousLevels.length - 1];
-      return (this.moduleProgress[`${previousModule.id}:${finalLevel.level}`] || 0) >= finalLevel.minCorrectPct;
+      return SemimusModules.isModuleUnlocked(this.levels, this.moduleProgress, moduleId, this.passingPercent());
     },
 
     isModuleLevelUnlocked(moduleId, levelNumber) {
-      const module = this.levels.find(item => item.id === moduleId);
-      if (!module || !this.isModuleUnlocked(moduleId)) return false;
-      if (moduleId === 0 || moduleId === 5 || !module.levels || levelNumber === 1) return true;
-      const levels = [...module.levels].sort((a, b) => a.level - b.level);
-      const index = levels.findIndex(item => item.level === levelNumber);
-      if (index <= 0) return false;
-      const previous = levels[index - 1];
-      return (this.moduleProgress[`${moduleId}:${previous.level}`] || 0) >= previous.minCorrectPct;
+      return SemimusModules.isLevelUnlocked(this.levels, this.moduleProgress, moduleId, levelNumber, this.passingPercent());
     },
 
     isModuleCompleted(moduleId) {
-      const module = this.levels.find(item => item.id === moduleId);
-      if (!module) return false;
-      const moduleLevels = [...(module.levels || [])].sort((a, b) => a.level - b.level);
-      if (!moduleLevels.length) {
-        const minimum = module.unlockCriteria?.minCorrectPct || 80;
-        return (this.moduleProgress[`${moduleId}:1`] || 0) >= minimum;
-      }
-      const finalLevel = moduleLevels[moduleLevels.length - 1];
-      return (this.moduleProgress[`${moduleId}:${finalLevel.level}`] || 0) >= finalLevel.minCorrectPct;
+      return SemimusModules.isModuleCompleted(this.moduleProgress, moduleId, this.passingPercent());
     },
 
     isModuleLevelCompleted(moduleId, levelConfig) {
-      return (this.moduleProgress[`${moduleId}:${levelConfig.level}`] || 0) >= levelConfig.minCorrectPct;
+      return SemimusModules.isLevelCompleted(this.moduleProgress, moduleId, levelConfig.level, this.passingPercent());
     },
 
-    startModuleLevel(moduleId, levelNumber = 1) {
+    passingPercent() {
+      return Number(this.progression?.passingPercent ?? 80);
+    },
+
+    challengeCount() {
+      return Number(this.progression?.challengeQuestions ?? 10);
+    },
+
+    introPhaseLabel() {
+      return this.introLevel === SemimusModules.STUDY_LEVEL
+        ? 'Fase .1 · Estudio aislado'
+        : 'Fase .2 · Reto acumulado';
+    },
+
+    moduleGroupLabel(module) {
+      const labels = {
+        pitch: 'Alturas',
+        simple: 'Intervalos simples',
+        compound: 'Intervalos compuestos',
+        scale: 'Escalas y modos',
+      };
+      return labels[module.group] || 'Módulo';
+    },
+
+    moduleDistance(module) {
+      if (module.type === 'scale') return module.scale ? module.scale.formula : '';
+      if (module.type === 'pitch') return 'Sonido grave y agudo';
+      return `Distancia: ${SemimusModules.distanceLabel(module.semitones)}`;
+    },
+
+    introDescription() {
+      const module = this.introModule;
+      if (!module) return '';
+      if (this.introLevel === SemimusModules.STUDY_LEVEL) return module.description || '';
+      return `Reto acumulado: ${module.levels[1].prompt}.`;
+    },
+
+    introDistanceText() {
+      const module = this.introModule;
+      if (!module || module.type !== 'interval') return '';
+      return `Distancia: ${SemimusModules.distanceLabel(module.semitones)}`;
+    },
+
+    startModuleLevel(moduleId, levelNumber = SemimusModules.STUDY_LEVEL) {
       const module = this.levels.find(item => item.id === moduleId);
       if (!module) {
         this._updateMascot('sad', 'No se encontró la configuración del módulo.');
         return;
       }
       if (!this.isModuleLevelUnlocked(moduleId, levelNumber)) {
-        this._updateMascot('idle', 'Completa el nivel anterior para abrir este.');
+        this._updateMascot('idle', levelNumber === SemimusModules.CHALLENGE_LEVEL
+          ? 'Termina primero el estudio (Fase .1) para abrir el reto.'
+          : 'Supera el reto del módulo anterior para abrir este.');
         return;
       }
-      const levelConfig = (module.levels || []).find(item => item.level === levelNumber);
-      if (module.levels && !levelConfig) {
-        this._updateMascot('sad', 'No se encontró la configuración de este nivel.');
-        return;
-      }
-      const previousIntervalIds = (module.levels || [])
-        .filter(item => item.level < levelNumber)
-        .flatMap(item => item.intervalIds || []);
-      this.introIntervals = (levelConfig?.intervalIds || [])
-        .filter(id => !previousIntervalIds.includes(id))
-        .map(id => this.intervals.find(item => item.id === id))
-        .filter(Boolean);
       this.introModule = module;
       this.introLevel = levelNumber;
-      const exampleSemitones = this.introIntervals[0]?.semitones || 12;
-      this.introRootMidi = this._validRootMidis(this.selectedInstrument, exampleSemitones)[0] ?? null;
+      this.introDemoPlayed = false;
+      this.introRootMidi = this._introRoot(module);
       this.showLevelIntro = true;
+      this.$nextTick(() => this._clearIntroScore());
+    },
+
+    _introRoot(module) {
+      if (module.type === 'scale') {
+        return this._scaleRoots(this.selectedInstrument, module.scale.steps)[0] ?? null;
+      }
+      const semitones = module.type === 'pitch' ? 12 : module.semitones;
+      return this._validRootMidis(this.selectedInstrument, semitones)[0] ?? null;
+    },
+
+    _scaleRoots(instrument, steps) {
+      return this._validRootMidis(instrument, 12)
+        .filter(root => SemimusModules.spellScale(root, steps) !== null);
+    },
+
+    _clearIntroScore() {
+      const container = this.$refs.introScore;
+      if (container && typeof SemimusScore !== 'undefined') SemimusScore.render(container, null);
+    },
+
+    _renderIntroScore() {
+      const container = this.$refs.introScore;
+      const module = this.introModule;
+      if (!container || !module || typeof SemimusScore === 'undefined' || this.introRootMidi === null) return;
+      if (module.type === 'scale') {
+        const notes = SemimusModules.spellScale(this.introRootMidi, module.scale.steps, module.scale.focus) || [];
+        SemimusScore.render(container, {
+          instrument: this.selectedInstrument,
+          interval_type: 'escala',
+          notation_display: { clef: 'treble', notes },
+        });
+        return;
+      }
+      const semitones = module.type === 'pitch' ? 12 : module.semitones;
+      SemimusScore.renderNotes(
+        container,
+        this.selectedInstrument,
+        [this.introRootMidi, this.introRootMidi + semitones],
+        `${module.id}_demo`
+      );
     },
 
     async playLevelIntroExample() {
       if (this.introPlaying || !this.introModule) return;
       const module = this.introModule;
-      const interval = this.introIntervals[0];
       const rootMidi = this.introRootMidi;
       if (rootMidi === null) {
         console.warn('No real sample root is available for this introduction.');
@@ -736,15 +789,17 @@ function senafonicaGame(initData) {
       this.introPlaying = true;
       try {
         if (module.type === 'scale') {
-          await this.audio.playScale(this.selectedInstrument, rootMidi, [2, 2, 1, 2, 2, 2, 1], 1.4);
+          await this.audio.playScale(this.selectedInstrument, rootMidi, module.scale.steps, 1.2);
         } else {
           await this.audio.playInterval(
             this.selectedInstrument,
             rootMidi,
-            interval?.semitones || 12,
+            module.type === 'pitch' ? 12 : module.semitones,
             'ascendente'
           );
         }
+        this.introDemoPlayed = true;
+        if (this.introLevel === SemimusModules.STUDY_LEVEL) this._renderIntroScore();
       } catch (error) {
         console.warn('Could not play level introduction example:', error);
       } finally {
@@ -752,25 +807,32 @@ function senafonicaGame(initData) {
       }
     },
 
-    continueLevelIntro() {
-      if (!this.introModule) return;
-      const module = this.introModule;
-      const levelNumber = this.introLevel;
-      const levelConfig = (module.levels || []).find(item => item.level === levelNumber);
+    completeModuleStudy() {
+      if (!this.introModule || !this.introDemoPlayed) return;
+      const id = this.introModule.id;
+      this.moduleProgress[SemimusModules.progressKey(id, SemimusModules.STUDY_LEVEL)] = this.progression?.studyCompletePct ?? 100;
+      this._saveLocalState();
+      void this._syncWithServer({ module_progress: this.moduleProgress });
       this.showLevelIntro = false;
-      const station = {
+      this._clearIntroScore();
+      this._updateMascot('celebrating', `¡Fase .1 de ${this.introModule.name} completada! Ya puedes abrir el reto.`);
+    },
+
+    continueLevelIntro() {
+      if (!this.introModule || !this.introDemoPlayed) return;
+      const module = this.introModule;
+      this.showLevelIntro = false;
+      this.startStation({
         id: module.id,
         moduleId: module.id,
-        moduleLevel: levelNumber,
-        moduleLevelConfig: levelConfig || null,
-        station_name: `${module.name} · Nivel ${levelNumber}`,
+        moduleLevel: SemimusModules.CHALLENGE_LEVEL,
+        moduleLevelConfig: { level: SemimusModules.CHALLENGE_LEVEL, minCorrectPct: this.passingPercent() },
+        station_name: `Módulo ${module.id} · ${module.name} · Reto`,
         instrument: this.selectedInstrument,
         type: module.type,
         intervals: [],
-        questions_count: 5,
-        scale_name: module.type === 'scale' ? 'Escala Mayor' : undefined,
-      };
-      this.startStation(station);
+        questions_count: this.challengeCount(),
+      });
     },
 
     _validRootMidis(instrument, semitones) {
@@ -795,82 +857,84 @@ function senafonicaGame(initData) {
     },
 
     _generateQuestionsForModule(moduleId, levelNumber) {
+      // La Fase .1 es de estudio: no tiene preguntas.
+      if (levelNumber !== SemimusModules.CHALLENGE_LEVEL) return [];
       const module = this.levels.find(item => item.id === moduleId);
-      const level = (module && module.levels || []).find(item => item.level === levelNumber);
-      if (moduleId === 0) {
-        const questions = [];
-        const instrument = this.selectedInstrument;
+      if (!module) return [];
+      const instrument = this.selectedInstrument;
+      const count = this.challengeCount();
+      const pick = list => list[Math.floor(Math.random() * list.length)];
+
+      if (module.type === 'pitch') {
         const roots = this._validRootMidis(instrument, 12);
-        for (let i = 0; i < Math.min(5, roots.length); i++) {
-          const direction = i % 2 === 0 ? 'ascendente' : 'descendente';
+        if (!roots.length) return [];
+        const questions = [];
+        for (let i = 0; i < count; i++) {
+          const ascending = Math.random() < 0.5;
           questions.push({
             id: i + 1,
             type: 'pitch',
-            title: '¿El segundo sonido es agudo o grave?',
+            title: '¿Cuál nota fue más grave/aguda?',
             instruction: 'Compara la altura de las dos notas.',
             instrument,
-            rootMidi: roots[i],
+            rootMidi: pick(roots),
             semitones: 12,
-            direction,
-            correct: direction === 'ascendente' ? 'Agudo' : 'Grave',
+            direction: ascending ? 'ascendente' : 'descendente',
+            correct: ascending ? 'Agudo' : 'Grave',
             options: ['Agudo', 'Grave'],
-            explanation: direction === 'ascendente'
+            explanation: ascending
               ? 'La segunda nota tiene una frecuencia más alta: es aguda.'
               : 'La segunda nota tiene una frecuencia más baja: es grave.',
           });
         }
         return questions;
       }
-      if (moduleId === 5) {
-        const scaleStation = {
-          id: moduleId,
-          type: 'scale',
-          instrument: this.selectedInstrument,
-          station_name: module.name,
-          scale_name: 'Escala Mayor',
-          questions_count: 5,
-        };
-        return this._generateQuestionsForStation(scaleStation);
-      }
-      if (module.type !== 'interval' || !level) return [];
 
-      const configuredIntervals = level.intervalIds
-        .map(id => this.intervals.find(item => item.id === id))
-        .filter(Boolean);
-      const availableIntervals = configuredIntervals
-        .map(interval => ({
-          interval,
-          roots: this._validRootMidis(this.selectedInstrument, interval.semitones),
-        }))
-        .filter(item => item.roots.length);
-      const commonRoots = availableIntervals.length
-        ? availableIntervals[0].roots.filter(root =>
-          availableIntervals.every(item => item.roots.includes(root))
-        )
-        : [];
+      const byId = id => this.levels.find(item => item.id === id);
+      const pool = SemimusModules.challengePool(this.levels, moduleId);
+      const rootsOf = item => (item.type === 'scale'
+        ? this._scaleRoots(instrument, item.scale.steps)
+        : this._validRootMidis(instrument, item.semitones));
+      const targets = pool.filter(id => byId(id) && rootsOf(byId(id)).length);
+      if (!targets.length) return [];
+
       const questions = [];
-      for (let i = 0; i < 5; i++) {
-        if (!availableIntervals.length) break;
-        const chosen = availableIntervals[Math.floor(Math.random() * availableIntervals.length)];
-        const rootPool = commonRoots.length ? commonRoots : chosen.roots;
-        const rootMidi = rootPool[Math.floor(Math.random() * rootPool.length)];
-        const optionPool = availableIntervals
-          .filter(item => item.roots.includes(rootMidi))
-          .map(item => item.interval.name);
-        questions.push({
-          id: i + 1,
-          type: 'interval',
-          title: `¿Qué intervalo escuchas? (${this.selectedInstrument})`,
-          instruction: `Identifica la distancia entre las notas tocadas en ${module.name}.`,
-          instrument: this.selectedInstrument,
-          rootMidi,
-          semitones: chosen.interval.semitones,
-          intervalId: chosen.interval.id,
-          direction: 'ascendente',
-          correct: chosen.interval.name,
-          options: this._makeOptions(chosen.interval.name, optionPool, Math.min(optionPool.length, 4)),
-          explanation: `El intervalo de ${chosen.interval.name} consta de ${chosen.interval.semitones} semitonos.`,
-        });
+      for (let i = 0; i < count; i++) {
+        const targetId = pick(targets);
+        const item = byId(targetId);
+        const optionNames = SemimusModules.challengeOptions(pool, targetId)
+          .map(id => byId(id).name);
+        if (item.type === 'scale') {
+          questions.push({
+            id: i + 1,
+            type: 'scale',
+            title: '¿Qué escala escuchas?',
+            instruction: `Reto del módulo ${module.id}: identifica la escala.`,
+            instrument,
+            rootMidi: pick(rootsOf(item)),
+            pattern: item.scale.steps,
+            focus: item.scale.focus,
+            scale_name: item.name,
+            correct: item.name,
+            options: optionNames,
+            explanation: `${item.name}: ${item.scale.formula}.`,
+          });
+        } else {
+          questions.push({
+            id: i + 1,
+            type: 'interval',
+            title: `¿Qué intervalo escuchas? (${instrument})`,
+            instruction: `Reto del módulo ${module.id}: identifica la distancia entre las dos notas.`,
+            instrument,
+            rootMidi: pick(rootsOf(item)),
+            semitones: item.semitones,
+            intervalId: item.intervalId || null,
+            direction: 'ascendente',
+            correct: item.name,
+            options: optionNames,
+            explanation: `${item.name}: ${SemimusModules.distanceLabel(item.semitones)}.`,
+          });
+        }
       }
       return questions;
     },
@@ -1361,7 +1425,7 @@ function senafonicaGame(initData) {
         || (item.semitones === question.semitones && item.name === question.correct)
       ) || this.intervals.find(item => item.semitones === question.semitones);
       if (!interval) return question.explanation;
-      const intervalName = interval.name
+      const intervalName = (question.correct || interval.name)
         .split(' ')
         .map(word => word.charAt(0).toUpperCase() + word.slice(1))
         .join(' ');
@@ -1396,7 +1460,21 @@ function senafonicaGame(initData) {
       const container = this.$refs.answerScore;
       if (!container || typeof SemimusScore === 'undefined') return;
       const question = this.currentQ;
-      if (!this.answered || !question || question.type !== 'interval') {
+      if (!this.answered || !question) {
+        SemimusScore.render(container, null);
+        return;
+      }
+      if (question.type === 'scale') {
+        // Feedback de escala: la escala escrita desde la raíz, con los grados de foco.
+        const notes = SemimusModules.spellScale(Number(question.rootMidi), question.pattern, question.focus || []) || [];
+        SemimusScore.render(container, {
+          instrument: question.instrument,
+          interval_type: 'escala',
+          notation_display: { clef: 'treble', notes },
+        });
+        return;
+      }
+      if (question.type !== 'interval' && question.type !== 'pitch') {
         SemimusScore.render(container, null);
         return;
       }
@@ -1630,23 +1708,20 @@ function senafonicaGame(initData) {
       const total = this.levelQuestions.length;
       const accuracy = Math.round((this.sessionCorrect / total) * 100);
       if (this.activeStation.moduleId !== undefined) {
-        const { moduleId, moduleLevel, moduleLevelConfig } = this.activeStation;
-        const progressKey = `${moduleId}:${moduleLevel}`;
+        const { moduleId, moduleLevel } = this.activeStation;
+        const progressKey = SemimusModules.progressKey(moduleId, moduleLevel);
         this.moduleProgress[progressKey] = Math.max(this.moduleProgress[progressKey] || 0, accuracy);
-        const module = this.levels.find(item => item.id === moduleId);
-        const hasNextLevel = (module && module.levels || [])
-          .some(item => item.level > moduleLevel);
-        const passed = moduleLevelConfig
-          ? accuracy >= moduleLevelConfig.minCorrectPct
-          : true;
+        const threshold = this.passingPercent();
+        const passed = accuracy >= threshold;
+        const hasNextModule = Boolean(this.levels.find(item => item.id === moduleId + 1));
         this._saveLocalState();
         void this._syncWithServer({ module_progress: this.moduleProgress });
         this.currentTab = 'path';
         this._updateMascot(
           passed ? 'celebrating' : 'sad',
           passed
-            ? `¡Nivel ${moduleLevel} completado con ${accuracy}%!`
-            : `Obtuviste ${accuracy}%. Necesitas ${moduleLevelConfig.minCorrectPct}% para ${hasNextLevel ? 'desbloquear el siguiente nivel' : 'completar este módulo'}.`
+            ? `¡Reto superado con ${accuracy}%!${hasNextModule ? ` Desbloqueaste el módulo ${moduleId + 1}.` : ''}`
+            : `Obtuviste ${accuracy}%. Necesitas ${threshold}% para desbloquear el módulo siguiente.`
         );
         if (passed) {
           this.audio.playLevelCompleteSound();

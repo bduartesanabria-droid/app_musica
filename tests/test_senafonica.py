@@ -54,21 +54,24 @@ def test_senafonica_api_data(client):
     assert "theory_questions" in data
     assert "induction_questions" in data
     assert "shop_items" in data
-    assert len(data["levels"]) == 6
+    assert len(data["levels"]) == 31
     assert len(data["stations"]) == 15
     interval_ids = [interval["id"] for interval in data["intervals"]]
     assert len(interval_ids) == len(set(interval_ids))
-    assert [module["id"] for module in data["modules"]] == [0, 1, 2, 3, 4, 5]
-    assert data["modules"][1]["levels"][0] == {
-        "level": 1,
-        "intervalIds": ["U", "2m"],
-        "minCorrectPct": 80,
+    assert [module["id"] for module in data["modules"]] == list(range(31))
+    assert data["progression"] == {
+        "passingPercent": 80,
+        "challengeQuestions": 10,
+        "studyCompletePct": 100,
     }
-    assert data["modules"][1]["levels"][1]["intervalIds"] == ["U", "2m", "2M"]
-    assert data["modules"][4]["levels"][1]["intervalIds"] == ["6m", "6M", "7m"]
-    assert data["modules"][4]["levels"][4]["intervalIds"] == [
-        "U", "2m", "2M", "3m", "3M", "4J", "4A", "5J", "6m", "6M", "7m", "7M", "8J",
-    ]
+    # Cada módulo tiene Fase .1 (estudio) y Fase .2 (reto).
+    for module in data["modules"]:
+        assert [level["phase"] for level in module["levels"]] == ["study", "challenge"]
+    assert data["modules"][1]["levels"][1]["prompt"] == "¿Unísono o 2da menor?"
+    assert data["modules"][13]["name"] == "Novena menor"
+    assert data["modules"][18]["name"] == "Onceava justa"
+    assert data["modules"][22]["scale"]["formula"] == "T - T - S - T - T - T - S"
+    assert data["modules"][30]["name"] == "Modo locrio"
     assert len(data["induction_questions"]) == 3
     levels = data["stations"]
     assert levels[0]["subtitle"].startswith("Agudo vs.")
@@ -371,3 +374,43 @@ def test_senafonica_sync_rejects_invalid_module_progress(login_client):
         content_type="application/json",
     )
     assert response.status_code == 400
+
+
+def test_senafonica_sync_accepts_all_module_phases(login_client):
+    auth_client, user_id = login_client()
+    progress = {"0:1": 100, "0:2": 80, "30:1": 100, "30:2": 90}
+    response = auth_client.post(
+        "/api/senafonica/sync",
+        data=json.dumps({"module_progress": progress}),
+        content_type="application/json",
+    )
+    assert response.status_code == 200
+    with auth_client.application.app_context():
+        saved = Progress.query.filter_by(user_id=user_id).one()
+        assert json.loads(saved.module_progress_json) == progress
+
+
+def test_senafonica_sync_rejects_modules_outside_the_document(login_client):
+    auth_client, _ = login_client()
+    for invalid in ({"31:1": 80}, {"0:3": 80}, {"-1:1": 80}, {"x:1": 80}):
+        response = auth_client.post(
+            "/api/senafonica/sync",
+            data=json.dumps({"module_progress": invalid}),
+            content_type="application/json",
+        )
+        assert response.status_code == 400, invalid
+
+
+def test_senafonica_page_ships_the_module_engine_and_blind_screen(client):
+    html = client.get("/senafonica").get_data(as_text=True)
+    assert "/static/js/module_engine.js" in html
+    assert '"progression": {"passingPercent": 80, "challengeQuestions": 10, "studyCompletePct": 100}' in html
+
+    game = open("app/static/js/senafonica_game.js", encoding="utf-8").read()
+    # Pantalla ciega: el pentagrama del feedback solo aparece al responder.
+    assert "if (!this.answered || !question) {" in game
+    # La demo es obligatoria antes de empezar el reto.
+    assert "if (!this.introModule || !this.introDemoPlayed) return;" in game
+    assert "introDemoPlayed" in game
+    # La partitura de la introducción solo se muestra en la Fase .1 (estudio).
+    assert 'x-show="introLevel === 1"' in html

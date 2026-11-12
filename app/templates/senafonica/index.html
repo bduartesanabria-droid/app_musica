@@ -21,6 +21,7 @@
   <script>window.SEMIMUS_REVIEW_MODE = {{ review_mode|tojson }};</script>
   <script src="{{ url_for('static', filename='vendor/vexflow-4.2.5.js') }}"></script>
   <script src="{{ url_for('static', filename='js/score_renderer.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/module_engine.js') }}"></script>
   <script src="{{ url_for('static', filename='js/senafonica_audio.js') }}"></script>
   <script src="{{ url_for('static', filename='js/senafonica_game.js') }}"></script>
   <script id="senafonica-init-data" type="application/json">
@@ -396,14 +397,21 @@
 
       <section class="mb-6 rounded-2xl border border-white/10 bg-slate-900/80 p-4">
         <h3 class="text-sm font-black text-white">Práctica por módulos</h3>
+        <p class="mt-1 text-xs text-slate-300"
+           x-text="`Cada módulo tiene Fase .1 (estudio) y Fase .2 (reto de ${challengeCount()} preguntas). Supera el reto con ${passingPercent()} % para abrir el siguiente módulo.`"></p>
         <div class="mt-3 grid gap-3 sm:grid-cols-2">
           <template x-for="module in levels" :key="module.id">
             <article class="rounded-xl border border-white/10 bg-slate-950/70 p-3">
               <div class="flex items-start justify-between gap-2">
-                <p class="text-sm font-bold text-emerald-200" x-text="`Módulo ${module.id} · ${module.name}`"></p>
+                <div>
+                  <p class="text-[10px] font-black uppercase tracking-wide text-slate-400"
+                     x-text="moduleGroupLabel(module)"></p>
+                  <p class="text-sm font-bold text-emerald-200" x-text="`Módulo ${module.id} · ${module.name}`"></p>
+                </div>
                 <span class="text-[10px] font-black text-amber-200"
                       x-text="isModuleCompleted(module.id) ? 'Completado ✓' : isModuleUnlocked(module.id) ? 'Abierto' : 'Cerrado 🔒'"></span>
               </div>
+              <p class="mt-1 text-xs text-slate-300" x-text="moduleDistance(module)"></p>
               <template x-if="module.levels && module.levels.length">
                 <div class="mt-2 flex flex-wrap gap-2">
                   <template x-for="moduleLevel in module.levels" :key="moduleLevel.level">
