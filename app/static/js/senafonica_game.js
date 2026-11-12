@@ -516,7 +516,6 @@ function senafonicaGame(initData) {
       if (!sample) return;
       const inst = this.learnStation.instrument === 'Todos' ? 'Tiple' : this.learnStation.instrument;
       this._updateMascot('listening', `Escucha la ${sample.label.toLowerCase()} e identifica lo que oyes.`);
-      if (sample.notes.length <= 2) this._renderLearnScore(inst, sample.notes);
       const played = await this._runLearnPlayback(async () => {
         if (this.learnStation.type === 'scale' && index === 0) {
           const pattern = this.learnStation.learn_content.scale_pattern;
@@ -1430,7 +1429,8 @@ function senafonicaGame(initData) {
         container,
         this.jamInstrument,
         midis,
-        `${intervalObj ? intervalObj.id : 'intervalo'}_${direction}`
+        `${intervalObj ? intervalObj.id : 'intervalo'}_${direction}`,
+        { diagram: false }
       );
     },
 

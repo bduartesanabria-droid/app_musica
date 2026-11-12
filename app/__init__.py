@@ -99,6 +99,18 @@ def create_app(env=None):
             return {"gamification": gami}
         return {"gamification": None}
 
+    # Modo de revisión de afinaciones: solo administradores con ?revision=1.
+    @app.context_processor
+    def inject_review_mode():
+        from flask import request
+        from flask_login import current_user
+        allowed = (
+            current_user.is_authenticated
+            and getattr(current_user, "is_admin", False)
+            and request.args.get("revision") == "1"
+        )
+        return {"review_mode": bool(allowed)}
+
     # Filtros Jinja2
     from .utils.filters import register_filters
     register_filters(app)

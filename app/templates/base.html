@@ -23,6 +23,7 @@
   <!-- CSS propio -->
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 
+  <script>window.SEMIMUS_REVIEW_MODE = {{ review_mode|tojson }};</script>
   {% block head %}{% endblock %}
 </head>
 <body class="h-full font-sans antialiased" x-data="{ companionState: 'idle' }"
