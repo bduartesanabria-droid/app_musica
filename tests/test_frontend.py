@@ -133,6 +133,11 @@ def test_creditos_page_lists_authors_and_copyright(client):
     assert COPYRIGHT_LINE in html
     for name in ("Brayan Duarte", "Camilo Cifuentes", "Ricardo Figueroa", "Miguel Tejedor"):
         assert name in html
+    # Roles del documento pedagógico; el de Miguel Tejedor queda por confirmar.
+    assert "Brayan Duarte</strong> — desarrollo" in html
+    assert "Ricardo Figueroa</strong> — profesor de música" in html
+    assert "Camilo Cifuentes</strong> — autor del documento pedagógico" in html
+    assert "Miguel Tejedor</strong> — rol por confirmar" in html
 
 
 def test_feedback_states_do_not_rely_on_color_alone():
