@@ -1389,6 +1389,14 @@ function senafonicaGame(initData) {
         return '🎼';
       }
       if (question.type === 'melody') return ['♪', '♫', '♬', '𝄞'][question.options.indexOf(option) % 4];
+      const module = this.levels.find(item => item.name === option);
+      if (module) {
+        if (module.semitones === 0) return '≡';
+        if (module.semitones <= 2) return '↗';
+        if (module.semitones <= 4) return '↗↗';
+        if (module.semitones <= 7) return '⤴';
+        return '⤴⤴';
+      }
       const interval = this.intervals.find(item => item.name === option);
       if (!interval) return '♪';
       if (interval.semitones === 0) return '≡';
@@ -1406,6 +1414,14 @@ function senafonicaGame(initData) {
         return scale ? scale.description || 'Escucha el carácter de la escala' : 'Escucha su carácter';
       }
       if (question.type === 'melody') return 'Reconoce el orden de las notas';
+      const module = this.levels.find(item => item.name === option);
+      if (module) {
+        if (module.semitones === 0) return 'Misma nota';
+        if (module.semitones <= 2) return 'Paso corto';
+        if (module.semitones <= 4) return 'Paso mediano';
+        if (module.semitones <= 7) return 'Salto amplio';
+        return 'Salto grande';
+      }
       const interval = this.intervals.find(item => item.name === option);
       if (!interval) return 'Escucha la distancia';
       if (interval.semitones === 0) return 'Misma nota';
@@ -1427,26 +1443,29 @@ function senafonicaGame(initData) {
         || (item.semitones === question.semitones && item.name === question.correct)
       ) || this.intervals.find(item => item.semitones === question.semitones);
       if (!interval) return question.explanation;
+      const module = this.levels.find(item => item.name === question.correct);
       const intervalName = (question.correct || interval.name)
         .split(' ')
         .map(word => word.charAt(0).toUpperCase() + word.slice(1))
         .join(' ');
-      const article = interval.id === 'U' ? 'un' : 'una';
+      const article = interval.id === 'U' || interval.id === '4A' ? 'un' : 'una';
       const opening = this.isCorrect
         ? `¡Excelente! Identificaste ${article} ${intervalName}.`
         : `No pasa nada. La respuesta correcta es ${intervalName}.`;
       const neutralInstrumentNote = ['4A', '6m', '6M', '7m', '7M', '8J'].includes(interval.id)
         ? 'Este salto se toca cambiando de cuerda o de posición; consúltalo con tu profesor.'
         : '';
+      const tonos = module?.distance?.tonos || interval.tonos;
+      const trastes = module?.distance?.trastes ?? interval.trastes;
       let fretText;
-      if (Number(interval.trastes) === 0) {
+      if (Number(trastes) === 0) {
         fretText = 'Trastes: 0. Es la misma nota repetida: no te mueves por el mástil.';
       } else {
         fretText = interval.texto_instrumento
-          || `Trastes: ${interval.trastes}. ${neutralInstrumentNote
-            || `En tu ${question.instrument.toLowerCase()}: avanzar ${interval.trastes} ${interval.trastes === 1 ? 'traste' : 'trastes'} en la misma cuerda.`}`;
+          || `Trastes: ${trastes}. ${neutralInstrumentNote
+            || `En tu ${question.instrument.toLowerCase()}: avanzar ${trastes} ${trastes === 1 ? 'traste' : 'trastes'} en la misma cuerda.`}`;
       }
-      return `${opening} Distancia: ${interval.tonos}. ${fretText}`;
+      return `${opening} Distancia: ${tonos}. ${fretText}`;
     },
 
     // ══════════════════════════════════════════════════════════════════════

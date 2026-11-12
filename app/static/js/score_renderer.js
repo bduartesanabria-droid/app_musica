@@ -219,9 +219,9 @@ const SemimusScore = (() => {
     if (semitones < TONOS_BY_SEMITONES.length) {
       tonos = TONOS_BY_SEMITONES[semitones];
     } else {
-      // Compuestos: octava justa + simple (p. ej. novena menor = 6 tonos + medio tono).
-      const rest = semitones - 12;
-      tonos = rest === 0 ? '6 tonos' : `6 tonos + ${TONOS_BY_SEMITONES[rest]}`;
+      // Compuestos: total en tonos (p. ej. novena menor = 6½ tonos).
+      const whole = Math.floor(semitones / 2);
+      tonos = semitones % 2 === 1 ? `${whole}½ tonos` : `${whole} tonos`;
     }
     return `Distancia: ${tonos} (${semitones} ${semitones === 1 ? 'traste' : 'trastes'})`;
   }

@@ -688,7 +688,7 @@
         ],
         "focusText": "Destacar 3ra, 6ta y 7ma menores."
       },
-      "description": "Menor natural (Eólico): T - S - T - T - S - T - T. Destacar 3ra, 6ta y 7ma menores.",
+      "description": "Menor Natural (Eólico): T - S - T - T - S - T - T. Destacar 3ra, 6ta y 7ma menores.",
       "levels": [
         {
           "level": 1,
@@ -726,7 +726,7 @@
         ],
         "focusText": "Salto visual de 2da aumentada (6to al 7mo grado)."
       },
-      "description": "Menor armónica: Escala menor con 7ma ascendida. Salto visual de 2da aumentada (6to al 7mo grado).",
+      "description": "Menor Armónica: Escala menor con 7ma ascendida. Salto visual de 2da aumentada (6to al 7mo grado).",
       "levels": [
         {
           "level": 1,
@@ -764,7 +764,7 @@
         ],
         "focusText": "6to y 7mo grado ascienden al subir y descienden al bajar."
       },
-      "description": "Menor melódica: Sube alterada, baja natural. 6to y 7mo grado ascienden al subir y descienden al bajar.",
+      "description": "Menor Melódica: Sube alterada, baja natural. 6to y 7mo grado ascienden al subir y descienden al bajar.",
       "levels": [
         {
           "level": 1,
@@ -801,7 +801,7 @@
         ],
         "focusText": "Destacar la 6ta mayor característica."
       },
-      "description": "Modo dórico: Escala menor con 6ta mayor. Destacar la 6ta mayor característica.",
+      "description": "Modo Dórico: Escala menor con 6ta mayor. Destacar la 6ta mayor característica.",
       "levels": [
         {
           "level": 1,
@@ -838,7 +838,7 @@
         ],
         "focusText": "Destacar la 2da menor en el inicio."
       },
-      "description": "Modo frigio: Escala menor con 2da menor. Destacar la 2da menor en el inicio.",
+      "description": "Modo Frigio: Escala menor con 2da menor. Destacar la 2da menor en el inicio.",
       "levels": [
         {
           "level": 1,
@@ -875,7 +875,7 @@
         ],
         "focusText": "Evidenciar la 4ta aumentada (tritono desde la tónica)."
       },
-      "description": "Modo lidio: Escala mayor con 4ta aumentada. Evidenciar la 4ta aumentada (tritono desde la tónica).",
+      "description": "Modo Lidio: Escala mayor con 4ta aumentada. Evidenciar la 4ta aumentada (tritono desde la tónica).",
       "levels": [
         {
           "level": 1,
@@ -912,7 +912,7 @@
         ],
         "focusText": "Destacar la 7ma menor en la partitura."
       },
-      "description": "Modo mixolidio: Escala mayor con 7ma menor. Destacar la 7ma menor en la partitura.",
+      "description": "Modo Mixolidio: Escala mayor con 7ma menor. Destacar la 7ma menor en la partitura.",
       "levels": [
         {
           "level": 1,
@@ -949,7 +949,7 @@
         ],
         "focusText": "Destacar la 5ta disminuida."
       },
-      "description": "Modo locrio: Escala menor con 2da m y 5ta disminuida. Destacar la 5ta disminuida.",
+      "description": "Modo Locrio: Escala menor con 2da m y 5ta disminuida. Destacar la 5ta disminuida.",
       "levels": [
         {
           "level": 1,

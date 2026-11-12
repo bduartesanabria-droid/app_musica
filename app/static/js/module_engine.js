@@ -119,14 +119,14 @@
     '5 tonos', '5 tonos y medio', '6 tonos',
   ];
 
-  /** Distancia en tonos y trastes para semitonos (trastes = semitonos). Compuestos: octava + simple. */
+  /** Distancia en tonos y trastes para semitonos (trastes = semitonos). Compuestos: total en tonos. */
   function distanceLabel(semitones) {
     const n = Number(semitones);
     const trastes = `${n} ${n === 1 ? 'traste' : 'trastes'}`;
     if (n < TONOS.length) return `${TONOS[n]} (${trastes})`;
-    const rest = n - 12;
-    const restText = rest === 0 ? '' : ` + ${TONOS[rest]}`;
-    return `6 tonos${restText} (${trastes})`;
+    const whole = Math.floor(n / 2);
+    const tonos = n % 2 === 1 ? `${whole}½ tonos` : `${whole} tonos`;
+    return `${tonos} (${trastes})`;
   }
 
   function spellWith(rootMidi, steps, focus, letter0, acc0) {

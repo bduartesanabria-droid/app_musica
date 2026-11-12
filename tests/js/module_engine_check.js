@@ -73,8 +73,8 @@ assert.strictEqual(M.distanceLabel(0), 'sin distancia (misma nota) (0 trastes)')
 assert.strictEqual(M.distanceLabel(1), 'medio tono (1 traste)');
 assert.strictEqual(M.distanceLabel(7), '3 tonos y medio (7 trastes)');
 assert.strictEqual(M.distanceLabel(12), '6 tonos (12 trastes)');
-assert.strictEqual(M.distanceLabel(13), '6 tonos + medio tono (13 trastes)');
-assert.strictEqual(M.distanceLabel(21), '6 tonos + 4 tonos y medio (21 trastes)');
+assert.strictEqual(M.distanceLabel(13), '6½ tonos (13 trastes)');
+assert.strictEqual(M.distanceLabel(21), '10½ tonos (21 trastes)');
 
 // 8. Escalas escritas desde la raíz (sostenidos o bemoles, sin dobles alteraciones).
 const major = [2, 2, 1, 2, 2, 2, 1];
