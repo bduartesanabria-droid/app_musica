@@ -16,7 +16,7 @@
           "level": 1,
           "phase": "study",
           "label": "Fase .1 · Estudio aislado",
-          "prompt": "Sonido grave vs agudo"
+          "prompt": "Sonido Grave vs Agudo"
         },
         {
           "level": 2,
@@ -56,7 +56,7 @@
     },
     {
       "id": 2,
-      "name": "2da menor",
+      "name": "2da Menor",
       "group": "simple",
       "type": "interval",
       "intervalId": "2m",
@@ -66,25 +66,25 @@
         "trastes": 1,
         "semitones": 1
       },
-      "description": "2da menor: ½ tono (1 traste).",
+      "description": "2da Menor: ½ tono (1 traste).",
       "levels": [
         {
           "level": 1,
           "phase": "study",
           "label": "Fase .1 · Estudio aislado",
-          "prompt": "Escuchar 2da menor"
+          "prompt": "Escuchar 2da Menor"
         },
         {
           "level": 2,
           "phase": "challenge",
           "label": "Fase .2 · Reto acumulado",
-          "prompt": "¿Unísono o 2da menor?"
+          "prompt": "¿Unísono o 2da Menor?"
         }
       ]
     },
     {
       "id": 3,
-      "name": "2da mayor",
+      "name": "2da Mayor",
       "group": "simple",
       "type": "interval",
       "intervalId": "2M",
@@ -94,13 +94,13 @@
         "trastes": 2,
         "semitones": 2
       },
-      "description": "2da mayor: 1 tono (2 trastes).",
+      "description": "2da Mayor: 1 tono (2 trastes).",
       "levels": [
         {
           "level": 1,
           "phase": "study",
           "label": "Fase .1 · Estudio aislado",
-          "prompt": "Escuchar 2da mayor"
+          "prompt": "Escuchar 2da Mayor"
         },
         {
           "level": 2,
@@ -112,7 +112,7 @@
     },
     {
       "id": 4,
-      "name": "3ra menor",
+      "name": "3ra Menor",
       "group": "simple",
       "type": "interval",
       "intervalId": "3m",
@@ -122,13 +122,13 @@
         "trastes": 3,
         "semitones": 3
       },
-      "description": "3ra menor: 1½ tonos (3 trastes).",
+      "description": "3ra Menor: 1½ tonos (3 trastes).",
       "levels": [
         {
           "level": 1,
           "phase": "study",
           "label": "Fase .1 · Estudio aislado",
-          "prompt": "Escuchar 3ra menor"
+          "prompt": "Escuchar 3ra Menor"
         },
         {
           "level": 2,
@@ -140,7 +140,7 @@
     },
     {
       "id": 5,
-      "name": "3ra mayor",
+      "name": "3ra Mayor",
       "group": "simple",
       "type": "interval",
       "intervalId": "3M",
@@ -150,13 +150,13 @@
         "trastes": 4,
         "semitones": 4
       },
-      "description": "3ra mayor: 2 tonos (4 trastes).",
+      "description": "3ra Mayor: 2 tonos (4 trastes).",
       "levels": [
         {
           "level": 1,
           "phase": "study",
           "label": "Fase .1 · Estudio aislado",
-          "prompt": "Escuchar 3ra mayor"
+          "prompt": "Escuchar 3ra Mayor"
         },
         {
           "level": 2,
@@ -168,7 +168,7 @@
     },
     {
       "id": 6,
-      "name": "4ta justa",
+      "name": "4ta Justa",
       "group": "simple",
       "type": "interval",
       "intervalId": "4J",
@@ -178,13 +178,13 @@
         "trastes": 5,
         "semitones": 5
       },
-      "description": "4ta justa: 2½ tonos (5 trastes).",
+      "description": "4ta Justa: 2½ tonos (5 trastes).",
       "levels": [
         {
           "level": 1,
           "phase": "study",
           "label": "Fase .1 · Estudio aislado",
-          "prompt": "Escuchar 4ta justa"
+          "prompt": "Escuchar 4ta Justa"
         },
         {
           "level": 2,
@@ -212,7 +212,7 @@
           "level": 1,
           "phase": "study",
           "label": "Fase .1 · Estudio aislado",
-          "prompt": "Escuchar tritono"
+          "prompt": "Escuchar Tritono"
         },
         {
           "level": 2,
@@ -224,7 +224,7 @@
     },
     {
       "id": 8,
-      "name": "5ta justa",
+      "name": "5ta Justa",
       "group": "simple",
       "type": "interval",
       "intervalId": "5J",
@@ -234,13 +234,13 @@
         "trastes": 7,
         "semitones": 7
       },
-      "description": "5ta justa: 3½ tonos (7 trastes).",
+      "description": "5ta Justa: 3½ tonos (7 trastes).",
       "levels": [
         {
           "level": 1,
           "phase": "study",
           "label": "Fase .1 · Estudio aislado",
-          "prompt": "Escuchar 5ta justa"
+          "prompt": "Escuchar 5ta Justa"
         },
         {
           "level": 2,
@@ -252,7 +252,7 @@
     },
     {
       "id": 9,
-      "name": "6ta menor",
+      "name": "6ta Menor",
       "group": "simple",
       "type": "interval",
       "intervalId": "6m",
@@ -262,13 +262,13 @@
         "trastes": 8,
         "semitones": 8
       },
-      "description": "6ta menor: 4 tonos (8 trastes).",
+      "description": "6ta Menor: 4 tonos (8 trastes).",
       "levels": [
         {
           "level": 1,
           "phase": "study",
           "label": "Fase .1 · Estudio aislado",
-          "prompt": "Escuchar 6ta menor"
+          "prompt": "Escuchar 6ta Menor"
         },
         {
           "level": 2,
@@ -280,7 +280,7 @@
     },
     {
       "id": 10,
-      "name": "6ta mayor",
+      "name": "6ta Mayor",
       "group": "simple",
       "type": "interval",
       "intervalId": "6M",
@@ -290,13 +290,13 @@
         "trastes": 9,
         "semitones": 9
       },
-      "description": "6ta mayor: 4½ tonos (9 trastes).",
+      "description": "6ta Mayor: 4½ tonos (9 trastes).",
       "levels": [
         {
           "level": 1,
           "phase": "study",
           "label": "Fase .1 · Estudio aislado",
-          "prompt": "Escuchar 6ta mayor"
+          "prompt": "Escuchar 6ta Mayor"
         },
         {
           "level": 2,
@@ -308,7 +308,7 @@
     },
     {
       "id": 11,
-      "name": "7ma menor",
+      "name": "7ma Menor",
       "group": "simple",
       "type": "interval",
       "intervalId": "7m",
@@ -318,13 +318,13 @@
         "trastes": 10,
         "semitones": 10
       },
-      "description": "7ma menor: 5 tonos (10 trastes).",
+      "description": "7ma Menor: 5 tonos (10 trastes).",
       "levels": [
         {
           "level": 1,
           "phase": "study",
           "label": "Fase .1 · Estudio aislado",
-          "prompt": "Escuchar 7ma menor"
+          "prompt": "Escuchar 7ma Menor"
         },
         {
           "level": 2,
@@ -336,7 +336,7 @@
     },
     {
       "id": 12,
-      "name": "7ma mayor",
+      "name": "7ma Mayor",
       "group": "simple",
       "type": "interval",
       "intervalId": "7M",
@@ -346,13 +346,13 @@
         "trastes": 11,
         "semitones": 11
       },
-      "description": "7ma mayor: 5½ tonos (11 trastes).",
+      "description": "7ma Mayor: 5½ tonos (11 trastes).",
       "levels": [
         {
           "level": 1,
           "phase": "study",
           "label": "Fase .1 · Estudio aislado",
-          "prompt": "Escuchar 7ma mayor"
+          "prompt": "Escuchar 7ma Mayor"
         },
         {
           "level": 2,
@@ -364,7 +364,7 @@
     },
     {
       "id": 13,
-      "name": "Octava justa",
+      "name": "Octava Justa",
       "group": "simple",
       "type": "interval",
       "intervalId": "8J",
@@ -374,259 +374,259 @@
         "trastes": 12,
         "semitones": 12
       },
-      "description": "Octava justa: 6 tonos (12 trastes).",
+      "description": "Octava Justa: 6 tonos (12 trastes).",
       "levels": [
         {
           "level": 1,
           "phase": "study",
           "label": "Fase .1 · Estudio aislado",
-          "prompt": "Escuchar octava justa"
+          "prompt": "Escuchar Octava Justa"
         },
         {
           "level": 2,
           "phase": "challenge",
           "label": "Fase .2 · Reto acumulado",
-          "prompt": "Reto Maestro (todos los simples)"
+          "prompt": "Reto Maestro (Todos los simples)"
         }
       ]
     },
     {
       "id": 14,
-      "name": "Novena menor",
+      "name": "Novena Menor",
       "group": "compound",
       "type": "interval",
       "intervalId": null,
       "semitones": 13,
-      "structure": "Octava justa + 2da menor",
+      "structure": "Octava Justa + 2da Menor",
       "baseIntervalId": "2m",
       "distance": {
-        "tonos": "Octava justa + 2da menor",
+        "tonos": "Octava Justa + 2da Menor",
         "trastes": 13,
         "semitones": 13
       },
-      "description": "Novena menor: octava justa + 2da menor (13 trastes).",
+      "description": "Novena Menor: Octava Justa + 2da Menor (13 trastes).",
       "levels": [
         {
           "level": 1,
           "phase": "study",
           "label": "Fase .1 · Estudio aislado",
-          "prompt": "Estudiar Novena menor"
+          "prompt": "Estudio individual de Novena Menor"
         },
         {
           "level": 2,
           "phase": "challenge",
           "label": "Fase .2 · Reto acumulado",
-          "prompt": "Reto acumulado de intervalos compuestos"
+          "prompt": "Reto acumulado"
         }
       ]
     },
     {
       "id": 15,
-      "name": "Novena mayor",
+      "name": "Novena Mayor",
       "group": "compound",
       "type": "interval",
       "intervalId": null,
       "semitones": 14,
-      "structure": "Octava justa + 2da mayor",
+      "structure": "Octava Justa + 2da Mayor",
       "baseIntervalId": "2M",
       "distance": {
-        "tonos": "Octava justa + 2da mayor",
+        "tonos": "Octava Justa + 2da Mayor",
         "trastes": 14,
         "semitones": 14
       },
-      "description": "Novena mayor: octava justa + 2da mayor (14 trastes).",
+      "description": "Novena Mayor: Octava Justa + 2da Mayor (14 trastes).",
       "levels": [
         {
           "level": 1,
           "phase": "study",
           "label": "Fase .1 · Estudio aislado",
-          "prompt": "Estudiar Novena mayor"
+          "prompt": "Estudio individual de Novena Mayor"
         },
         {
           "level": 2,
           "phase": "challenge",
           "label": "Fase .2 · Reto acumulado",
-          "prompt": "Reto acumulado de intervalos compuestos"
+          "prompt": "Reto acumulado"
         }
       ]
     },
     {
       "id": 16,
-      "name": "Décima menor",
+      "name": "Décima Menor",
       "group": "compound",
       "type": "interval",
       "intervalId": null,
       "semitones": 15,
-      "structure": "Octava justa + 3ra menor",
+      "structure": "Octava Justa + 3ra Menor",
       "baseIntervalId": "3m",
       "distance": {
-        "tonos": "Octava justa + 3ra menor",
+        "tonos": "Octava Justa + 3ra Menor",
         "trastes": 15,
         "semitones": 15
       },
-      "description": "Décima menor: octava justa + 3ra menor (15 trastes).",
+      "description": "Décima Menor: Octava Justa + 3ra Menor (15 trastes).",
       "levels": [
         {
           "level": 1,
           "phase": "study",
           "label": "Fase .1 · Estudio aislado",
-          "prompt": "Estudiar Décima menor"
+          "prompt": "Estudio individual de Décima Menor"
         },
         {
           "level": 2,
           "phase": "challenge",
           "label": "Fase .2 · Reto acumulado",
-          "prompt": "Reto acumulado de intervalos compuestos"
+          "prompt": "Reto acumulado"
         }
       ]
     },
     {
       "id": 17,
-      "name": "Décima mayor",
+      "name": "Décima Mayor",
       "group": "compound",
       "type": "interval",
       "intervalId": null,
       "semitones": 16,
-      "structure": "Octava justa + 3ra mayor",
+      "structure": "Octava Justa + 3ra Mayor",
       "baseIntervalId": "3M",
       "distance": {
-        "tonos": "Octava justa + 3ra mayor",
+        "tonos": "Octava Justa + 3ra Mayor",
         "trastes": 16,
         "semitones": 16
       },
-      "description": "Décima mayor: octava justa + 3ra mayor (16 trastes).",
+      "description": "Décima Mayor: Octava Justa + 3ra Mayor (16 trastes).",
       "levels": [
         {
           "level": 1,
           "phase": "study",
           "label": "Fase .1 · Estudio aislado",
-          "prompt": "Estudiar Décima mayor"
+          "prompt": "Estudio individual de Décima Mayor"
         },
         {
           "level": 2,
           "phase": "challenge",
           "label": "Fase .2 · Reto acumulado",
-          "prompt": "Reto acumulado de intervalos compuestos"
+          "prompt": "Reto acumulado"
         }
       ]
     },
     {
       "id": 18,
-      "name": "Onceava justa",
+      "name": "Onceava Justa",
       "group": "compound",
       "type": "interval",
       "intervalId": null,
       "semitones": 17,
-      "structure": "Octava justa + 4ta justa",
+      "structure": "Octava Justa + 4ta Justa",
       "baseIntervalId": "4J",
       "distance": {
-        "tonos": "Octava justa + 4ta justa",
+        "tonos": "Octava Justa + 4ta Justa",
         "trastes": 17,
         "semitones": 17
       },
-      "description": "Onceava justa: octava justa + 4ta justa (17 trastes).",
+      "description": "Onceava Justa: Octava Justa + 4ta Justa (17 trastes).",
       "levels": [
         {
           "level": 1,
           "phase": "study",
           "label": "Fase .1 · Estudio aislado",
-          "prompt": "Estudiar Onceava justa"
+          "prompt": "Estudio individual de Onceava Justa"
         },
         {
           "level": 2,
           "phase": "challenge",
           "label": "Fase .2 · Reto acumulado",
-          "prompt": "Reto acumulado de intervalos compuestos"
+          "prompt": "Reto acumulado"
         }
       ]
     },
     {
       "id": 19,
-      "name": "Doceava justa",
+      "name": "Doceava Justa",
       "group": "compound",
       "type": "interval",
       "intervalId": null,
       "semitones": 19,
-      "structure": "Octava justa + 5ta justa",
+      "structure": "Octava Justa + 5ta Justa",
       "baseIntervalId": "5J",
       "distance": {
-        "tonos": "Octava justa + 5ta justa",
+        "tonos": "Octava Justa + 5ta Justa",
         "trastes": 19,
         "semitones": 19
       },
-      "description": "Doceava justa: octava justa + 5ta justa (19 trastes).",
+      "description": "Doceava Justa: Octava Justa + 5ta Justa (19 trastes).",
       "levels": [
         {
           "level": 1,
           "phase": "study",
           "label": "Fase .1 · Estudio aislado",
-          "prompt": "Estudiar Doceava justa"
+          "prompt": "Estudio individual de Doceava Justa"
         },
         {
           "level": 2,
           "phase": "challenge",
           "label": "Fase .2 · Reto acumulado",
-          "prompt": "Reto acumulado de intervalos compuestos"
+          "prompt": "Reto acumulado"
         }
       ]
     },
     {
       "id": 20,
-      "name": "Trecena menor",
+      "name": "Trecena Menor",
       "group": "compound",
       "type": "interval",
       "intervalId": null,
       "semitones": 20,
-      "structure": "Octava justa + 6ta menor",
+      "structure": "Octava Justa + 6ta Menor",
       "baseIntervalId": "6m",
       "distance": {
-        "tonos": "Octava justa + 6ta menor",
+        "tonos": "Octava Justa + 6ta Menor",
         "trastes": 20,
         "semitones": 20
       },
-      "description": "Trecena menor: octava justa + 6ta menor (20 trastes).",
+      "description": "Trecena Menor: Octava Justa + 6ta Menor (20 trastes).",
       "levels": [
         {
           "level": 1,
           "phase": "study",
           "label": "Fase .1 · Estudio aislado",
-          "prompt": "Estudiar Trecena menor"
+          "prompt": "Estudio individual de Trecena Menor"
         },
         {
           "level": 2,
           "phase": "challenge",
           "label": "Fase .2 · Reto acumulado",
-          "prompt": "Reto acumulado de intervalos compuestos"
+          "prompt": "Reto acumulado"
         }
       ]
     },
     {
       "id": 21,
-      "name": "Trecena mayor",
+      "name": "Trecena Mayor",
       "group": "compound",
       "type": "interval",
       "intervalId": null,
       "semitones": 21,
-      "structure": "Octava justa + 6ta mayor",
+      "structure": "Octava Justa + 6ta Mayor",
       "baseIntervalId": "6M",
       "distance": {
-        "tonos": "Octava justa + 6ta mayor",
+        "tonos": "Octava Justa + 6ta Mayor",
         "trastes": 21,
         "semitones": 21
       },
-      "description": "Trecena mayor: octava justa + 6ta mayor (21 trastes).",
+      "description": "Trecena Mayor: Octava Justa + 6ta Mayor (21 trastes).",
       "levels": [
         {
           "level": 1,
           "phase": "study",
           "label": "Fase .1 · Estudio aislado",
-          "prompt": "Estudiar Trecena mayor"
+          "prompt": "Estudio individual de Trecena Mayor"
         },
         {
           "level": 2,
           "phase": "challenge",
           "label": "Fase .2 · Reto acumulado",
-          "prompt": "Reto acumulado de intervalos compuestos"
+          "prompt": "Reto Maestro de Compuestos"
         }
       ]
     },
@@ -667,7 +667,7 @@
     },
     {
       "id": 23,
-      "name": "Menor natural (Eólico)",
+      "name": "Menor Natural (Eólico)",
       "group": "scale",
       "type": "scale",
       "scale": {
@@ -694,7 +694,7 @@
           "level": 1,
           "phase": "study",
           "label": "Fase .1 · Estudio aislado",
-          "prompt": "Escuchar Menor natural (Eólico)"
+          "prompt": "Escuchar Menor Natural (Eólico)"
         },
         {
           "level": 2,
@@ -706,7 +706,7 @@
     },
     {
       "id": 24,
-      "name": "Menor armónica",
+      "name": "Menor Armónica",
       "group": "scale",
       "type": "scale",
       "scale": {
@@ -732,7 +732,7 @@
           "level": 1,
           "phase": "study",
           "label": "Fase .1 · Estudio aislado",
-          "prompt": "Escuchar Menor armónica"
+          "prompt": "Escuchar Menor Armónica"
         },
         {
           "level": 2,
@@ -744,7 +744,7 @@
     },
     {
       "id": 25,
-      "name": "Menor melódica",
+      "name": "Menor Melódica",
       "group": "scale",
       "type": "scale",
       "scale": {
@@ -770,7 +770,7 @@
           "level": 1,
           "phase": "study",
           "label": "Fase .1 · Estudio aislado",
-          "prompt": "Escuchar Menor melódica"
+          "prompt": "Escuchar Menor Melódica"
         },
         {
           "level": 2,
@@ -782,7 +782,7 @@
     },
     {
       "id": 26,
-      "name": "Modo dórico",
+      "name": "Modo Dórico",
       "group": "scale",
       "type": "scale",
       "scale": {
@@ -807,7 +807,7 @@
           "level": 1,
           "phase": "study",
           "label": "Fase .1 · Estudio aislado",
-          "prompt": "Escuchar Modo dórico"
+          "prompt": "Escuchar Modo Dórico"
         },
         {
           "level": 2,
@@ -819,7 +819,7 @@
     },
     {
       "id": 27,
-      "name": "Modo frigio",
+      "name": "Modo Frigio",
       "group": "scale",
       "type": "scale",
       "scale": {
@@ -844,7 +844,7 @@
           "level": 1,
           "phase": "study",
           "label": "Fase .1 · Estudio aislado",
-          "prompt": "Escuchar Modo frigio"
+          "prompt": "Escuchar Modo Frigio"
         },
         {
           "level": 2,
@@ -856,7 +856,7 @@
     },
     {
       "id": 28,
-      "name": "Modo lidio",
+      "name": "Modo Lidio",
       "group": "scale",
       "type": "scale",
       "scale": {
@@ -881,7 +881,7 @@
           "level": 1,
           "phase": "study",
           "label": "Fase .1 · Estudio aislado",
-          "prompt": "Escuchar Modo lidio"
+          "prompt": "Escuchar Modo Lidio"
         },
         {
           "level": 2,
@@ -893,7 +893,7 @@
     },
     {
       "id": 29,
-      "name": "Modo mixolidio",
+      "name": "Modo Mixolidio",
       "group": "scale",
       "type": "scale",
       "scale": {
@@ -918,7 +918,7 @@
           "level": 1,
           "phase": "study",
           "label": "Fase .1 · Estudio aislado",
-          "prompt": "Escuchar Modo mixolidio"
+          "prompt": "Escuchar Modo Mixolidio"
         },
         {
           "level": 2,
@@ -930,7 +930,7 @@
     },
     {
       "id": 30,
-      "name": "Modo locrio",
+      "name": "Modo Locrio",
       "group": "scale",
       "type": "scale",
       "scale": {
@@ -955,7 +955,7 @@
           "level": 1,
           "phase": "study",
           "label": "Fase .1 · Estudio aislado",
-          "prompt": "Escuchar Modo locrio"
+          "prompt": "Escuchar Modo Locrio"
         },
         {
           "level": 2,

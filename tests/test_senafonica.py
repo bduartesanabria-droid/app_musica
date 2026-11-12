@@ -67,11 +67,11 @@ def test_senafonica_api_data(client):
     # Cada módulo tiene Fase .1 (estudio) y Fase .2 (reto).
     for module in data["modules"]:
         assert [level["phase"] for level in module["levels"]] == ["study", "challenge"]
-    assert data["modules"][2]["levels"][1]["prompt"] == "¿Unísono o 2da menor?"
-    assert data["modules"][14]["name"] == "Novena menor"
-    assert data["modules"][18]["name"] == "Onceava justa"
+    assert data["modules"][2]["levels"][1]["prompt"] == "¿Unísono o 2da Menor?"
+    assert data["modules"][14]["name"] == "Novena Menor"
+    assert data["modules"][18]["name"] == "Onceava Justa"
     assert data["modules"][22]["scale"]["formula"] == "T - T - S - T - T - T - S"
-    assert data["modules"][30]["name"] == "Modo locrio"
+    assert data["modules"][30]["name"] == "Modo Locrio"
     assert len(data["induction_questions"]) == 3
     levels = data["stations"]
     assert levels[0]["subtitle"].startswith("Agudo vs.")

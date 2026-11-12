@@ -635,7 +635,7 @@
               <span x-show="isPlaying">🔊</span>
             </button>
             <p class="text-xs font-bold text-slate-400 mt-2"
-               x-text="isPlaying ? (activeNoteName ? 'Sonando: ' + activeNoteName : 'Ejecutando cuerdas…') : `Escuchar · ${replayLimit - replayCount} repeticiones disponibles`"></p>
+               x-text="isPlaying ? (answered && activeNoteName ? 'Sonando: ' + activeNoteName : 'Ejecutando cuerdas…') : `Escuchar · ${replayLimit - replayCount} repeticiones disponibles`"></p>
           </div>
 
           <!-- Opciones Múltiples (>=48px con Atajos 1-4) -->

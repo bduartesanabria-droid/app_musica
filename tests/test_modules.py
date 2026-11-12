@@ -39,19 +39,19 @@ def test_config_has_the_31_modules_of_the_document():
     modules = config["modules"]
     assert [module["id"] for module in modules] == list(range(31))
     assert [module["name"] for module in modules[:4]] == [
-        "Alturas", "Unísono", "2da menor", "2da mayor",
+        "Alturas", "Unísono", "2da Menor", "2da Mayor",
     ]
-    assert modules[18]["name"] == "Onceava justa"
+    assert modules[18]["name"] == "Onceava Justa"
     assert [module["name"] for module in modules[22:]] == [
         "Mayor (Jónico)",
-        "Menor natural (Eólico)",
-        "Menor armónica",
-        "Menor melódica",
-        "Modo dórico",
-        "Modo frigio",
-        "Modo lidio",
-        "Modo mixolidio",
-        "Modo locrio",
+        "Menor Natural (Eólico)",
+        "Menor Armónica",
+        "Menor Melódica",
+        "Modo Dórico",
+        "Modo Frigio",
+        "Modo Lidio",
+        "Modo Mixolidio",
+        "Modo Locrio",
     ]
 
 
@@ -84,7 +84,7 @@ def test_simple_and_compound_intervals_match_the_document():
     compound = [module for module in modules if module["group"] == "compound"]
     assert [module["semitones"] for module in simple] == list(range(13))
     assert [module["semitones"] for module in compound] == [13, 14, 15, 16, 17, 19, 20, 21]
-    assert all(module["structure"].startswith("Octava justa +") for module in compound)
+    assert all(module["structure"].startswith("Octava Justa +") for module in compound)
 
 
 def test_scales_carry_formula_and_score_focus():

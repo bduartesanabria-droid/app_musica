@@ -827,7 +827,7 @@ function senafonicaGame(initData) {
         moduleId: module.id,
         moduleLevel: SemimusModules.CHALLENGE_LEVEL,
         moduleLevelConfig: { level: SemimusModules.CHALLENGE_LEVEL, minCorrectPct: this.passingPercent() },
-        station_name: `Módulo ${module.id} · ${module.name} · Reto`,
+        station_name: `Módulo ${module.id} · Reto`,
         instrument: this.selectedInstrument,
         type: module.type,
         intervals: [],
@@ -917,7 +917,7 @@ function senafonicaGame(initData) {
             scale_name: item.name,
             correct: item.name,
             options: optionNames,
-            explanation: `${item.name}: ${item.scale.formula}.`,
+            explanation: `${item.name}: ${item.scale.formula}. En trastes: ${item.scale.steps.join(', ')}. ${item.scale.focusText}`,
           });
         } else {
           questions.push({
@@ -932,7 +932,9 @@ function senafonicaGame(initData) {
             direction: 'ascendente',
             correct: item.name,
             options: optionNames,
-            explanation: `${item.name}: ${SemimusModules.distanceLabel(item.semitones)}.`,
+            explanation: item.structure
+              ? `${item.name}: ${item.structure}. Distancia: ${SemimusModules.distanceLabel(item.semitones)}.`
+              : `${item.name}: ${SemimusModules.distanceLabel(item.semitones)}.`,
           });
         }
       }
@@ -1417,7 +1419,7 @@ function senafonicaGame(initData) {
       const question = this.currentQ;
       if (!question) return '';
       if (question.type === 'scale') {
-        return `${question.explanation || 'Escucha el patrón de la escala.'} Escala mayor: T T S T T T S; en trastes: 2, 2, 1, 2, 2, 2, 1.`;
+        return question.explanation || 'Escucha el patrón de la escala.';
       }
       if (question.type !== 'interval') return question.explanation;
       const interval = this.intervals.find(item =>
