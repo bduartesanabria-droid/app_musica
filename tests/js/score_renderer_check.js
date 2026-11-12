@@ -37,7 +37,7 @@ assert.deepStrictEqual(at('Tiple', 'C3'), { string: 0, fret: 0, finger: 0, posit
 
 // 2. Primera posición: dedo = traste.
 assert.deepStrictEqual(at('Guitarra', 'D3'), { string: 2, fret: 0, finger: 0, position: 1 });
-assert.deepStrictEqual(at('Guitarra', 'F3'), { string: 2, fret: 1, finger: 1, position: 1 });
+assert.deepStrictEqual(at('Guitarra', 'F3'), { string: 2, fret: 3, finger: 3, position: 1 });
 
 // 3. Sin primera posición: posición más baja, dedo = traste - posición + 1.
 assert.deepStrictEqual(at('Guitarra', 'E5'), { string: 5, fret: 12, finger: 4, position: 9 });
@@ -98,7 +98,7 @@ assert.strictEqual(jam.all.filter(n => n.className === 'semimus-fingering').leng
 const interval = panel('Guitarra', [40, 47], false);
 const labels = interval.all.filter(n => n.className === 'semimus-diagram-title').map(n => n.textContent);
 assert.deepStrictEqual(labels, ['Nota 1 · E2', 'Nota 2 · B2']);
-assert.ok(interval.all.some(n => n.className === 'semimus-distance' && /Distancia: 7 semitonos|Distancia: 5 tonos y medio|tonos/.test(n.textContent)));
+assert.ok(interval.all.some(n => n.className === 'semimus-distance' && n.textContent === 'Distancia: 3 tonos y medio (7 trastes)'));
 
 // 13. Columnas: pentagrama y diapasón en la misma fila (responsive en CSS).
 const row = interval.all.find(n => n.className === 'semimus-score-row');
