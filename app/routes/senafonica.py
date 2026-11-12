@@ -1026,15 +1026,16 @@ def sync_progress():
         return jsonify({"error": "El conteo de respuestas no es válido."}), 400
     module_progress = data.get("module_progress")
     if module_progress is not None:
-        if not isinstance(module_progress, dict) or len(module_progress) > 24:
+        # 31 módulos (0 a 30) × 2 fases (1 estudio, 2 reto) = 62 claves como máximo.
+        if not isinstance(module_progress, dict) or len(module_progress) > 64:
             return jsonify({"error": "El progreso de módulos no es válido."}), 400
         for key, accuracy in module_progress.items():
             parts = key.split(":") if isinstance(key, str) else []
             if (
                 len(parts) != 2
                 or not all(part.isdigit() for part in parts)
-                or not 0 <= int(parts[0]) <= 5
-                or not 1 <= int(parts[1]) <= 4
+                or not 0 <= int(parts[0]) <= 30
+                or not 1 <= int(parts[1]) <= 2
                 or isinstance(accuracy, bool)
                 or not isinstance(accuracy, int)
                 or not 0 <= accuracy <= 100
