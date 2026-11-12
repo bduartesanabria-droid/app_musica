@@ -959,13 +959,15 @@ def index():
         for s in scales
     ]
 
+    modules_data = _game_data("modules_config.json")
     return render_template(
         "senafonica/index.html",
         user_info=user_info,
         audio_catalog=catalog,
         intervals_data=intervals_data,
         scales_data=scales_data,
-        modules_config=_game_data("modules_config.json")["modules"],
+        modules_config=modules_data["modules"],
+        progression=modules_data["progression"],
         levels_config=VELEZ_STATIONS_CONFIG,
         theory_questions=THEORY_QUESTIONS,
         induction_questions=INITIAL_INDUCTION_QUESTIONS,
@@ -979,7 +981,8 @@ def get_data():
     catalog = _build_audio_catalog()
     intervals = Interval.query.order_by(Interval.semitones).all()
     scales = Scale.query.order_by(Scale.id).all()
-    modules_config = _game_data("modules_config.json")["modules"]
+    modules_data = _game_data("modules_config.json")
+    modules_config = modules_data["modules"]
     saved_progress = {}
     if current_user and current_user.is_authenticated:
         progress = Progress.query.filter_by(user_id=current_user.id).first()
@@ -999,6 +1002,7 @@ def get_data():
         ],
         "levels": modules_config,
         "modules": modules_config,
+        "progression": modules_data["progression"],
         "module_progress": saved_progress,
         "stations": VELEZ_STATIONS_CONFIG,
         "theory_questions": THEORY_QUESTIONS,
