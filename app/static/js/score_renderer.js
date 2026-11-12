@@ -296,15 +296,15 @@ const SemimusScore = (() => {
     return block;
   }
 
+  // Estructura del documento de partituras. La octava de la guitarra (8vb) y la
+  // transposición escrita se resuelven con instrumentNotation(instrument).
   function buildPayload(instrument, midis, intervalType) {
     const notation = instrumentNotation(instrument);
     return {
-      instrument: instrument || '',
+      instrument: instrumentKey(instrument),
       interval_type: intervalType || '',
       notation_display: {
         clef: notation.clef,
-        clef_annotation: notation.clefAnnotation,
-        written_shift: notation.writtenShift,
         notes: (Array.isArray(midis) ? midis : []).map(noteInfoFromMidi),
       },
     };
@@ -328,11 +328,12 @@ const SemimusScore = (() => {
     let below = 0;
     for (const note of notes) {
       const steps = diatonicIndex(note);
+      // Las líneas adicionales caen en pasos pares desde la línea del pentagrama.
       if (steps > STAFF_TOP_LINE) {
-        above = Math.max(above, Math.ceil((steps - STAFF_TOP_LINE) / 2));
+        above = Math.max(above, Math.floor((steps - STAFF_TOP_LINE) / 2));
       }
       if (steps < STAFF_BOTTOM_LINE) {
-        below = Math.max(below, Math.ceil((STAFF_BOTTOM_LINE - steps) / 2));
+        below = Math.max(below, Math.floor((STAFF_BOTTOM_LINE - steps) / 2));
       }
     }
     return { above: above * LEDGER_LINE_PX + 8, below: below * LEDGER_LINE_PX + 8 };
@@ -390,7 +391,7 @@ const SemimusScore = (() => {
     const caption = document.createElement('p');
     caption.className = 'semimus-score-caption';
     caption.textContent = notes
-      .map(note => `${note.spanish_name} (${note.scientific_name})`)
+      .map(note => `${note.spanish_name} / ${note.scientific_name}`)
       .join('  →  ');
     row.appendChild(paper);
     const fingering = options.diagram === false ? null : buildFingering(payload.instrument, notes);
@@ -478,5 +479,8 @@ const SemimusScore = (() => {
     midiOfScientific,
     distanceText,
     TUNINGS,
+    ledgerPadding,
+    diatonicIndex,
+    midiOfNote,
   };
 })();

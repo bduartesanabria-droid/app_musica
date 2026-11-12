@@ -790,7 +790,7 @@ function senafonicaGame(initData) {
         .map(sample => Number(sample.midi))
         .filter(Number.isInteger));
       return [...notes]
-        .filter(midi => midi >= range[0] && midi <= range[1] && notes.has(midi + semitones))
+        .filter(midi => midi >= range[0] && midi + semitones <= range[1] && notes.has(midi + semitones))
         .sort((a, b) => a - b);
     },
 

@@ -118,8 +118,6 @@ def build_notation_display(instrument_name, midis, interval_type=None):
       "interval_type": "5_justa_ascendente",
       "notation_display": {
         "clef": "treble",
-        "clef_annotation": "",      # "8vb" para la guitarra
-        "written_shift": 0,        # +12 semitonos escritos en la guitarra
         "notes": [
           {"pitch": "F", "octave": 3, "accidental": "#",
            "scientific_name": "F#3", "spanish_name": "Fa# 3"}
@@ -127,14 +125,14 @@ def build_notation_display(instrument_name, midis, interval_type=None):
       }
     }
     """
-    notation = instrument_notation(instrument_name)
+    # La octava de la guitarra (8vb) y la transposición escrita se resuelven en
+    # el widget a partir del instrumento; el payload sigue la estructura del
+    # documento de partituras.
     return {
-        "instrument": instrument_name or "",
+        "instrument": (instrument_name or "").strip().casefold(),
         "interval_type": interval_type or "",
         "notation_display": {
-            "clef": notation["clef"],
-            "clef_annotation": notation["clef_annotation"],
-            "written_shift": notation["written_shift"],
+            "clef": instrument_notation(instrument_name)["clef"],
             "notes": [midi_to_note_info(midi) for midi in midis],
         },
     }

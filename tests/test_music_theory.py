@@ -87,12 +87,16 @@ def test_midi_to_note_info_builds_the_spec_payload():
 
 def test_build_notation_display_follows_the_spec_structure():
     payload = build_notation_display("Bandola", [54, 61], "5_justa_ascendente")
-    assert payload["instrument"] == "Bandola"
-    assert payload["interval_type"] == "5_justa_ascendente"
+    assert payload == {
+        "instrument": "bandola",
+        "interval_type": "5_justa_ascendente",
+        "notation_display": {
+            "clef": "treble",
+            "notes": payload["notation_display"]["notes"],
+        },
+    }
     display = payload["notation_display"]
     assert display["clef"] == "treble"
-    assert display["clef_annotation"] == ""
-    assert display["written_shift"] == 0
     assert [note["scientific_name"] for note in display["notes"]] == ["F#3", "C#4"]
     assert [note["spanish_name"] for note in display["notes"]] == ["Fa# 3", "Do# 4"]
 
