@@ -95,6 +95,14 @@ function drawn(instrument, midis) {
   assert.deepStrictEqual(r.keys, ['c/3']);
 }
 
+// 3b. E5 en tiple (76) y E5 en guitarra escrita en 8vb (suena E5, se escribe E6).
+{
+  assert.deepStrictEqual(drawn('Tiple', [76]).keys, ['e/5']);
+  const guitarE5 = drawn('Guitarra', [76]);
+  assert.strictEqual(guitarE5.annotation, '8vb');
+  assert.deepStrictEqual(guitarE5.keys, ['e/6']);
+}
+
 // 4. Requinto C4 y E6 (tres líneas adicionales superiores).
 {
   assert.deepStrictEqual(drawn('Requinto', [60]).keys, ['c/4']);
