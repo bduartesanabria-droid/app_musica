@@ -9,7 +9,7 @@ from flask import Blueprint, abort, render_template, jsonify, request, send_file
 from flask_login import current_user, login_required
 from sqlalchemy.orm import joinedload
 from ..extensions import db
-from ..models.instrument import Instrument, Note, Interval, Scale
+from ..models.instrument import Interval, Scale
 from ..models.audio import Audio
 from ..models.gamification import Badge, UserBadge, UserGamification
 from ..models.progress import Progress
@@ -403,7 +403,7 @@ VELEZ_STATIONS_CONFIG = [
         "reward_item": "Skin Tiple de Madera Noble",
         "type": "interval",
         "instrument": "Tiple",
-        "intervals": ["Segunda mayor", "Segunda menor"],
+        "intervals": ["Unísono", "Segunda mayor", "Segunda menor"],
         "directions": ["ascendente"],
         "required_stars": 1,
         "questions_count": 5,
@@ -413,7 +413,7 @@ VELEZ_STATIONS_CONFIG = [
         "gradient": "from-emerald-700/30 via-teal-950/20 to-slate-950",
         "learn_content": {
             "title": "Las Notas Naturales del Tiple",
-            "body": "Las 7 notas naturales son: DO, RE, MI, FA, SOL, LA, SI. Forman la escala diatónica mayor. Entre MI y FA, y entre SI y DO, la distancia es de solo 1 semitono (2ª menor); las demás tienen 2 semitonos (2ª mayor).",
+            "body": "Las 7 notas naturales son: DO, RE, MI, FA, SOL, LA, SI. Forman la escala diatónica mayor. Si repites exactamente la misma nota escuchas el UNÍSONO (0 semitonos). Entre MI y FA, y entre SI y DO, la distancia es de solo 1 semitono (2ª menor); las demás tienen 2 semitonos (2ª mayor).",
             "demo_notes": [60, 62, 64, 65, 67, 69, 71],
             "demo_label": "Escucha: DO→RE→MI→FA→SOL→LA→SI — las siete notas naturales.",
             "mnemonic": "🎵 Recuerda: entre MI y FA no hay sostenido (son vecinos directos). ¡Solo un pasito!",
@@ -432,7 +432,7 @@ VELEZ_STATIONS_CONFIG = [
         "reward_item": "Ruana Boyacense de Gala",
         "type": "interval",
         "instrument": "Tiple",
-        "intervals": ["Cuarta justa"],
+        "intervals": ["Cuarta justa", "Cuarta aumentada"],
         "directions": ["ascendente", "descendente"],
         "required_stars": 2,
         "questions_count": 5,
@@ -441,11 +441,12 @@ VELEZ_STATIONS_CONFIG = [
         "theme_color": "#8B5CF6",
         "gradient": "from-violet-700/30 via-purple-950/20 to-slate-950",
         "learn_content": {
-            "title": "La Cuarta Justa (DO→FA)",
-            "body": "La 4ª Justa tiene 5 semitonos. Es el salto que abre muchas canciones populares. En el Requinto veleño, este intervalo marca los punteos más reconocibles.",
+            "title": "Cuarta Justa y Cuarta Aumentada (DO→FA y DO→SI#)",
+            "body": "La 4ª Justa tiene 5 semitonos: el salto que abre muchas canciones populares. La 4ª Aumentada (6 semitonos, DO→FA#/SIb) —el famoso tritono— divide la octava exactamente a la mitad y suena inestable y tensa. En el Requinto veleño, la 4ª Justa marca los punteos más reconocibles.",
             "demo_notes": [60, 65],
-            "demo_label": "Escucha: DO→FA, la Cuarta Justa. 5 semitonos de distancia.",
-            "mnemonic": "🎵 Asocia la Cuarta Justa con el inicio de 'Cumpleaños feliz': un salto amplio hacia arriba.",
+            "demo_notes_b": [60, 66],
+            "demo_label": "Escucha: DO→FA (4ª Justa, 5 semitonos) y DO→FA# (4ª Aumentada, 6 semitonos).",
+            "mnemonic": "🎵 Asocia la Cuarta Justa con el inicio de 'Cumpleaños feliz'; la 4ª Aumentada es el 'diablo' que parte la octava en dos.",
             "interval_name": "Cuarta justa",
             "semitones": 5
         }
@@ -669,7 +670,7 @@ VELEZ_STATIONS_CONFIG = [
         "cultural_fact": "Albania se esconde entre cafetales y cañaduzales donde las melodías veleñas recorren registros graves y agudos.",
         "reward_item": "Sombrero Vueltiao 21 Vueltas",
         "type": "interval",
-        "intervals": ["Octava"],
+        "intervals": ["Octava justa"],
         "instrument": "Bandola",
         "directions": ["ascendente", "descendente"],
         "required_stars": 10,
@@ -684,7 +685,7 @@ VELEZ_STATIONS_CONFIG = [
             "demo_notes": [48, 60],
             "demo_label": "Escucha DO3→DO4: la misma nota una octava más arriba.",
             "mnemonic": "Una octava son 12 semitonos: al subirla, llegas de nuevo a la misma nota.",
-            "interval_name": "Octava",
+            "interval_name": "Octava justa",
             "semitones": 12
         }
     },
@@ -756,12 +757,12 @@ VELEZ_STATIONS_CONFIG = [
         "title": "Estación 14: Todos los Intervalos",
         "station_name": "Vélez — Festival Nacional",
         "badge": "Gran Escenario Veleño (Semifinal)",
-        "subtitle": "Reconocimiento Total — 2ªs, 3ªs, 4ªs, 5ªs, 6ªs, 7ªs",
+        "subtitle": "Reconocimiento Total — del Unísono a la Octava Justa",
         "cultural_fact": "El Festival Nacional de la Guabina y el Tiple reúne a músicos de toda Colombia. Para subir al escenario principal debes reconocer todos los intervalos que has aprendido en el recorrido.",
         "reward_item": "Medalla Oído de Oro + Todos los Accesorios",
         "type": "interval",
         "instrument": "Tiple",
-        "intervals": ["Segunda mayor", "Tercera mayor", "Tercera menor", "Cuarta justa", "Quinta justa", "Sexta mayor", "Séptima menor"],
+        "intervals": ["Unísono", "Segunda menor", "Segunda mayor", "Tercera menor", "Tercera mayor", "Cuarta justa", "Cuarta aumentada", "Quinta justa", "Sexta menor", "Sexta mayor", "Séptima menor", "Séptima mayor", "Octava justa"],
         "directions": ["ascendente", "descendente", "intercalada"],
         "required_stars": 13,
         "questions_count": 8,
@@ -771,7 +772,7 @@ VELEZ_STATIONS_CONFIG = [
         "gradient": "from-yellow-600/30 via-amber-900/20 to-slate-950",
         "learn_content": {
             "title": "Repaso General de Todos los Intervalos",
-            "body": "Aquí tienes el mapa completo: 2ªM=2st, 2ªm=1st, 3ªM=4st, 3ªm=3st, 4ªJ=5st, 5ªJ=7st, 6ªM=9st, 6ªm=8st, 7ªM=11st, 7ªm=10st. Escucha y memoriza cada uno antes del desafío final.",
+            "body": "Aquí tienes el mapa completo de los 13 intervalos simples: U=0st, 2ªm=1st, 2ªM=2st, 3ªm=3st, 3ªM=4st, 4ªJ=5st, 4ªA=6st, 5ªJ=7st, 6ªm=8st, 6ªM=9st, 7ªm=10st, 7ªM=11st, 8ªJ=12st. Escucha y memoriza cada uno antes del desafío final.",
             "demo_notes": [60, 62],
             "demo_label": "Usa el Modo Libre (JAM) para repasar cualquier intervalo antes de continuar.",
             "mnemonic": "🎵 Recuerda los ganchos: 4ªJ=Cumpleaños, 5ªJ=Star Wars, 6ªM=My Bonnie, 7ªm=Somewhere.",
@@ -790,7 +791,7 @@ VELEZ_STATIONS_CONFIG = [
         "reward_item": "Medalla Máxima 'Tiplista Mayor' + Corona del Maestro",
         "type": "final_boss",
         "instrument": "Todos",
-        "intervals": ["Segunda mayor", "Tercera mayor", "Tercera menor", "Cuarta justa", "Quinta justa", "Sexta mayor", "Sexta menor", "Séptima menor", "Séptima mayor"],
+        "intervals": ["Unísono", "Segunda menor", "Segunda mayor", "Tercera menor", "Tercera mayor", "Cuarta justa", "Cuarta aumentada", "Quinta justa", "Sexta menor", "Sexta mayor", "Séptima menor", "Séptima mayor", "Octava justa"],
         "directions": ["ascendente", "descendente", "intercalada"],
         "required_stars": 14,
         "questions_count": 10,
@@ -1186,17 +1187,27 @@ def _daily_challenge_for(day):
     intervals = Interval.query.order_by(Interval.semitones, Interval.id).all()
     if not intervals:
         return []
+    # Los nombres canónicos de intervalo viven en intervals.json (los que usa
+    # el cliente en `this.intervals`); p. ej. en la BD la octava se llama
+    # "Octava" pero el juego la conoce como "Octava justa".
+    metadata = {item["id"]: item["name"] for item in _game_data("intervals.json")}
+
+    def canonical(interval):
+        return metadata.get(interval.abbreviation or "", interval.name)
+
     digest = hashlib.sha256(day.isoformat().encode("ascii")).digest()
     instruments = ("Tiple", "Requinto", "Bandola")
     challenge = []
     for index in range(3):
         chosen = intervals[digest[index] % len(intervals)]
-        options = [chosen.name]
+        correct = canonical(chosen)
+        options = [correct]
         offsets = (index + 1, index + 3, index + 5)
         for offset in offsets:
             candidate = intervals[(digest[(index + offset) % len(digest)] + offset) % len(intervals)]
-            if candidate.name not in options:
-                options.append(candidate.name)
+            candidate_name = canonical(candidate)
+            if candidate_name not in options:
+                options.append(candidate_name)
             if len(options) == 4:
                 break
         challenge.append({
@@ -1204,7 +1215,7 @@ def _daily_challenge_for(day):
             "instrument": instruments[index],
             "root_midi": 60,
             "semitones": chosen.semitones,
-            "correct": chosen.name,
+            "correct": correct,
             "options": options,
         })
     return challenge

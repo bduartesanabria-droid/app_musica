@@ -61,10 +61,14 @@ def test_senafonica_api_data(client):
     assert [module["id"] for module in data["modules"]] == [0, 1, 2, 3, 4, 5]
     assert data["modules"][1]["levels"][0] == {
         "level": 1,
-        "intervalIds": ["2m", "2M"],
+        "intervalIds": ["U", "2m"],
         "minCorrectPct": 80,
     }
+    assert data["modules"][1]["levels"][1]["intervalIds"] == ["U", "2m", "2M"]
     assert data["modules"][4]["levels"][1]["intervalIds"] == ["6m", "6M", "7m"]
+    assert data["modules"][4]["levels"][4]["intervalIds"] == [
+        "U", "2m", "2M", "3m", "3M", "4J", "4A", "5J", "6m", "6M", "7m", "7M", "8J",
+    ]
     assert len(data["induction_questions"]) == 3
     levels = data["stations"]
     assert levels[0]["subtitle"].startswith("Agudo vs.")
@@ -74,7 +78,16 @@ def test_senafonica_api_data(client):
     assert levels[3]["learn_content"]["interval_name"] == "Quinta justa"
     assert levels[4]["intervals"] == ["Cuarta justa", "Quinta justa"]
     assert levels[5]["learn_content"]["interval_name"] == "Tercera mayor"
-    assert levels[10]["intervals"] == ["Octava"]
+    assert levels[1]["intervals"] == ["Unísono", "Segunda mayor", "Segunda menor"]
+    assert levels[2]["intervals"] == ["Cuarta justa", "Cuarta aumentada"]
+    assert levels[10]["intervals"] == ["Octava justa"]
+    assert levels[10]["learn_content"]["interval_name"] == "Octava justa"
+    assert levels[13]["intervals"] == [
+        "Unísono", "Segunda menor", "Segunda mayor", "Tercera menor", "Tercera mayor",
+        "Cuarta justa", "Cuarta aumentada", "Quinta justa", "Sexta menor", "Sexta mayor",
+        "Séptima menor", "Séptima mayor", "Octava justa",
+    ]
+    assert levels[14]["intervals"] == levels[13]["intervals"]
     assert levels[11]["type"] == "melody"
     assert len(levels[11]["melodies"][0]["offsets"]) == 3
     assert all(level["background_image"].startswith("/static/img/locations/") for level in levels)

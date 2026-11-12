@@ -16,6 +16,8 @@
 
   <!-- Alpine.js & Senafonica Scripts -->
   <script defer src="{{ url_for('static', filename='vendor/alpine-3.14.9.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='vendor/vexflow-4.2.5.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/score_renderer.js') }}"></script>
   <script src="{{ url_for('static', filename='js/senafonica_audio.js') }}"></script>
   <script src="{{ url_for('static', filename='js/senafonica_game.js') }}"></script>
   <script id="senafonica-init-data" type="application/json">
@@ -505,6 +507,7 @@
               </button>
             </template>
           </div>
+          <div x-ref="learnScore" class="mt-3" aria-live="polite"></div>
         </div>
 
         <div class="rounded-2xl bg-slate-800/80 border border-white/10 p-4">
@@ -668,6 +671,9 @@
             </div>
             <span class="text-3xl" x-text="isCorrect ? '🎉' : '💔'"></span>
           </div>
+
+          <!-- Partitura del intervalo evaluado (tónica origen + intervalo alcanzado) -->
+          <div x-ref="answerScore" class="mt-4" aria-live="off"></div>
 
           <button type="button"
                   @click="replayAnsweredAudio()"
@@ -859,6 +865,9 @@
                 class="w-full py-3 btn-duo-secondary text-sm font-black flex items-center justify-center gap-2">
           <span x-text="isPlaying ? '🔊 Sonando Intervalo…' : '▶ Escuchar Intervalo'"></span>
         </button>
+
+        <!-- Partitura del intervalo en reproducción (en paralelo con el audio) -->
+        <div x-ref="jamScore" aria-live="off"></div>
       </div>
     </div>
   </main>

@@ -49,8 +49,60 @@ def test_compiled_frontend_assets_are_served(client):
         "/static/css/tailwind.css",
         "/static/vendor/alpine-3.14.9.min.js",
         "/static/vendor/chart-4.4.9.umd.js",
+        "/static/vendor/vexflow-4.2.5.js",
+        "/static/js/score_renderer.js",
     ):
         assert client.get(path).status_code == 200
+
+
+def test_score_renderer_is_vendored_and_exposes_vex_global():
+    source = open("app/static/vendor/vexflow-4.2.5.js", encoding="utf-8").read()
+    assert source.startswith("/*!")
+    assert "VexFlow 4.2.5" in source[:300]
+    # Build UMD: al cargarse con <script> expone el global `Vex`.
+    assert "t.Vex=e()" in source
+
+    renderer = open("app/static/js/score_renderer.js", encoding="utf-8").read()
+    assert "const SemimusScore" in renderer
+    assert "render(container, payload)" in renderer
+    # Guitarra: clave de Sol octavada baja (8vb) y escritura una octava arriba.
+    assert "'8vb'" in renderer
+    assert "renderNotes" in renderer
+    # Padding vertical dinámico para las líneas adicionales (E2 / G6).
+    assert "ledgerPadding" in renderer
+    # Diapasón por nota: posición en cuerda/traste para imitar en el instrumento.
+    assert "findPosition" in renderer
+    assert "semimus-fingering" in renderer
+    assert "sin posición" in renderer.casefold() or "Sin posición" in renderer
+
+
+def test_training_player_renders_feedback_score():
+    source = open("app/static/js/training.js", encoding="utf-8").read()
+
+    assert "_renderScore()" in source
+    assert "SemimusScore.render(container, payload)" in source
+    assert "this.currentQ.notation" in source
+
+
+def test_senafonica_page_loads_score_scripts_and_containers(client):
+    response = client.get("/senafonica")
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+
+    assert "/static/vendor/vexflow-4.2.5.js" in html
+    assert "/static/js/score_renderer.js" in html
+    assert 'x-ref="learnScore"' in html
+    assert 'x-ref="answerScore"' in html
+    assert 'x-ref="jamScore"' in html
+
+    # Rangos acústicos por instrumento en el generador del juego.
+    game = open("app/static/js/senafonica_game.js", encoding="utf-8").read()
+    assert "Requinto: [60, 88]" in game
+    assert "Tiple: [48, 76]" in game
+    assert "Bandola: [54, 91]" in game
+    assert "Guitarra: [40, 76]" in game
+    assert "this._renderAnswerScore()" in game
+    assert "this._renderJamScore()" in game
 
 
 def test_base_layout_uses_local_compiled_and_pinned_assets(client):

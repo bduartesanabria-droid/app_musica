@@ -54,6 +54,8 @@ function trainingSession(questions, answerUrl, completeUrl, savedAnswers = []) {
       this._setCompanion('idle');
       this._preloadAllQuestions();
       this._timer = setInterval(() => { this.elapsed++; }, 1000);
+      // Render restored feedback score (if the session resumes fully answered)
+      this.$nextTick(() => this._renderScore());
       // Auto-play first audio
       this.$nextTick(() => this.playAudio());
     },
@@ -192,6 +194,9 @@ function trainingSession(questions, answerUrl, completeUrl, savedAnswers = []) {
           explanation: data.explanation || '',
         };
         this.answerReady = true;
+        // Partitura de feedback: compás con la tónica origen y el intervalo
+        // alcanzado (especificación técnica de partituras).
+        this._renderScore();
 
       } catch (err) {
         console.error('Answer submission error:', err);
@@ -221,6 +226,7 @@ function trainingSession(questions, answerUrl, completeUrl, savedAnswers = []) {
       this.showHint        = false;
       this._questionStart  = Date.now();
       this._setCompanion('idle');
+      this._renderScore();   // Limpia el pentagrama de la pregunta anterior
 
       // Auto-play next audio
       this.$nextTick(() => this.playAudio());
@@ -307,6 +313,15 @@ function trainingSession(questions, answerUrl, completeUrl, savedAnswers = []) {
       if (!el) return;
       el.classList.add(`feedback-${type}`);
       setTimeout(() => el.classList.remove(`feedback-${type}`), 600);
+    },
+
+    _renderScore() {
+      const container = this.$refs.score;
+      if (!container || typeof SemimusScore === 'undefined') return;
+      const payload = (this.answered && this.answerReady && this.currentQ)
+        ? this.currentQ.notation
+        : null;
+      SemimusScore.render(container, payload);
     },
   };
 }

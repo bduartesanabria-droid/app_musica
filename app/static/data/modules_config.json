@@ -9,16 +9,21 @@
     },
     {
       "id": 1,
-      "name": "Segundas (menor/mayor)",
+      "name": "Unísono y Segundas",
       "type": "interval",
       "levels": [
         {
           "level": 1,
-          "intervalIds": ["2m", "2M"],
+          "intervalIds": ["U", "2m"],
+          "minCorrectPct": 80
+        },
+        {
+          "level": 2,
+          "intervalIds": ["U", "2m", "2M"],
           "minCorrectPct": 80
         }
       ],
-      "description": "Reconocer intervalos de segunda menor (1 semitono) y mayor (2 semitonos)."
+      "description": "Reconocer el unísono (misma altura) y las segundas menor (1 semitono) y mayor (2 semitonos)."
     },
     {
       "id": 2,
@@ -29,9 +34,14 @@
           "level": 1,
           "intervalIds": ["3m", "3M"],
           "minCorrectPct": 80
+        },
+        {
+          "level": 2,
+          "intervalIds": ["3m", "3M", "2M"],
+          "minCorrectPct": 80
         }
       ],
-      "description": "Reconocer intervalos de tercera menor (3 semitonos) y mayor (4 semitonos)."
+      "description": "Reconocer intervalos de tercera menor (3 semitonos) y mayor (4 semitonos), con repaso de la segunda mayor."
     },
     {
       "id": 3,
@@ -40,11 +50,16 @@
       "levels": [
         {
           "level": 1,
-          "intervalIds": ["4J", "5J"],
+          "intervalIds": ["4J", "4A"],
+          "minCorrectPct": 80
+        },
+        {
+          "level": 2,
+          "intervalIds": ["4J", "4A", "5J"],
           "minCorrectPct": 80
         }
       ],
-      "description": "Reconocer cuartas (5 semitonos) y quintas (7 semitonos)."
+      "description": "Reconocer la cuarta justa (5 semitonos), la cuarta aumentada (6 semitonos) y la quinta justa (7 semitonos)."
     },
     {
       "id": 4,
@@ -70,9 +85,14 @@
           "level": 4,
           "intervalIds": ["6m", "6M", "7m", "7M", "8J"],
           "minCorrectPct": 80
+        },
+        {
+          "level": 5,
+          "intervalIds": ["U", "2m", "2M", "3m", "3M", "4J", "4A", "5J", "6m", "6M", "7m", "7M", "8J"],
+          "minCorrectPct": 80
         }
       ],
-      "description": "Reconocer intervalos mayores: sextas, séptimas y octava."
+      "description": "Reconocer sextas, séptimas y octava; el nivel 5 es el reto maestro con la serie completa de intervalos simples."
     },
     {
       "id": 5,

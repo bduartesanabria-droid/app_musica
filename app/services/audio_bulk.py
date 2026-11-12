@@ -14,12 +14,25 @@ from .audio_validation import transcode_audio, validate_audio_data
 
 
 TECHNIQUES = {"pua", "pulsacion", "pluctuacion", "natural", "guabina"}
+# Descriptores de intervalo tras la nota (claves en minúscula, sin acentos,
+# tal como las deja _clean). Cubre los 13 intervalos simples.
 INTERVALS = {
-    "2m": "Segunda menor", "2mayor": "Segunda mayor",
-    "3m": "Tercera menor", "3ramayor": "Tercera mayor",
+    "unisono": "Unísono", "unison": "Unísono",
+    "2m": "Segunda menor", "2menor": "Segunda menor",
+    "2mayor": "Segunda mayor",
+    "3m": "Tercera menor", "3mayor": "Tercera mayor",
+    "3ramayor": "Tercera mayor",
     "4j": "Cuarta justa", "4justa": "Cuarta justa",
+    "4a": "Cuarta aumentada", "4aumentada": "Cuarta aumentada",
+    "tritono": "Cuarta aumentada",
     "5j": "Quinta justa", "5justa": "Quinta justa",
-    "5tajusta": "Quinta justa", "octava": "Octava",
+    "5tajusta": "Quinta justa",
+    "6m": "Sexta menor", "6menor": "Sexta menor",
+    "6mayor": "Sexta mayor",
+    "7m": "Séptima menor", "7menor": "Séptima menor",
+    "7mayor": "Séptima mayor",
+    "8j": "Octava justa", "octava": "Octava justa",
+    "octavajusta": "Octava justa",
 }
 def _clean(value):
     return re.sub(r"[^a-z0-9#]", "", value.casefold())

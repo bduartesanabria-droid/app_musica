@@ -12,6 +12,7 @@ from ..models.instrument import Instrument, Scale
 from ..models.progress import Progress, UserStatistics
 from ..models.gamification import UserGamification, Badge, UserBadge
 from ..utils.question_generator import QuestionGenerator
+from ..utils.music_theory import build_notation_display, interval_type_for
 from ..utils.timezone import bogota_date, refresh_period_xp, utc_now_naive
 
 training_bp = Blueprint("training", __name__)
@@ -152,6 +153,7 @@ def session_view(session_id):
             "second_audio_url": question.second_audio.stream_url if question.second_audio else None,
             "options": question.options,
             "hint": question.hint or "",
+            "notation": _question_notation(question),
         }
         for question in questions
     ]
@@ -173,6 +175,27 @@ def session_view(session_id):
         questions_data=questions_data,
         saved_answers=saved_answers,
         total=len(questions_data),
+    )
+
+
+def _question_notation(question):
+    """Payload semántico de partitura para el feedback de la pregunta.
+
+    Sigue la especificación técnica de partituras: al evaluar una respuesta
+    el widget dibuja un compás con la tónica origen y el intervalo alcanzado.
+    """
+    first_note = question.audio.note if question.audio else None
+    second_note = question.second_audio.note if question.second_audio else None
+    if not first_note or not second_note:
+        return None
+    if first_note.midi_number is None or second_note.midi_number is None:
+        return None
+    instrument_name = question.instrument.name if question.instrument else ""
+    semitones = second_note.midi_number - first_note.midi_number
+    return build_notation_display(
+        instrument_name,
+        [first_note.midi_number, second_note.midi_number],
+        interval_type_for(semitones, "ascendente"),
     )
 
 

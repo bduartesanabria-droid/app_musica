@@ -3,7 +3,7 @@ from pathlib import Path
 from collections import defaultdict
 
 NOTAS = {"DO": 0, "RE": 2, "MI": 4, "FA": 5, "SOL": 7, "LA": 9, "SI": 11}
-SEMITONOS = [1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 12]
+SEMITONOS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
 PAT = re.compile(r"^(?P<inst>[A-Za-z]+)_(?P<nota>DO|RE|MI|FA|SOL|LA|SI)(?P<alt>#|b)?(?P<oct>\d)\.wav$", re.I)
 
 carpeta = Path(sys.argv[1] if len(sys.argv) > 1 else "storage/audio")

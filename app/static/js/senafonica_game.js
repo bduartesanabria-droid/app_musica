@@ -396,6 +396,9 @@ function senafonicaGame(initData) {
       }
 
       this.learnStation = station;
+      if (this.$refs.learnScore && typeof SemimusScore !== 'undefined') {
+        SemimusScore.render(this.$refs.learnScore, null);
+      }
       this.changeBackground(station.background_image, station.theme_color);
       this.learnPhase = 'intro';
       this.learnNote1Played = false;
@@ -484,6 +487,9 @@ function senafonicaGame(initData) {
       if (midi === undefined) return;
       const inst = this.learnStation.instrument === 'Todos' ? 'Tiple' : this.learnStation.instrument;
       this._updateMascot('listening', `Escucha la nota ${this.audio.midiToName(midi)}`);
+      // Módulo de exploración: al tocar una nota se renderiza en el
+      // pentagrama con su nomenclatura (especificación de partituras).
+      this._renderLearnScore(inst, [midi]);
       const played = await this._runLearnPlayback(async () => {
         const duration = this.audio.scaleNoteDuration;
         await this.audio.playNote(inst, midi, 0, duration, 0.95);
@@ -510,6 +516,7 @@ function senafonicaGame(initData) {
       if (!sample) return;
       const inst = this.learnStation.instrument === 'Todos' ? 'Tiple' : this.learnStation.instrument;
       this._updateMascot('listening', `Escucha la ${sample.label.toLowerCase()} e identifica lo que oyes.`);
+      if (sample.notes.length <= 2) this._renderLearnScore(inst, sample.notes);
       const played = await this._runLearnPlayback(async () => {
         if (this.learnStation.type === 'scale' && index === 0) {
           const pattern = this.learnStation.learn_content.scale_pattern;
@@ -768,13 +775,17 @@ function senafonicaGame(initData) {
     },
 
     _validRootMidis(instrument, semitones) {
-      const comfortableRanges = {
-        Requinto: [52, 62],
-        Tiple: [52, 64],
-        Bandola: [55, 72],
-        Guitarra: [48, 64],
+      // Rangos acústicos por instrumento (especificación técnica de
+      // partituras): el generador no debe producir notas fuera de ellos.
+      // Requinto: Do 4 (60) → Mi 6 (88); Tiple: Do 3 (48) → Mi 5 (76);
+      // Bandola: Fa# 3 (54) → Sol 6 (91); Guitarra: Mi 2 (40) → Mi 5 (76).
+      const acousticRanges = {
+        Requinto: [60, 88],
+        Tiple: [48, 76],
+        Bandola: [54, 91],
+        Guitarra: [40, 76],
       };
-      const range = comfortableRanges[instrument];
+      const range = acousticRanges[instrument];
       if (!range) return [];
       const notes = new Set((this.catalog[instrument] || [])
         .map(sample => Number(sample.midi))
@@ -858,7 +869,7 @@ function senafonicaGame(initData) {
           intervalId: chosen.interval.id,
           direction: 'ascendente',
           correct: chosen.interval.name,
-          options: this._makeOptions(chosen.interval.name, optionPool, optionPool.length),
+          options: this._makeOptions(chosen.interval.name, optionPool, Math.min(optionPool.length, 4)),
           explanation: `El intervalo de ${chosen.interval.name} consta de ${chosen.interval.semitones} semitonos.`,
         });
       }
@@ -985,8 +996,6 @@ function senafonicaGame(initData) {
       // For final boss, use ALL intervals
       const poolIntervalNames = station.type === 'final_boss'
         ? this.intervals.map(i => i.name)
-        : station.id === 3
-          ? this.intervals.map(i => i.name)
         : targetIntervalNames;
 
       const allIntervalNames = this.intervals.map(i => i.name);
@@ -1170,6 +1179,9 @@ function senafonicaGame(initData) {
       if (this.currentTab === 'daily') {
         this.dailyAnswers.push({ id: this.currentQ.id, answer: option });
       }
+      // Módulo evaluativo: compás con la tónica origen y el intervalo
+      // alcanzado (especificación de partituras).
+      this._renderAnswerScore();
       if (this.currentTab === 'training' || this.currentTab === 'time-trial' || this.currentTab === 'daily') {
         this.achievementSyncPending = true;
         try {
@@ -1295,6 +1307,9 @@ function senafonicaGame(initData) {
       this.isCorrect = false;
       this.replayCount = 0;
       this.activeNotePlayingIndex = -1;
+      if (this.$refs.answerScore && typeof SemimusScore !== 'undefined') {
+        SemimusScore.render(this.$refs.answerScore, null);
+      }
     },
 
     getOptionSymbol(option, question = this.currentQ) {
@@ -1310,7 +1325,12 @@ function senafonicaGame(initData) {
       }
       if (question.type === 'melody') return ['♪', '♫', '♬', '𝄞'][question.options.indexOf(option) % 4];
       const interval = this.intervals.find(item => item.name === option);
-      return interval && interval.semitones <= 2 ? '↗' : interval && interval.semitones <= 4 ? '↗↗' : '⤴';
+      if (!interval) return '♪';
+      if (interval.semitones === 0) return '≡';
+      if (interval.semitones <= 2) return '↗';
+      if (interval.semitones <= 4) return '↗↗';
+      if (interval.semitones <= 7) return '⤴';
+      return '⤴⤴';
     },
 
     getOptionHint(option, question = this.currentQ) {
@@ -1323,6 +1343,7 @@ function senafonicaGame(initData) {
       if (question.type === 'melody') return 'Reconoce el orden de las notas';
       const interval = this.intervals.find(item => item.name === option);
       if (!interval) return 'Escucha la distancia';
+      if (interval.semitones === 0) return 'Misma nota';
       if (interval.semitones <= 2) return 'Paso corto';
       if (interval.semitones <= 4) return 'Paso mediano';
       if (interval.semitones <= 7) return 'Salto amplio';
@@ -1339,22 +1360,78 @@ function senafonicaGame(initData) {
       const interval = this.intervals.find(item =>
         item.id === question.intervalId
         || (item.semitones === question.semitones && item.name === question.correct)
-      );
+      ) || this.intervals.find(item => item.semitones === question.semitones);
       if (!interval) return question.explanation;
       const intervalName = interval.name
         .split(' ')
         .map(word => word.charAt(0).toUpperCase() + word.slice(1))
         .join(' ');
+      const article = interval.id === 'U' ? 'un' : 'una';
       const opening = this.isCorrect
-        ? `¡Excelente! Identificaste una ${intervalName}.`
+        ? `¡Excelente! Identificaste ${article} ${intervalName}.`
         : `No pasa nada. La respuesta correcta es ${intervalName}.`;
-      const neutralInstrumentNote = ['6m', '6M', '7m', '7M', '8J'].includes(interval.id)
+      const neutralInstrumentNote = ['4A', '6m', '6M', '7m', '7M', '8J'].includes(interval.id)
         ? 'Este salto se toca cambiando de cuerda o de posición; consúltalo con tu profesor.'
         : '';
-      const fretText = interval.texto_instrumento
-        || `Trastes: ${interval.trastes}. ${neutralInstrumentNote
-          || `En tu ${question.instrument.toLowerCase()}: avanzar ${interval.trastes} ${interval.trastes === 1 ? 'traste' : 'trastes'} en la misma cuerda.`}`;
+      let fretText;
+      if (Number(interval.trastes) === 0) {
+        fretText = 'Trastes: 0. Es la misma nota repetida: no te mueves por el mástil.';
+      } else {
+        fretText = interval.texto_instrumento
+          || `Trastes: ${interval.trastes}. ${neutralInstrumentNote
+            || `En tu ${question.instrument.toLowerCase()}: avanzar ${interval.trastes} ${interval.trastes === 1 ? 'traste' : 'trastes'} en la misma cuerda.`}`;
+      }
       return `${opening} Distancia: ${interval.tonos}. ${fretText}`;
+    },
+
+    // ══════════════════════════════════════════════════════════════════════
+    // PARTITURAS (VexFlow) — especificación técnica de renderizado
+    // ══════════════════════════════════════════════════════════════════════
+    _renderLearnScore(instrument, midis) {
+      const container = this.$refs.learnScore;
+      if (!container || typeof SemimusScore === 'undefined') return;
+      SemimusScore.renderNotes(container, instrument, midis.map(Number), 'nota_simple');
+    },
+
+    _renderAnswerScore() {
+      const container = this.$refs.answerScore;
+      if (!container || typeof SemimusScore === 'undefined') return;
+      const question = this.currentQ;
+      if (!this.answered || !question || question.type !== 'interval') {
+        SemimusScore.render(container, null);
+        return;
+      }
+      const semitones = Number(question.semitones) || 0;
+      const rootMidi = Number(question.rootMidi);
+      const direction = this.intervalDirection || question.direction || 'ascendente';
+      const midis = direction === 'descendente'
+        ? [rootMidi + semitones, rootMidi]
+        : [rootMidi, rootMidi + semitones];
+      const intervalObj = this.intervals.find(item => item.semitones === semitones);
+      SemimusScore.renderNotes(
+        container,
+        question.instrument,
+        midis,
+        `${intervalObj ? intervalObj.id : 'intervalo'}_${direction}`
+      );
+    },
+
+    _renderJamScore() {
+      const container = this.$refs.jamScore;
+      if (!container || typeof SemimusScore === 'undefined') return;
+      const semitones = Number(this.jamIntervalSemitones);
+      const rootMidi = Number(this.jamRootMidi);
+      const direction = this.jamDirection || 'ascendente';
+      const midis = direction === 'descendente'
+        ? [rootMidi + semitones, rootMidi]
+        : [rootMidi, rootMidi + semitones];
+      const intervalObj = this.intervals.find(item => item.semitones === semitones);
+      SemimusScore.renderNotes(
+        container,
+        this.jamInstrument,
+        midis,
+        `${intervalObj ? intervalObj.id : 'intervalo'}_${direction}`
+      );
     },
 
     replayAnsweredAudio() {
@@ -1708,6 +1785,8 @@ function senafonicaGame(initData) {
         || this.intervals[1];
 
       this._updateMascot('listening', `Sonando ${intervalObj.name} (${this.jamDirection}) en ${this.jamInstrument}...`);
+      // Renderiza el compás en paralelo con la reproducción del intervalo.
+      this._renderJamScore();
 
       await this.audio.playInterval(
         this.jamInstrument,

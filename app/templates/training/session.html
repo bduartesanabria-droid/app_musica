@@ -14,12 +14,13 @@
         <span class="feedback-mark" aria-hidden="true" x-text="lastCorrect ? '✓' : '✕'"></span>
         <img class="feedback-character" :src="lastCorrect ? '{{ url_for('static', filename='img/niños_acertaste.png') }}' : '{{ url_for('static', filename='img/niños_tristes.png') }}'" :alt="lastCorrect ? 'Celebración de respuesta correcta' : 'Respuesta incorrecta'">
         <div><strong x-show="lastCorrect">¡Respuesta correcta! Muy bien escuchado.</strong><strong x-show="!lastCorrect" x-cloak>Respuesta incorrecta. La correcta es: <span x-text="currentQ ? currentQ.correct_answer : ''"></span>.</strong>
-         <p x-show="!lastCorrect && currentQ && currentQ.explanation" x-text="currentQ && currentQ.explanation ? currentQ.explanation : ''"></p>
+         <p x-show="currentQ && currentQ.explanation" x-text="currentQ && currentQ.explanation ? currentQ.explanation : ''"></p>
        </div>
+       <div x-ref="score" class="session-score" aria-hidden="true"></div>
      </div>
      <p x-show="answerError" x-cloak class="answer-error" role="alert" x-text="answerError"></p>
    </div><button x-show="answered && answerReady" x-cloak @click="nextQuestion()" class="neumorphic-cta session-next"><span x-text="currentIndex < questions.length - 1 ? 'Siguiente intervalo' : 'Finalizar sesión'"></span><b>→</b></button></main>
   <footer class="session-stats"><span><b x-text="correct"></b> correctas</span><i></i><span><b x-text="accuracy() + '%'">0%</b> precisión</span><i></i><span><b x-text="wrong"></b> por revisar</span></footer>
 </div>
 {% endblock %}
-{% block scripts %}<script src="{{ url_for('static', filename='js/training.js') }}"></script>{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='vendor/vexflow-4.2.5.js') }}"></script><script src="{{ url_for('static', filename='js/score_renderer.js') }}"></script><script src="{{ url_for('static', filename='js/training.js') }}"></script>{% endblock %}
