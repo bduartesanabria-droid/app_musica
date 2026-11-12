@@ -23,7 +23,7 @@ function loadRenderer(reviewMode) {
 }
 
 function collect(node, out = []) {
-  if (node.className) out.push(node);
+  out.push(node);
   (node.children || []).forEach(child => collect(child, out));
   return out;
 }
