@@ -70,7 +70,7 @@ def test_training_session_html_has_no_diagram_before_answer(app, login_client):
     assert "SIN VALIDAR" not in html
 
 
-def test_review_mode_requires_admin_and_query_flag(client, login_client):
+def test_guest_and_student_never_get_review_mode(client, login_client):
     guest_html = client.get("/senafonica?revision=1").get_data(as_text=True)
     assert "window.SEMIMUS_REVIEW_MODE = false;" in guest_html
 
@@ -78,6 +78,8 @@ def test_review_mode_requires_admin_and_query_flag(client, login_client):
     student_html = student.get("/senafonica?revision=1").get_data(as_text=True)
     assert "window.SEMIMUS_REVIEW_MODE = false;" in student_html
 
+
+def test_admin_gets_review_mode_only_with_query_flag(client, login_client):
     admin, _ = login_client(role="admin")
     without_flag = admin.get("/senafonica").get_data(as_text=True)
     assert "window.SEMIMUS_REVIEW_MODE = false;" in without_flag

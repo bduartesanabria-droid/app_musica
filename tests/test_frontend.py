@@ -71,7 +71,7 @@ def test_score_renderer_is_vendored_and_exposes_vex_global():
     # Padding vertical dinámico para las líneas adicionales (E2 / G6).
     assert "ledgerPadding" in renderer
     # Diapasón por nota: posición en cuerda/traste para imitar en el instrumento.
-    assert "findPosition" in renderer
+    assert "findFingering" in renderer
     assert "semimus-fingering" in renderer
     assert "sin posición" in renderer.casefold() or "Sin posición" in renderer
 
@@ -164,7 +164,8 @@ def test_unvalidated_tunings_hide_fingering_diagrams_behind_one_flag():
     # Una sola bandera controla tiple, requinto y bandola.
     assert renderer.count("const TUNINGS_VALIDATED = false;") == 1
     assert "Diagrama en revisión: pendiente de validación por un maestro de cuerdas pulsadas" in renderer
-    assert "if (!TUNINGS_VALIDATED && key !== 'guitarra')" in renderer
+    assert "const validated = TUNINGS_VALIDATED || key === 'guitarra';" in renderer
+    assert "if (!validated && !review)" in renderer
 
 
 def test_program_name_is_senafonico_in_visible_text():
