@@ -1,5 +1,5 @@
 /**
- * SENAFÓNICA Game Engine — Videojuego Web Autónomo e Integrado
+ * Senafónico Game Engine — Videojuego Web Autónomo e Integrado
  * Recorrido Cultural por la Provincia de Vélez
  *
  * Implementa el flujo EXPLORACIÓN → EVALUACIÓN:
@@ -156,7 +156,7 @@ function senafonicaGame(initData) {
 
     // ── MASCOT CONTROLLER ─────────────────────────────────────────────────
     mascotState: 'idle',
-    mascotSpeech: '¡Bienvenido a SENAFÓNICA! Recorreremos la hermosa Provincia de Vélez.',
+    mascotSpeech: '¡Bienvenido a Senafónico! Recorreremos la hermosa Provincia de Vélez.',
     mascotImg: '/static/img/ninos_traje.png',
 
     // ── AUDIO ENGINE ──────────────────────────────────────────────────────
@@ -1897,6 +1897,7 @@ function senafonicaGame(initData) {
     _triggerConfetti() {
       const canvas = document.getElementById('senafonica-confetti');
       if (!canvas) return;
+      if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
       const ctx = canvas.getContext('2d');
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;

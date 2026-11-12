@@ -82,9 +82,19 @@ const SemimusScore = (() => {
   };
   const MAX_FRET = 15;
   const DIAGRAM_FRETS = 4;
+  // Bandera única: mientras un maestro de cuerdas pulsadas no valide las
+  // afinaciones de tiple, requinto y bandola, sus diagramas de posición
+  // (traste y dedo) quedan ocultos. Cambiar a true para reactivarlos.
+  // La guitarra no depende de esta bandera.
+  const TUNINGS_VALIDATED = false;
+  const UNVALIDATED_NOTICE = 'Diagrama en revisión: pendiente de validación por un maestro de cuerdas pulsadas';
+
+  function instrumentKey(instrument) {
+    return String(instrument || '').trim().toLowerCase();
+  }
 
   function tuningFor(instrument) {
-    return TUNINGS[String(instrument || '').trim().toLowerCase()] || null;
+    return TUNINGS[instrumentKey(instrument)] || null;
   }
 
   // Posición más cómoda (traste más bajo) para una altura en el instrumento.
@@ -110,7 +120,7 @@ const SemimusScore = (() => {
   // Diagrama de diapasón al estilo de los diagramas de acordes: cuerdas
   // graves a la izquierda, X en las cuerdas que no se tocan, O en la cuerda
   // al aire y el punto con el número del dedo en el traste.
-  function diagramSvg(stringCount, position) {
+  function diagramSvg(stringCount, position, showOpen) {
     const gap = 18;
     const left = 16;
     const top = 22;
@@ -124,7 +134,7 @@ const SemimusScore = (() => {
 
     for (let index = 0; index < stringCount; index++) {
       if (index === position.string) {
-        if (position.fret === 0) {
+        if (position.fret === 0 && showOpen) {
           parts.push(`<circle cx="${x(index)}" cy="10" r="4.5" fill="none" stroke="#1E293B" stroke-width="1.6"/>`);
         }
       } else {
@@ -168,6 +178,16 @@ const SemimusScore = (() => {
       title.textContent = note.scientific_name;
       figure.appendChild(title);
 
+      const key = instrumentKey(instrument);
+      if (!TUNINGS_VALIDATED && key !== 'guitarra') {
+        const notice = document.createElement('p');
+        notice.className = 'semimus-diagram-text';
+        notice.textContent = UNVALIDATED_NOTICE;
+        figure.appendChild(notice);
+        block.appendChild(figure);
+        return;
+      }
+
       const midi = midiOfNote(note);
       const position = midi === null ? null : findPosition(tuning.strings, midi);
       const text = document.createElement('p');
@@ -179,15 +199,21 @@ const SemimusScore = (() => {
         return;
       }
       const wrapperSvg = document.createElement('div');
-      wrapperSvg.innerHTML = diagramSvg(tuning.strings.length, position);
+      const showOpen = TUNINGS_VALIDATED || key === 'guitarra';
+      wrapperSvg.innerHTML = diagramSvg(tuning.strings.length, position, showOpen);
       figure.appendChild(wrapperSvg);
 
       const number = tuning.strings.length - position.string;
       const name = stringName(tuning.strings[position.string]);
-      text.textContent = position.fret === 0
-        ? `Cuerda ${number} (${name}) al aire`
-        : `Dedo ${fingerFor(position)} en la cuerda ${number} (${name}), traste ${position.fret}`;
-      figure.appendChild(text);
+      if (position.fret === 0) {
+        if (showOpen) {
+          text.textContent = `Cuerda ${number} (${name}) al aire`;
+          figure.appendChild(text);
+        }
+      } else {
+        text.textContent = `Dedo ${fingerFor(position)} en la cuerda ${number} (${name}), traste ${position.fret}`;
+        figure.appendChild(text);
+      }
       block.appendChild(figure);
     });
     wrapper.appendChild(block);

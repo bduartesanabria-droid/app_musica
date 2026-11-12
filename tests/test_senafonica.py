@@ -19,7 +19,7 @@ def test_senafonica_guest_access(client):
     res = client.get("/senafonica")
     assert res.status_code == 200
     html = res.data.decode("utf-8")
-    assert "SENAF" in html
+    assert "Senafónico" in html
     assert "Barbosa" in html
     assert "Tratamiento de Datos Personales" in html
     assert "senafonica_audio.js" in html
@@ -37,7 +37,7 @@ def test_senafonica_page_authenticated(login_client):
     res = auth_client.get("/senafonica")
     assert res.status_code == 200
     html = res.data.decode("utf-8")
-    assert "SENAF" in html
+    assert "Senafónico" in html
     assert "Barbosa" in html
     assert "Puente Nacional" in html
     assert "Guavat" in html

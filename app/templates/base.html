@@ -5,7 +5,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#39A900">
+  <meta name="theme-color" content="#2E8600">
+  <meta name="author" content="Brayan Duarte, Camilo Cifuentes, Ricardo Figueroa, Miguel Tejedor">
+  <meta name="copyright" content="© 2026 Brayan Duarte, Camilo Cifuentes, Ricardo Figueroa y Miguel Tejedor. Todos los derechos reservados.">
   <meta name="csrf-token" content="{{ csrf_token() }}">
   <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/logoSenafonico.png') }}">
   <link rel="shortcut icon" href="{{ url_for('static', filename='img/favicon.ico') }}">
@@ -29,6 +31,13 @@
       :style="darkMode ? 'background:#0B0F14;color:#fff' : 'background:#F8FAFC;color:#111827'">
 
 {% block body %}{% endblock %}
+
+{% block copyright %}
+<footer class="px-4 py-3 text-center text-xs" :class="darkMode ? 'text-slate-300' : 'text-slate-700'">
+  <p>© 2026 Brayan Duarte, Camilo Cifuentes, Ricardo Figueroa y Miguel Tejedor. Todos los derechos reservados.</p>
+  <a href="{{ url_for('main.creditos') }}" class="underline hover:text-white">Créditos</a>
+</footer>
+{% endblock %}
 
 <a class="site-companion" href="{{ url_for('main.learning') }}" aria-label="Ir a Aprender" aria-live="polite">
   <span class="site-companion-label" x-text="companionState === 'correct' ? '¡Muy bien!' : companionState === 'wrong' ? 'Sigue intentando' : 'Aprender juntos'">Aprender juntos</span>

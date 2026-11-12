@@ -105,6 +105,105 @@ def test_senafonica_page_loads_score_scripts_and_containers(client):
     assert "this._renderJamScore()" in game
 
 
+COPYRIGHT_LINE = (
+    "© 2026 Brayan Duarte, Camilo Cifuentes, Ricardo Figueroa y Miguel Tejedor. "
+    "Todos los derechos reservados."
+)
+
+
+def test_pages_allow_zoom_and_declare_authorship(client):
+    html = client.get("/auth/login").get_data(as_text=True)
+    assert 'name="viewport"' in html
+    assert "user-scalable=no" not in html
+    assert "maximum-scale" not in html
+    assert 'name="author" content="Brayan Duarte, Camilo Cifuentes, Ricardo Figueroa, Miguel Tejedor"' in html
+    assert f'name="copyright" content="{COPYRIGHT_LINE}"' in html
+
+    senafonica = client.get("/senafonica").get_data(as_text=True)
+    assert "maximum-scale" not in senafonica
+    assert "user-scalable=no" not in senafonica
+    assert COPYRIGHT_LINE in senafonica
+
+
+def test_creditos_page_lists_authors_and_copyright(client):
+    response = client.get("/creditos")
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    assert "Senafónico" in html
+    assert COPYRIGHT_LINE in html
+    for name in ("Brayan Duarte", "Camilo Cifuentes", "Ricardo Figueroa", "Miguel Tejedor"):
+        assert name in html
+
+
+def test_feedback_states_do_not_rely_on_color_alone():
+    session = open("app/templates/training/session.html", encoding="utf-8").read()
+    assert 'class="feedback-mark"' in session
+    assert 'option-mark' in session and "✓" in session and "✕" in session
+
+    game = open("app/templates/senafonica/index.html", encoding="utf-8").read()
+    assert "'✓ ¡Excelente oído veleño!'" in game
+    assert "'✕ ¡Respuesta incorrecta!'" in game
+
+
+def test_small_touch_targets_are_sized_to_48px():
+    css = open("app/static/css/style.css", encoding="utf-8").read()
+    senafonica_css = open("app/static/css/senafonica.css", encoding="utf-8").read()
+    assert ".touch-target { min-width: 48px; min-height: 48px;" in css
+    assert ".touch-target { min-width: 48px; min-height: 48px;" in senafonica_css
+
+
+def test_green_button_color_meets_contrast_for_white_text():
+    # Verde de acción #2E8600 con texto blanco: 4.64:1 (WCAG 4.5:1 en texto normal).
+    css = open("app/static/css/style.css", encoding="utf-8").read()
+    assert "--sena-bg: #2E8600" in css
+    assert "background: var(--sena-bg); color: #fff" in css
+
+
+def test_unvalidated_tunings_hide_fingering_diagrams_behind_one_flag():
+    renderer = open("app/static/js/score_renderer.js", encoding="utf-8").read()
+    # Una sola bandera controla tiple, requinto y bandola.
+    assert renderer.count("const TUNINGS_VALIDATED = false;") == 1
+    assert "Diagrama en revisión: pendiente de validación por un maestro de cuerdas pulsadas" in renderer
+    assert "if (!TUNINGS_VALIDATED && key !== 'guitarra')" in renderer
+
+
+def test_program_name_is_senafonico_in_visible_text():
+    import glob
+    import re
+
+    patterns = ["app/templates/**/*.html", "app/static/js/*.js", "app/static/css/*.css"]
+    files = [path for pattern in patterns for path in glob.glob(pattern, recursive=True)]
+    assert files
+    for path in files:
+        if "vendor" in path or path.endswith("tailwind.css"):
+            continue
+        text = open(path, encoding="utf-8").read()
+        assert "SENAFÓNICA" not in text, path
+        assert "Senafónica" not in text, path
+        assert not re.search(r"Senafonica(?!Audio|Engine)", text), path
+
+
+def test_reduced_motion_keeps_feedback_and_stops_animations():
+    for path in ("app/static/css/style.css", "app/static/css/senafonica.css"):
+        css = open(path, encoding="utf-8").read()
+        assert "@media (prefers-reduced-motion: reduce)" in css, path
+        assert "animation-duration: 0.01ms !important" in css, path
+    game = open("app/static/js/senafonica_game.js", encoding="utf-8").read()
+    assert "(prefers-reduced-motion: reduce)" in game
+    # El feedback ✓/✕ es estático: no depende de la animación.
+    session = open("app/templates/training/session.html", encoding="utf-8").read()
+    assert "option-mark" in session
+
+
+def test_creditos_has_typography_and_image_sections(client):
+    html = client.get("/creditos").get_data(as_text=True)
+    assert "<h2 class=\"text-lg font-black\">Tipografías</h2>" in html
+    assert "<h2 class=\"text-lg font-black\">Imágenes</h2>" in html
+    assert "Inter" in html
+    assert "img/niños_traje.png" in html
+    assert "Autor: por confirmar" in html
+
+
 def test_base_layout_uses_local_compiled_and_pinned_assets(client):
     response = client.get("/auth/login")
     html = response.get_data(as_text=True)

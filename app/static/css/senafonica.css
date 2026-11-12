@@ -1,4 +1,4 @@
-/* SENAFÓNICA Custom Design System - Duolingo-style Andean Gamification */
+/* Senafónico Custom Design System - Duolingo-style Andean Gamification */
 
 [x-cloak] {
   display: none !important;
@@ -61,7 +61,7 @@
 }
 
 :root {
-  --sena-green: #39A900;
+  --sena-green: #2E8600;
   --sena-dark-green: #297A00;
   --sena-light-green: #5CD61E;
   --gold-amber: #F59E0B;
@@ -75,7 +75,7 @@
   --text-muted: #94A3B8;
 }
 
-/* Base Body & Reset for Senafonica */
+/* Base Body & Reset for Senafónico */
 .senafonica-shell {
   min-height: 100vh;
   background: radial-gradient(
@@ -572,4 +572,18 @@ button, .touch-target {
 }
 .mascot-center-grid > * {
   pointer-events: auto;
+}
+
+/* Área táctil mínima de 48 × 48 px (accesibilidad). */
+.touch-target { min-width: 48px; min-height: 48px; display: inline-flex; align-items: center; justify-content: center; }
+
+/* Movimiento reducido: las animaciones y transiciones casi no ocurren, pero el
+   estado final (✓, ✕, colores y textos de acierto o error) se conserva. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

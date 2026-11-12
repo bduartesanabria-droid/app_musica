@@ -25,6 +25,11 @@ main_bp = Blueprint("main", __name__)
 AVATAR_FORMAT_EXTENSIONS = {"JPEG": ".jpg", "PNG": ".png", "WEBP": ".webp"}
 
 
+@main_bp.route("/creditos")
+def creditos():
+    return render_template("creditos.html")
+
+
 def _read_avatar(upload):
     max_bytes = current_app.config["MAX_AVATAR_SIZE_BYTES"]
     content = upload.stream.read(max_bytes + 1)

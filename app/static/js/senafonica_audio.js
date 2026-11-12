@@ -1,5 +1,5 @@
 /**
- * SENAFÓNICA Audio Engine — Web Audio API & Sample Player
+ * Senafónico Audio Engine — Web Audio API & Sample Player
  *
  * Provides:
  * 1. High-precision Web Audio API scheduling for scales and intervals.

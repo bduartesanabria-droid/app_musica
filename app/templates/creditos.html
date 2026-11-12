@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Créditos | Senafónico{% endblock %}
+{% block body %}
+<main class="min-h-screen px-5 py-10 max-w-2xl mx-auto" style="color:#F8FAFC">
+  <a href="{{ url_for('main.dashboard') if current_user.is_authenticated else url_for('auth.login') }}" class="underline hover:text-white text-sm">← Volver</a>
+
+  <header class="mt-6 text-center">
+    <img src="{{ url_for('static', filename='img/logoSenafonico.png') }}" alt="Logo de Senafónico" width="96" height="96" class="mx-auto rounded-xl object-contain">
+    <h1 class="mt-3 text-3xl font-black">Senafónico</h1>
+    <p class="mt-1 text-sm" style="color:#CBD5E1">Videojuego musical de la Provincia de Vélez</p>
+  </header>
+
+  <section class="mt-8 rounded-2xl border p-5" style="border-color:rgba(255,255,255,0.15);background:#111827">
+    <h2 class="text-lg font-black">Autoría</h2>
+    <ul class="mt-3 space-y-2 text-sm">
+      <li>Brayan Duarte</li>
+      <li>Camilo Cifuentes</li>
+      <li>Ricardo Figueroa</li>
+      <li>Miguel Tejedor</li>
+    </ul>
+    <p class="mt-3 text-xs" style="color:#CBD5E1">Rol de cada autor: por confirmar entre los cuatro autores.</p>
+  </section>
+
+  <section class="mt-6 rounded-2xl border p-5" style="border-color:rgba(255,255,255,0.15);background:#111827">
+    <h2 class="text-lg font-black">Tipografías</h2>
+    <ul class="mt-3 space-y-3 text-sm">
+      <li>
+        <p class="font-bold">Inter</p>
+        <p style="color:#CBD5E1">Usada en la página de Senafónico (carga desde Google Fonts).</p>
+        <p style="color:#CBD5E1">Autor: por confirmar · Licencia: por confirmar (revisar la ficha de la fuente en Google Fonts).</p>
+      </li>
+    </ul>
+  </section>
+
+  <section class="mt-6 rounded-2xl border p-5" style="border-color:rgba(255,255,255,0.15);background:#111827">
+    <h2 class="text-lg font-black">Imágenes</h2>
+    <ul class="mt-3 space-y-3 text-sm">
+      <li>
+        <p class="font-bold">Logo de Senafónico</p>
+        <p style="color:#CBD5E1">img/logoSenafonico.png · Autor: por confirmar · Licencia: por confirmar</p>
+      </li>
+      <li>
+        <p class="font-bold">Mascota (niños con traje tradicional; estados: saludando, celebrando y animando tras un error)</p>
+        <p style="color:#CBD5E1">img/niños_traje.png, img/niños_acertaste.png, img/niños_tristes.png, img/ninos_traje.png · Autor: por confirmar · Licencia: por confirmar</p>
+      </li>
+      <li>
+        <p class="font-bold">Ícono del sitio (favicon)</p>
+        <p style="color:#CBD5E1">img/favicon.ico · Autor: por confirmar · Licencia: por confirmar</p>
+      </li>
+      <li>
+        <p class="font-bold">Instrumentos</p>
+        <p style="color:#CBD5E1">img/tiple.jpeg, img/requinto.jpeg, img/bandola.jpeg, img/guitarra.jpeg · Autor: por confirmar · Licencia: por confirmar</p>
+      </li>
+      <li>
+        <p class="font-bold">Mapa de estaciones (ilustraciones de los municipios)</p>
+        <p style="color:#CBD5E1">img/locations/barbosa-river.svg, guavata.svg, penon.svg, province-valley.svg, puente-nacional.svg, velez-cathedral.svg, velez-plaza.svg · Autor: por confirmar · Licencia: por confirmar</p>
+      </li>
+    </ul>
+  </section>
+
+  <section class="mt-6 rounded-2xl border p-5" style="border-color:rgba(255,255,255,0.15);background:#111827">
+    <h2 class="text-lg font-black">Software de terceros</h2>
+    <ul class="mt-3 space-y-2 text-sm">
+      <li>VexFlow 4.2.5 (partituras) · Autor: Mohit Muthanna Cheppudira · Licencia: MIT</li>
+      <li>Alpine.js 3.14.9 (interfaz) · Autor: Caleb Porzio · Licencia: MIT</li>
+      <li>Chart.js 4.4.9 (gráficas) · Autor: por confirmar · Licencia: MIT</li>
+      <li>Tailwind CSS 3.4.17 (estilos) · Autor: por confirmar · Licencia: MIT</li>
+    </ul>
+  </section>
+
+  <section class="mt-6 rounded-2xl border p-5" style="border-color:rgba(255,255,255,0.15);background:#111827">
+    <h2 class="text-lg font-black">Aviso de derechos</h2>
+    <p class="mt-3 text-sm">© 2026 Brayan Duarte, Camilo Cifuentes, Ricardo Figueroa y Miguel Tejedor. Todos los derechos reservados.</p>
+  </section>
+</main>
+{% endblock %}

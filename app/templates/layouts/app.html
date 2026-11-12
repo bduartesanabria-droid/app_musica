@@ -15,8 +15,8 @@
 
     <!-- Logo Senafónico -->
     <div class="flex flex-col items-center px-5 py-5 border-b" style="border-color:rgba(255,255,255,0.06)">
-       <img src="{{ url_for('static', filename='img/logoSenafonico.png') }}" width="96" height="96" alt="Senafónico" class="mb-1 object-contain rounded-xl">
-       <p class="text-[9px] text-center leading-tight mt-0.5" style="color:rgba(255,255,255,0.35);">SERVICIO NACIONAL<br>DE APRENDIZAJE</p>
+       <img src="{{ url_for('static', filename='img/logoSenafonico.png') }}" width="96" height="96" alt="Logo de Senafónico" class="mb-1 object-contain rounded-xl">
+       <p class="text-[9px] text-center leading-tight mt-0.5" style="color:rgba(255,255,255,0.72);">SERVICIO NACIONAL<br>DE APRENDIZAJE</p>
     </div>
 
     <!-- App name -->
@@ -45,7 +45,7 @@
         <span>Entrenamiento</span>
       </a>
 
-      <a href="{{ url_for('senafonica.index') }}" class="nav-item {% if 'senafonica' in request.endpoint %}active{% endif %} text-emerald-400 font-bold" style="background:rgba(57,169,0,0.12);border:1px solid rgba(57,169,0,0.3);"><span aria-hidden="true">🎮</span><div class="flex items-center justify-between w-full"><span>SENAFÓNICA</span><span class="text-[9px] bg-emerald-500 text-black font-black px-1.5 py-0.5 rounded-full">JUEGO</span></div></a>
+      <a href="{{ url_for('senafonica.index') }}" class="nav-item {% if 'senafonica' in request.endpoint %}active{% endif %} text-emerald-400 font-bold" style="background:rgba(57,169,0,0.12);border:1px solid rgba(57,169,0,0.3);"><span aria-hidden="true">🎮</span><div class="flex items-center justify-between w-full"><span>Senafónico</span><span class="text-[9px] bg-emerald-500 text-black font-black px-1.5 py-0.5 rounded-full">JUEGO</span></div></a>
       <a href="{{ url_for('main.learning') }}"
          class="nav-item {% if request.endpoint == 'main.learning' %}active{% endif %}">
         <span aria-hidden="true">♫</span><span>Aprender</span>
@@ -75,6 +75,13 @@
         <span>Perfil</span>
       </a>
 
+      <a href="{{ url_for('main.creditos') }}"
+         class="nav-item {% if request.endpoint == 'main.creditos' %}active{% endif %}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+        </svg>
+        <span>Créditos</span>
+      </a>
       <!-- ADMINISTRACIÓN -->
       {% if current_user.is_instructor or current_user.is_admin %}
       <div class="pt-4 pb-1 px-2">
@@ -122,12 +129,12 @@
        <div class="flex items-center gap-2.5 p-2.5 rounded-xl">
         <!-- Avatar -->
         <div class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
-             style="background:linear-gradient(135deg,#39A900,#1a5200)">
+             style="background:linear-gradient(135deg,#2E8600,#1a5200)">
           {{ current_user.initials }}
         </div>
         <div class="min-w-0 flex-1">
           <p class="text-sm font-semibold text-white truncate">{{ current_user.first_name }} {{ current_user.last_name }}</p>
-          <p class="text-xs truncate" style="color:rgba(255,255,255,0.45)">{{ current_user.role | title }}</p>
+          <p class="text-xs truncate" style="color:rgba(255,255,255,0.72)">{{ current_user.role | title }}</p>
         </div>
        </div>
 
@@ -162,7 +169,7 @@
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <button type="submit"
                 class="w-full flex items-center gap-2.5 p-2 rounded-xl transition-all text-sm font-medium"
-                style="color:rgba(255,255,255,0.45)"
+                style="color:rgba(255,255,255,0.72)"
                 onmouseover="this.style.background='rgba(239,68,68,0.1)';this.style.color='#FCA5A5'"
                 onmouseout="this.style.background='transparent';this.style.color='rgba(255,255,255,0.45)'">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -204,7 +211,7 @@
 
         <!-- Avatar -->
          <div class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white"
-              style="background:linear-gradient(135deg,#39A900,#1a5200)">
+              style="background:linear-gradient(135deg,#2E8600,#1a5200)">
            {{ current_user.initials }}
          </div>
       </div>
@@ -216,13 +223,15 @@
     </main>
 
     <!-- Footer -->
-    <footer class="px-6 py-3 text-center border-t" style="border-color:rgba(255,255,255,0.06)">
-      <p class="text-xs" style="color:rgba(255,255,255,0.25)">
-        SEMIMUS – Sistema de Entrenamiento Melódico Musical &nbsp;·&nbsp;
-        SENA – Centro de Gestión Agroempresarial del Oriente
+    <footer class="px-6 py-3 text-center border-t" style="border-color:rgba(255,255,255,0.12)">
+      <p class="text-xs" style="color:rgba(255,255,255,0.75)">
+        © 2026 Brayan Duarte, Camilo Cifuentes, Ricardo Figueroa y Miguel Tejedor. Todos los derechos reservados.
+        &nbsp;·&nbsp; <a href="{{ url_for('main.creditos') }}" class="underline hover:text-white">Créditos</a>
       </p>
     </footer>
   </div>
 
 </div>
 {% endblock %}
+
+{% block copyright %}{% endblock %}
