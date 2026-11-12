@@ -1,106 +1,969 @@
 {
+  "progression": {
+    "passingPercent": 80,
+    "challengeQuestions": 10,
+    "studyCompletePct": 100
+  },
   "modules": [
     {
       "id": 0,
-      "name": "Percepción base (grave/Agudo)",
+      "name": "Alturas",
+      "group": "pitch",
       "type": "pitch",
-      "description": "Aprender a diferenciar sonidos graves y agudos.",
-      "unlockCriteria": null
+      "description": "Distinguir sonido grave y agudo: dirección de la vibración.",
+      "levels": [
+        {
+          "level": 1,
+          "phase": "study",
+          "label": "Fase .1 · Estudio aislado",
+          "prompt": "Sonido grave vs agudo"
+        },
+        {
+          "level": 2,
+          "phase": "challenge",
+          "label": "Fase .2 · Reto acumulado",
+          "prompt": "¿Cuál nota fue más grave/aguda?"
+        }
+      ]
     },
     {
       "id": 1,
-      "name": "Unísono y Segundas",
+      "name": "Unísono",
+      "group": "simple",
       "type": "interval",
+      "intervalId": "U",
+      "semitones": 0,
+      "distance": {
+        "tonos": "0 tonos",
+        "trastes": 0,
+        "semitones": 0
+      },
+      "description": "Unísono: 0 tonos (0 trastes).",
       "levels": [
         {
           "level": 1,
-          "intervalIds": ["U", "2m"],
-          "minCorrectPct": 80
+          "phase": "study",
+          "label": "Fase .1 · Estudio aislado",
+          "prompt": "Escuchar el Unísono"
         },
         {
           "level": 2,
-          "intervalIds": ["U", "2m", "2M"],
-          "minCorrectPct": 80
+          "phase": "challenge",
+          "label": "Fase .2 · Reto acumulado",
+          "prompt": "Identificar el Unísono"
         }
-      ],
-      "description": "Reconocer el unísono (misma altura) y las segundas menor (1 semitono) y mayor (2 semitonos)."
+      ]
     },
     {
       "id": 2,
-      "name": "Terceras",
+      "name": "2da menor",
+      "group": "simple",
       "type": "interval",
+      "intervalId": "2m",
+      "semitones": 1,
+      "distance": {
+        "tonos": "½ tono",
+        "trastes": 1,
+        "semitones": 1
+      },
+      "description": "2da menor: ½ tono (1 traste).",
       "levels": [
         {
           "level": 1,
-          "intervalIds": ["3m", "3M"],
-          "minCorrectPct": 80
+          "phase": "study",
+          "label": "Fase .1 · Estudio aislado",
+          "prompt": "Escuchar 2da menor"
         },
         {
           "level": 2,
-          "intervalIds": ["3m", "3M", "2M"],
-          "minCorrectPct": 80
+          "phase": "challenge",
+          "label": "Fase .2 · Reto acumulado",
+          "prompt": "¿Unísono o 2da menor?"
         }
-      ],
-      "description": "Reconocer intervalos de tercera menor (3 semitonos) y mayor (4 semitonos), con repaso de la segunda mayor."
+      ]
     },
     {
       "id": 3,
-      "name": "Cuartas y Quintas",
+      "name": "2da mayor",
+      "group": "simple",
       "type": "interval",
+      "intervalId": "2M",
+      "semitones": 2,
+      "distance": {
+        "tonos": "1 tono",
+        "trastes": 2,
+        "semitones": 2
+      },
+      "description": "2da mayor: 1 tono (2 trastes).",
       "levels": [
         {
           "level": 1,
-          "intervalIds": ["4J", "4A"],
-          "minCorrectPct": 80
+          "phase": "study",
+          "label": "Fase .1 · Estudio aislado",
+          "prompt": "Escuchar 2da mayor"
         },
         {
           "level": 2,
-          "intervalIds": ["4J", "4A", "5J"],
-          "minCorrectPct": 80
+          "phase": "challenge",
+          "label": "Fase .2 · Reto acumulado",
+          "prompt": "¿Unísono, 2da m o 2da M?"
         }
-      ],
-      "description": "Reconocer la cuarta justa (5 semitonos), la cuarta aumentada (6 semitonos) y la quinta justa (7 semitonos)."
+      ]
     },
     {
       "id": 4,
-      "name": "Sextas, Séptimas y Octavas",
+      "name": "3ra menor",
+      "group": "simple",
       "type": "interval",
+      "intervalId": "3m",
+      "semitones": 3,
+      "distance": {
+        "tonos": "1½ tonos",
+        "trastes": 3,
+        "semitones": 3
+      },
+      "description": "3ra menor: 1½ tonos (3 trastes).",
       "levels": [
         {
           "level": 1,
-          "intervalIds": ["6m", "6M"],
-          "minCorrectPct": 80
+          "phase": "study",
+          "label": "Fase .1 · Estudio aislado",
+          "prompt": "Escuchar 3ra menor"
         },
         {
           "level": 2,
-          "intervalIds": ["6m", "6M", "7m"],
-          "minCorrectPct": 80
-        },
-        {
-          "level": 3,
-          "intervalIds": ["6m", "6M", "7m", "7M"],
-          "minCorrectPct": 80
-        },
-        {
-          "level": 4,
-          "intervalIds": ["6m", "6M", "7m", "7M", "8J"],
-          "minCorrectPct": 80
-        },
-        {
-          "level": 5,
-          "intervalIds": ["U", "2m", "2M", "3m", "3M", "4J", "4A", "5J", "6m", "6M", "7m", "7M", "8J"],
-          "minCorrectPct": 80
+          "phase": "challenge",
+          "label": "Fase .2 · Reto acumulado",
+          "prompt": "Comparar contra anteriores"
         }
-      ],
-      "description": "Reconocer sextas, séptimas y octava; el nivel 5 es el reto maestro con la serie completa de intervalos simples."
+      ]
     },
     {
       "id": 5,
-      "name": "Escala Mayor",
+      "name": "3ra mayor",
+      "group": "simple",
+      "type": "interval",
+      "intervalId": "3M",
+      "semitones": 4,
+      "distance": {
+        "tonos": "2 tonos",
+        "trastes": 4,
+        "semitones": 4
+      },
+      "description": "3ra mayor: 2 tonos (4 trastes).",
+      "levels": [
+        {
+          "level": 1,
+          "phase": "study",
+          "label": "Fase .1 · Estudio aislado",
+          "prompt": "Escuchar 3ra mayor"
+        },
+        {
+          "level": 2,
+          "phase": "challenge",
+          "label": "Fase .2 · Reto acumulado",
+          "prompt": "Comparar contra anteriores"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "4ta justa",
+      "group": "simple",
+      "type": "interval",
+      "intervalId": "4J",
+      "semitones": 5,
+      "distance": {
+        "tonos": "2½ tonos",
+        "trastes": 5,
+        "semitones": 5
+      },
+      "description": "4ta justa: 2½ tonos (5 trastes).",
+      "levels": [
+        {
+          "level": 1,
+          "phase": "study",
+          "label": "Fase .1 · Estudio aislado",
+          "prompt": "Escuchar 4ta justa"
+        },
+        {
+          "level": 2,
+          "phase": "challenge",
+          "label": "Fase .2 · Reto acumulado",
+          "prompt": "Comparar contra anteriores"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "Tritono",
+      "group": "simple",
+      "type": "interval",
+      "intervalId": "4A",
+      "semitones": 6,
+      "distance": {
+        "tonos": "3 tonos",
+        "trastes": 6,
+        "semitones": 6
+      },
+      "description": "Tritono: 3 tonos (6 trastes).",
+      "levels": [
+        {
+          "level": 1,
+          "phase": "study",
+          "label": "Fase .1 · Estudio aislado",
+          "prompt": "Escuchar tritono"
+        },
+        {
+          "level": 2,
+          "phase": "challenge",
+          "label": "Fase .2 · Reto acumulado",
+          "prompt": "Comparar contra anteriores"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "5ta justa",
+      "group": "simple",
+      "type": "interval",
+      "intervalId": "5J",
+      "semitones": 7,
+      "distance": {
+        "tonos": "3½ tonos",
+        "trastes": 7,
+        "semitones": 7
+      },
+      "description": "5ta justa: 3½ tonos (7 trastes).",
+      "levels": [
+        {
+          "level": 1,
+          "phase": "study",
+          "label": "Fase .1 · Estudio aislado",
+          "prompt": "Escuchar 5ta justa"
+        },
+        {
+          "level": 2,
+          "phase": "challenge",
+          "label": "Fase .2 · Reto acumulado",
+          "prompt": "Comparar contra anteriores"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "6ta menor",
+      "group": "simple",
+      "type": "interval",
+      "intervalId": "6m",
+      "semitones": 8,
+      "distance": {
+        "tonos": "4 tonos",
+        "trastes": 8,
+        "semitones": 8
+      },
+      "description": "6ta menor: 4 tonos (8 trastes).",
+      "levels": [
+        {
+          "level": 1,
+          "phase": "study",
+          "label": "Fase .1 · Estudio aislado",
+          "prompt": "Escuchar 6ta menor"
+        },
+        {
+          "level": 2,
+          "phase": "challenge",
+          "label": "Fase .2 · Reto acumulado",
+          "prompt": "Comparar contra anteriores"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "6ta mayor",
+      "group": "simple",
+      "type": "interval",
+      "intervalId": "6M",
+      "semitones": 9,
+      "distance": {
+        "tonos": "4½ tonos",
+        "trastes": 9,
+        "semitones": 9
+      },
+      "description": "6ta mayor: 4½ tonos (9 trastes).",
+      "levels": [
+        {
+          "level": 1,
+          "phase": "study",
+          "label": "Fase .1 · Estudio aislado",
+          "prompt": "Escuchar 6ta mayor"
+        },
+        {
+          "level": 2,
+          "phase": "challenge",
+          "label": "Fase .2 · Reto acumulado",
+          "prompt": "Comparar contra anteriores"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "7ma menor",
+      "group": "simple",
+      "type": "interval",
+      "intervalId": "7m",
+      "semitones": 10,
+      "distance": {
+        "tonos": "5 tonos",
+        "trastes": 10,
+        "semitones": 10
+      },
+      "description": "7ma menor: 5 tonos (10 trastes).",
+      "levels": [
+        {
+          "level": 1,
+          "phase": "study",
+          "label": "Fase .1 · Estudio aislado",
+          "prompt": "Escuchar 7ma menor"
+        },
+        {
+          "level": 2,
+          "phase": "challenge",
+          "label": "Fase .2 · Reto acumulado",
+          "prompt": "Comparar contra anteriores"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "name": "7ma mayor",
+      "group": "simple",
+      "type": "interval",
+      "intervalId": "7M",
+      "semitones": 11,
+      "distance": {
+        "tonos": "5½ tonos",
+        "trastes": 11,
+        "semitones": 11
+      },
+      "description": "7ma mayor: 5½ tonos (11 trastes).",
+      "levels": [
+        {
+          "level": 1,
+          "phase": "study",
+          "label": "Fase .1 · Estudio aislado",
+          "prompt": "Escuchar 7ma mayor"
+        },
+        {
+          "level": 2,
+          "phase": "challenge",
+          "label": "Fase .2 · Reto acumulado",
+          "prompt": "Comparar contra anteriores"
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "name": "Octava justa",
+      "group": "simple",
+      "type": "interval",
+      "intervalId": "8J",
+      "semitones": 12,
+      "distance": {
+        "tonos": "6 tonos",
+        "trastes": 12,
+        "semitones": 12
+      },
+      "description": "Octava justa: 6 tonos (12 trastes).",
+      "levels": [
+        {
+          "level": 1,
+          "phase": "study",
+          "label": "Fase .1 · Estudio aislado",
+          "prompt": "Escuchar octava justa"
+        },
+        {
+          "level": 2,
+          "phase": "challenge",
+          "label": "Fase .2 · Reto acumulado",
+          "prompt": "Reto Maestro (todos los simples)"
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "name": "Novena menor",
+      "group": "compound",
+      "type": "interval",
+      "intervalId": null,
+      "semitones": 13,
+      "structure": "Octava justa + 2da menor",
+      "baseIntervalId": "2m",
+      "distance": {
+        "tonos": "Octava justa + 2da menor",
+        "trastes": 13,
+        "semitones": 13
+      },
+      "description": "Novena menor: octava justa + 2da menor (13 trastes).",
+      "levels": [
+        {
+          "level": 1,
+          "phase": "study",
+          "label": "Fase .1 · Estudio aislado",
+          "prompt": "Estudiar Novena menor"
+        },
+        {
+          "level": 2,
+          "phase": "challenge",
+          "label": "Fase .2 · Reto acumulado",
+          "prompt": "Reto acumulado de intervalos compuestos"
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "name": "Novena mayor",
+      "group": "compound",
+      "type": "interval",
+      "intervalId": null,
+      "semitones": 14,
+      "structure": "Octava justa + 2da mayor",
+      "baseIntervalId": "2M",
+      "distance": {
+        "tonos": "Octava justa + 2da mayor",
+        "trastes": 14,
+        "semitones": 14
+      },
+      "description": "Novena mayor: octava justa + 2da mayor (14 trastes).",
+      "levels": [
+        {
+          "level": 1,
+          "phase": "study",
+          "label": "Fase .1 · Estudio aislado",
+          "prompt": "Estudiar Novena mayor"
+        },
+        {
+          "level": 2,
+          "phase": "challenge",
+          "label": "Fase .2 · Reto acumulado",
+          "prompt": "Reto acumulado de intervalos compuestos"
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "name": "Décima menor",
+      "group": "compound",
+      "type": "interval",
+      "intervalId": null,
+      "semitones": 15,
+      "structure": "Octava justa + 3ra menor",
+      "baseIntervalId": "3m",
+      "distance": {
+        "tonos": "Octava justa + 3ra menor",
+        "trastes": 15,
+        "semitones": 15
+      },
+      "description": "Décima menor: octava justa + 3ra menor (15 trastes).",
+      "levels": [
+        {
+          "level": 1,
+          "phase": "study",
+          "label": "Fase .1 · Estudio aislado",
+          "prompt": "Estudiar Décima menor"
+        },
+        {
+          "level": 2,
+          "phase": "challenge",
+          "label": "Fase .2 · Reto acumulado",
+          "prompt": "Reto acumulado de intervalos compuestos"
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "name": "Décima mayor",
+      "group": "compound",
+      "type": "interval",
+      "intervalId": null,
+      "semitones": 16,
+      "structure": "Octava justa + 3ra mayor",
+      "baseIntervalId": "3M",
+      "distance": {
+        "tonos": "Octava justa + 3ra mayor",
+        "trastes": 16,
+        "semitones": 16
+      },
+      "description": "Décima mayor: octava justa + 3ra mayor (16 trastes).",
+      "levels": [
+        {
+          "level": 1,
+          "phase": "study",
+          "label": "Fase .1 · Estudio aislado",
+          "prompt": "Estudiar Décima mayor"
+        },
+        {
+          "level": 2,
+          "phase": "challenge",
+          "label": "Fase .2 · Reto acumulado",
+          "prompt": "Reto acumulado de intervalos compuestos"
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "name": "Onceava justa",
+      "group": "compound",
+      "type": "interval",
+      "intervalId": null,
+      "semitones": 17,
+      "structure": "Octava justa + 4ta justa",
+      "baseIntervalId": "4J",
+      "distance": {
+        "tonos": "Octava justa + 4ta justa",
+        "trastes": 17,
+        "semitones": 17
+      },
+      "description": "Onceava justa: octava justa + 4ta justa (17 trastes).",
+      "levels": [
+        {
+          "level": 1,
+          "phase": "study",
+          "label": "Fase .1 · Estudio aislado",
+          "prompt": "Estudiar Onceava justa"
+        },
+        {
+          "level": 2,
+          "phase": "challenge",
+          "label": "Fase .2 · Reto acumulado",
+          "prompt": "Reto acumulado de intervalos compuestos"
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "name": "Doceava justa",
+      "group": "compound",
+      "type": "interval",
+      "intervalId": null,
+      "semitones": 19,
+      "structure": "Octava justa + 5ta justa",
+      "baseIntervalId": "5J",
+      "distance": {
+        "tonos": "Octava justa + 5ta justa",
+        "trastes": 19,
+        "semitones": 19
+      },
+      "description": "Doceava justa: octava justa + 5ta justa (19 trastes).",
+      "levels": [
+        {
+          "level": 1,
+          "phase": "study",
+          "label": "Fase .1 · Estudio aislado",
+          "prompt": "Estudiar Doceava justa"
+        },
+        {
+          "level": 2,
+          "phase": "challenge",
+          "label": "Fase .2 · Reto acumulado",
+          "prompt": "Reto acumulado de intervalos compuestos"
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "name": "Trecena menor",
+      "group": "compound",
+      "type": "interval",
+      "intervalId": null,
+      "semitones": 20,
+      "structure": "Octava justa + 6ta menor",
+      "baseIntervalId": "6m",
+      "distance": {
+        "tonos": "Octava justa + 6ta menor",
+        "trastes": 20,
+        "semitones": 20
+      },
+      "description": "Trecena menor: octava justa + 6ta menor (20 trastes).",
+      "levels": [
+        {
+          "level": 1,
+          "phase": "study",
+          "label": "Fase .1 · Estudio aislado",
+          "prompt": "Estudiar Trecena menor"
+        },
+        {
+          "level": 2,
+          "phase": "challenge",
+          "label": "Fase .2 · Reto acumulado",
+          "prompt": "Reto acumulado de intervalos compuestos"
+        }
+      ]
+    },
+    {
+      "id": 21,
+      "name": "Trecena mayor",
+      "group": "compound",
+      "type": "interval",
+      "intervalId": null,
+      "semitones": 21,
+      "structure": "Octava justa + 6ta mayor",
+      "baseIntervalId": "6M",
+      "distance": {
+        "tonos": "Octava justa + 6ta mayor",
+        "trastes": 21,
+        "semitones": 21
+      },
+      "description": "Trecena mayor: octava justa + 6ta mayor (21 trastes).",
+      "levels": [
+        {
+          "level": 1,
+          "phase": "study",
+          "label": "Fase .1 · Estudio aislado",
+          "prompt": "Estudiar Trecena mayor"
+        },
+        {
+          "level": 2,
+          "phase": "challenge",
+          "label": "Fase .2 · Reto acumulado",
+          "prompt": "Reto acumulado de intervalos compuestos"
+        }
+      ]
+    },
+    {
+      "id": 22,
+      "name": "Mayor (Jónico)",
+      "group": "scale",
       "type": "scale",
-      "description": "Reconocer la escala mayor completa, sus notas y patrón.",
-      "unlockCriteria": { "minCorrectPct": 80 }
+      "scale": {
+        "steps": [
+          2,
+          2,
+          1,
+          2,
+          2,
+          2,
+          1
+        ],
+        "formula": "T - T - S - T - T - T - S",
+        "focus": [],
+        "focusText": "Aparición progresiva de sostenidos/bemoles."
+      },
+      "description": "Mayor (Jónico): T - T - S - T - T - T - S. Aparición progresiva de sostenidos/bemoles.",
+      "levels": [
+        {
+          "level": 1,
+          "phase": "study",
+          "label": "Fase .1 · Estudio aislado",
+          "prompt": "Escuchar Mayor (Jónico)"
+        },
+        {
+          "level": 2,
+          "phase": "challenge",
+          "label": "Fase .2 · Reto acumulado",
+          "prompt": "¿Qué escala escuchas?"
+        }
+      ]
+    },
+    {
+      "id": 23,
+      "name": "Menor natural (Eólico)",
+      "group": "scale",
+      "type": "scale",
+      "scale": {
+        "steps": [
+          2,
+          1,
+          2,
+          2,
+          1,
+          2,
+          2
+        ],
+        "formula": "T - S - T - T - S - T - T",
+        "focus": [
+          2,
+          5,
+          6
+        ],
+        "focusText": "Destacar 3ra, 6ta y 7ma menores."
+      },
+      "description": "Menor natural (Eólico): T - S - T - T - S - T - T. Destacar 3ra, 6ta y 7ma menores.",
+      "levels": [
+        {
+          "level": 1,
+          "phase": "study",
+          "label": "Fase .1 · Estudio aislado",
+          "prompt": "Escuchar Menor natural (Eólico)"
+        },
+        {
+          "level": 2,
+          "phase": "challenge",
+          "label": "Fase .2 · Reto acumulado",
+          "prompt": "¿Qué escala escuchas?"
+        }
+      ]
+    },
+    {
+      "id": 24,
+      "name": "Menor armónica",
+      "group": "scale",
+      "type": "scale",
+      "scale": {
+        "steps": [
+          2,
+          1,
+          2,
+          2,
+          1,
+          3,
+          1
+        ],
+        "formula": "Escala menor con 7ma ascendida",
+        "focus": [
+          5,
+          6
+        ],
+        "focusText": "Salto visual de 2da aumentada (6to al 7mo grado)."
+      },
+      "description": "Menor armónica: Escala menor con 7ma ascendida. Salto visual de 2da aumentada (6to al 7mo grado).",
+      "levels": [
+        {
+          "level": 1,
+          "phase": "study",
+          "label": "Fase .1 · Estudio aislado",
+          "prompt": "Escuchar Menor armónica"
+        },
+        {
+          "level": 2,
+          "phase": "challenge",
+          "label": "Fase .2 · Reto acumulado",
+          "prompt": "¿Qué escala escuchas?"
+        }
+      ]
+    },
+    {
+      "id": 25,
+      "name": "Menor melódica",
+      "group": "scale",
+      "type": "scale",
+      "scale": {
+        "steps": [
+          2,
+          1,
+          2,
+          2,
+          2,
+          2,
+          1
+        ],
+        "formula": "Sube alterada, baja natural",
+        "focus": [
+          5,
+          6
+        ],
+        "focusText": "6to y 7mo grado ascienden al subir y descienden al bajar."
+      },
+      "description": "Menor melódica: Sube alterada, baja natural. 6to y 7mo grado ascienden al subir y descienden al bajar.",
+      "levels": [
+        {
+          "level": 1,
+          "phase": "study",
+          "label": "Fase .1 · Estudio aislado",
+          "prompt": "Escuchar Menor melódica"
+        },
+        {
+          "level": 2,
+          "phase": "challenge",
+          "label": "Fase .2 · Reto acumulado",
+          "prompt": "¿Qué escala escuchas?"
+        }
+      ]
+    },
+    {
+      "id": 26,
+      "name": "Modo dórico",
+      "group": "scale",
+      "type": "scale",
+      "scale": {
+        "steps": [
+          2,
+          1,
+          2,
+          2,
+          2,
+          1,
+          2
+        ],
+        "formula": "Escala menor con 6ta mayor",
+        "focus": [
+          5
+        ],
+        "focusText": "Destacar la 6ta mayor característica."
+      },
+      "description": "Modo dórico: Escala menor con 6ta mayor. Destacar la 6ta mayor característica.",
+      "levels": [
+        {
+          "level": 1,
+          "phase": "study",
+          "label": "Fase .1 · Estudio aislado",
+          "prompt": "Escuchar Modo dórico"
+        },
+        {
+          "level": 2,
+          "phase": "challenge",
+          "label": "Fase .2 · Reto acumulado",
+          "prompt": "¿Qué escala escuchas?"
+        }
+      ]
+    },
+    {
+      "id": 27,
+      "name": "Modo frigio",
+      "group": "scale",
+      "type": "scale",
+      "scale": {
+        "steps": [
+          1,
+          2,
+          2,
+          2,
+          1,
+          2,
+          2
+        ],
+        "formula": "Escala menor con 2da menor",
+        "focus": [
+          1
+        ],
+        "focusText": "Destacar la 2da menor en el inicio."
+      },
+      "description": "Modo frigio: Escala menor con 2da menor. Destacar la 2da menor en el inicio.",
+      "levels": [
+        {
+          "level": 1,
+          "phase": "study",
+          "label": "Fase .1 · Estudio aislado",
+          "prompt": "Escuchar Modo frigio"
+        },
+        {
+          "level": 2,
+          "phase": "challenge",
+          "label": "Fase .2 · Reto acumulado",
+          "prompt": "¿Qué escala escuchas?"
+        }
+      ]
+    },
+    {
+      "id": 28,
+      "name": "Modo lidio",
+      "group": "scale",
+      "type": "scale",
+      "scale": {
+        "steps": [
+          2,
+          2,
+          2,
+          1,
+          2,
+          2,
+          1
+        ],
+        "formula": "Escala mayor con 4ta aumentada",
+        "focus": [
+          3
+        ],
+        "focusText": "Evidenciar la 4ta aumentada (tritono desde la tónica)."
+      },
+      "description": "Modo lidio: Escala mayor con 4ta aumentada. Evidenciar la 4ta aumentada (tritono desde la tónica).",
+      "levels": [
+        {
+          "level": 1,
+          "phase": "study",
+          "label": "Fase .1 · Estudio aislado",
+          "prompt": "Escuchar Modo lidio"
+        },
+        {
+          "level": 2,
+          "phase": "challenge",
+          "label": "Fase .2 · Reto acumulado",
+          "prompt": "¿Qué escala escuchas?"
+        }
+      ]
+    },
+    {
+      "id": 29,
+      "name": "Modo mixolidio",
+      "group": "scale",
+      "type": "scale",
+      "scale": {
+        "steps": [
+          2,
+          2,
+          1,
+          2,
+          2,
+          1,
+          2
+        ],
+        "formula": "Escala mayor con 7ma menor",
+        "focus": [
+          6
+        ],
+        "focusText": "Destacar la 7ma menor en la partitura."
+      },
+      "description": "Modo mixolidio: Escala mayor con 7ma menor. Destacar la 7ma menor en la partitura.",
+      "levels": [
+        {
+          "level": 1,
+          "phase": "study",
+          "label": "Fase .1 · Estudio aislado",
+          "prompt": "Escuchar Modo mixolidio"
+        },
+        {
+          "level": 2,
+          "phase": "challenge",
+          "label": "Fase .2 · Reto acumulado",
+          "prompt": "¿Qué escala escuchas?"
+        }
+      ]
+    },
+    {
+      "id": 30,
+      "name": "Modo locrio",
+      "group": "scale",
+      "type": "scale",
+      "scale": {
+        "steps": [
+          1,
+          2,
+          2,
+          1,
+          2,
+          2,
+          2
+        ],
+        "formula": "Escala menor con 2da m y 5ta disminuida",
+        "focus": [
+          4
+        ],
+        "focusText": "Destacar la 5ta disminuida."
+      },
+      "description": "Modo locrio: Escala menor con 2da m y 5ta disminuida. Destacar la 5ta disminuida.",
+      "levels": [
+        {
+          "level": 1,
+          "phase": "study",
+          "label": "Fase .1 · Estudio aislado",
+          "prompt": "Escuchar Modo locrio"
+        },
+        {
+          "level": 2,
+          "phase": "challenge",
+          "label": "Fase .2 · Reto acumulado",
+          "prompt": "¿Qué escala escuchas?"
+        }
+      ]
     }
   ]
 }
-
