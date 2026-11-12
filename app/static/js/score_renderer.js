@@ -215,7 +215,14 @@ const SemimusScore = (() => {
 
   function distanceText(midiA, midiB) {
     const semitones = Math.abs(midiB - midiA);
-    const tonos = semitones < TONOS_BY_SEMITONES.length ? TONOS_BY_SEMITONES[semitones] : `${semitones} semitonos`;
+    let tonos;
+    if (semitones < TONOS_BY_SEMITONES.length) {
+      tonos = TONOS_BY_SEMITONES[semitones];
+    } else {
+      // Compuestos: octava justa + simple (p. ej. novena menor = 6 tonos + medio tono).
+      const rest = semitones - 12;
+      tonos = rest === 0 ? '6 tonos' : `6 tonos + ${TONOS_BY_SEMITONES[rest]}`;
+    }
     return `Distancia: ${tonos} (${semitones} ${semitones === 1 ? 'traste' : 'trastes'})`;
   }
 
@@ -391,7 +398,7 @@ const SemimusScore = (() => {
     const caption = document.createElement('p');
     caption.className = 'semimus-score-caption';
     caption.textContent = notes
-      .map(note => `${note.spanish_name} / ${note.scientific_name}`)
+      .map(note => `${note.spanish_name} / ${note.scientific_name}${note.focus ? ' ★' : ''}`)
       .join('  →  ');
     row.appendChild(paper);
     const fingering = options.diagram === false ? null : buildFingering(payload.instrument, notes);
@@ -412,9 +419,10 @@ const SemimusScore = (() => {
       : instrumentInfo.writtenShift;
 
     // Altura escrita: la guitarra se escribe una octava arriba de cómo suena.
+    // Sin transposición se conserva la ortografía de la nota (bemoles de escalas).
     const written = notes.map(note => {
       const midi = midiOfNote(note);
-      return midi === null ? note : noteInfoFromMidi(midi + writtenShift);
+      return midi === null || writtenShift === 0 ? note : noteInfoFromMidi(midi + writtenShift);
     });
 
     const width = 320;
@@ -440,6 +448,10 @@ const SemimusScore = (() => {
       written.forEach((note, index) => {
         if (note.accidental) {
           staveNotes[index].addModifier(new VF.Accidental(note.accidental), 0);
+        }
+        // Grados de foco: color y la marca ★ en la leyenda (no solo color).
+        if (note.focus) {
+          staveNotes[index].setStyle({ fillStyle: '#B45309', strokeStyle: '#B45309' });
         }
       });
 
