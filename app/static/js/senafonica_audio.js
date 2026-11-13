@@ -702,14 +702,30 @@ class SenafonicaAudioEngine {
 
   // ── SOUND EFFECTS (SFX) ───────────────────────────────────────────────────
 
+  // SFX must not wait for network audio after a tap; use a cached recording
+  // when available and the local synth otherwise.
+  _playImmediateSfxNote(instrument, midi, startTime, duration, volume) {
+    const url = this.getSampleUrl(instrument, midi);
+    const buffer = url ? this.sampleCache.get(url) : null;
+    if (buffer) {
+      return this._playSampleBuffer(
+        buffer,
+        startTime,
+        duration,
+        volume,
+        this.sampleOffsets.get(url) || 0
+      );
+    }
+    return this._synthesizeFolkNote(instrument, midi, startTime, duration, volume);
+  }
+
   // Success arpeggio (harmonic celebration)
   async playSuccessSound() {
     this.unlock();
     const notes = [60, 64, 67, 72, 76]; // C4, E4, G4, C5, E5
-    await this.preloadNotes("Tiple", notes);
     const now = this.ctx.currentTime + 0.02;
     notes.forEach((midi, i) => {
-      this.playNote("Tiple", midi, now + i * 0.08, 0.45, 0.85);
+      this._playImmediateSfxNote("Tiple", midi, now + i * 0.08, 0.45, 0.85);
     });
   }
 
@@ -736,10 +752,9 @@ class SenafonicaAudioEngine {
   async playLifeRestoredSound() {
     this.unlock();
     const notes = [67, 71, 74, 79]; // G4, B4, D5, G5
-    await this.preloadNotes("Bandola", notes);
     const now = this.ctx.currentTime + 0.02;
     notes.forEach((midi, i) => {
-      this.playNote("Bandola", midi, now + i * 0.09, 0.5, 0.85);
+      this._playImmediateSfxNote("Bandola", midi, now + i * 0.09, 0.5, 0.85);
     });
   }
 
@@ -748,10 +763,9 @@ class SenafonicaAudioEngine {
     this.unlock();
     const notes = [60, 64, 67, 72, 72, 76];
     const delays = [0, 0.1, 0.2, 0.32, 0.45, 0.6];
-    await this.preloadNotes("Tiple", notes);
     const now = this.ctx.currentTime + 0.02;
     notes.forEach((midi, i) => {
-      this.playNote("Tiple", midi, now + delays[i], 0.6, 0.9);
+      this._playImmediateSfxNote("Tiple", midi, now + delays[i], 0.6, 0.9);
     });
   }
 }
