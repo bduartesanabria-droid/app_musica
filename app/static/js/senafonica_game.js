@@ -160,7 +160,7 @@ function senafonicaGame(initData) {
     // ── MASCOT CONTROLLER ─────────────────────────────────────────────────
     mascotState: 'idle',
     mascotSpeech: '¡Bienvenido a Senafónico! Recorreremos la hermosa Provincia de Vélez.',
-    mascotImg: '/static/img/ninos_traje.png',
+    mascotImg: '/static/img/ninos_traje.webp',
 
     // ── AUDIO ENGINE ──────────────────────────────────────────────────────
     audio: null,
@@ -364,7 +364,7 @@ function senafonicaGame(initData) {
       } else if (state === 'sad') {
         this.mascotImg = '/static/img/ninos_tristes.png';
       } else {
-        this.mascotImg = '/static/img/ninos_traje.png';
+        this.mascotImg = '/static/img/ninos_traje.webp';
       }
     },
 
