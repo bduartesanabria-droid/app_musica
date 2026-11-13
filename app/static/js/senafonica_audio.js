@@ -200,15 +200,19 @@ class SenafonicaAudioEngine {
     return 0;
   }
 
-  // Find sample URL from catalog
-  getSampleUrl(instrument, midi) {
+  // Find sample metadata from catalog
+  getSampleEntry(instrument, midi) {
     if (!this.catalog) return null;
     const instKey = Object.keys(this.catalog).find(
       k => k.toLowerCase() === (instrument || "").toLowerCase()
     );
     if (!instKey || !this.catalog[instKey]) return null;
-    const match = this.catalog[instKey].find(item => item.midi === midi);
-    return match ? match.stream_url : null;
+    return this.catalog[instKey].find(item => item.midi === midi) || null;
+  }
+
+  getSampleUrl(instrument, midi) {
+    const entry = this.getSampleEntry(instrument, midi);
+    return entry ? entry.stream_url : null;
   }
 
   // Convert MIDI note number to frequency in Hz
@@ -285,6 +289,7 @@ class SenafonicaAudioEngine {
     const now = startTime || ctx.currentTime;
 
     const sampleUrl = this.getSampleUrl(instrument, midi);
+    const sampleEntry = this.getSampleEntry(instrument, midi);
     let buffer = sampleUrl ? this.sampleCache.get(sampleUrl) : null;
     if (!buffer && sampleUrl) {
       buffer = await this.preloadSample(sampleUrl);
@@ -296,7 +301,8 @@ class SenafonicaAudioEngine {
         now,
         duration,
         volume,
-        this.sampleOffsets.get(sampleUrl) || 0
+        this.sampleOffsets.get(sampleUrl) || 0,
+        sampleEntry?.detune_cents || 0
       );
     }
 
@@ -383,10 +389,13 @@ class SenafonicaAudioEngine {
    * Sample playback that preserves the instrument's natural resonance.
    * Standard sample tail has ~1.8-2.5s; we ramp down quickly to simulate live execution.
    */
-  _playSampleBuffer(buffer, startTime, duration, volume, sampleOffset = 0) {
+  _playSampleBuffer(buffer, startTime, duration, volume, sampleOffset = 0, detuneCents = 0) {
     const ctx = this.ctx;
     const source = ctx.createBufferSource();
     source.buffer = buffer;
+    if (source.detune && source.detune.setValueAtTime) {
+      source.detune.setValueAtTime(Number(detuneCents) || 0, startTime);
+    }
 
     const gainNode = ctx.createGain();
     const normalizedGain = this._getNormalizedGain(buffer, sampleOffset);
@@ -732,7 +741,8 @@ class SenafonicaAudioEngine {
         startTime,
         duration,
         volume,
-        this.sampleOffsets.get(url) || 0
+        this.sampleOffsets.get(url) || 0,
+        this.getSampleEntry(instrument, midi)?.detune_cents || 0
       );
     }
     return this._synthesizeFolkNote(instrument, midi, startTime, duration, volume);

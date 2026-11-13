@@ -13,6 +13,7 @@ def preferred_audio_path(file_path, requested_format=None):
         candidate = source.with_suffix(f".{requested_format}")
         if candidate.is_file():
             return candidate
+        return source if source.is_file() else None
     for extension in ("ogg", "mp3"):
         candidate = source.with_suffix(f".{extension}")
         if candidate.is_file():

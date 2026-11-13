@@ -160,12 +160,14 @@ def create_app(env=None):
                 try:
                     response.direct_passthrough = False
                     response.set_etag(hashlib.sha256(response.get_data()).hexdigest())
+                    response.make_conditional(request)
                 except (RuntimeError, OSError):
                     pass
 
+        content_type = response.mimetype or ""
         text_response = (
-            response.mimetype.startswith("text/")
-            or response.mimetype in {"application/javascript", "application/json", "image/svg+xml"}
+            content_type.startswith("text/")
+            or content_type in {"application/javascript", "application/json", "image/svg+xml"}
         )
         if (
             text_response
@@ -193,6 +195,7 @@ def create_app(env=None):
                     response.set_data(body)
                     response.set_etag(hashlib.sha256(body).hexdigest())
                     response.vary.add("Accept-Encoding")
+                    response.make_conditional(request)
             except (ImportError, RuntimeError, OSError):
                 app.logger.exception("No se pudo comprimir la respuesta de texto.")
         return response
