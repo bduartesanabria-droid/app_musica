@@ -284,6 +284,28 @@ def test_specific_ear_and_tonic_achievements_are_awarded(login_client, app):
         )
         assert response.status_code == 200
 
+    for _ in range(3):
+        response = client.post(
+            "/api/senafonica/achievements",
+            data=json.dumps({"instrument": "Bandola", "correct": True}),
+            content_type="application/json",
+        )
+        assert response.json["bandola_correct_streak"] == 10
+
+    response = client.post(
+        "/api/senafonica/achievements",
+        data=json.dumps({"instrument": "Tiple", "correct": False}),
+        content_type="application/json",
+    )
+    assert response.json["bandola_correct_streak"] == 10
+
+    response = client.post(
+        "/api/senafonica/achievements",
+        data=json.dumps({"instrument": "Bandola", "correct": False}),
+        content_type="application/json",
+    )
+    assert response.json["bandola_correct_streak"] == 0
+
     for scale_id in scale_ids:
         response = client.post(
             "/api/senafonica/achievements",
