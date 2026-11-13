@@ -56,6 +56,28 @@ def test_compiled_frontend_assets_are_served(client):
         assert client.get(path).status_code == 200
 
 
+def test_versioned_static_assets_use_compression_and_long_cache(client):
+    response = client.get(
+        "/static/js/module_engine.js?v=test-build",
+        headers={"Accept-Encoding": "br"},
+    )
+
+    assert response.status_code == 200
+    assert response.headers["Content-Encoding"] == "br"
+    assert response.headers["Cache-Control"] == "public, max-age=31536000, immutable"
+    assert "Accept-Encoding" in response.headers["Vary"]
+
+
+def test_senafonica_html_has_a_conditional_etag(client):
+    response = client.get("/senafonica")
+    etag = response.headers["ETag"]
+
+    assert response.status_code == 200
+    assert etag
+    cached = client.get("/senafonica", headers={"If-None-Match": etag})
+    assert cached.status_code == 304
+
+
 def test_score_renderer_is_vendored_and_exposes_vex_global():
     source = open("app/static/vendor/vexflow-4.2.5.js", encoding="utf-8").read()
     assert source.startswith("/*!")
