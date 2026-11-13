@@ -1,0 +1,788 @@
+{
+  "Bandola_DO#4.wav": {
+    "frequency_hz": 279.597,
+    "measured_cents": 15.0,
+    "detune_cents": -15.0,
+    "validation_required": false
+  },
+  "Bandola_DO#5.wav": {
+    "frequency_hz": 553.388,
+    "measured_cents": -3.1,
+    "detune_cents": 3.1,
+    "validation_required": false
+  },
+  "Bandola_DO#6.wav": {
+    "frequency_hz": 1110.56,
+    "measured_cents": 2.9,
+    "detune_cents": -2.9,
+    "validation_required": false
+  },
+  "Bandola_DO4.wav": {
+    "frequency_hz": 264.434,
+    "measured_cents": 18.5,
+    "detune_cents": -18.5,
+    "validation_required": false
+  },
+  "Bandola_DO5.wav": {
+    "frequency_hz": 524.846,
+    "measured_cents": 5.3,
+    "detune_cents": -5.3,
+    "validation_required": false
+  },
+  "Bandola_DO6.wav": {
+    "frequency_hz": 1045.695,
+    "measured_cents": -1.3,
+    "detune_cents": 1.3,
+    "validation_required": false
+  },
+  "Bandola_FA#3.wav": {
+    "frequency_hz": 184.721,
+    "measured_cents": -2.6,
+    "detune_cents": 2.6,
+    "validation_required": false
+  },
+  "Bandola_FA#4.wav": {
+    "frequency_hz": 372.857,
+    "measured_cents": 13.3,
+    "detune_cents": -13.3,
+    "validation_required": false
+  },
+  "Bandola_FA#5.wav": {
+    "frequency_hz": 741.701,
+    "measured_cents": 4.0,
+    "detune_cents": -4.0,
+    "validation_required": false
+  },
+  "Bandola_FA#6.wav": {
+    "frequency_hz": 1480.422,
+    "measured_cents": 0.5,
+    "detune_cents": -0.5,
+    "validation_required": false
+  },
+  "Bandola_FA4.wav": {
+    "frequency_hz": 351.095,
+    "measured_cents": 9.2,
+    "detune_cents": -9.2,
+    "validation_required": false
+  },
+  "Bandola_FA5.wav": {
+    "frequency_hz": 701.065,
+    "measured_cents": 6.5,
+    "detune_cents": -6.5,
+    "validation_required": false
+  },
+  "Bandola_FA6.wav": {
+    "frequency_hz": 1400.017,
+    "measured_cents": 3.8,
+    "detune_cents": -3.8,
+    "validation_required": false
+  },
+  "Bandola_LA#3.wav": {
+    "frequency_hz": 234.235,
+    "measured_cents": 8.5,
+    "detune_cents": -8.5,
+    "validation_required": false
+  },
+  "Bandola_LA#4.wav": {
+    "frequency_hz": 465.63,
+    "measured_cents": -2.0,
+    "detune_cents": 2.0,
+    "validation_required": false
+  },
+  "Bandola_LA#5.wav": {
+    "frequency_hz": 933.459,
+    "measured_cents": 2.1,
+    "detune_cents": -2.1,
+    "validation_required": false
+  },
+  "Bandola_LA3.wav": {
+    "frequency_hz": 221.797,
+    "measured_cents": 14.1,
+    "detune_cents": -14.1,
+    "validation_required": false
+  },
+  "Bandola_LA4.wav": {
+    "frequency_hz": 439.263,
+    "measured_cents": -2.9,
+    "detune_cents": 2.9,
+    "validation_required": false
+  },
+  "Bandola_LA5.wav": {
+    "frequency_hz": 882.389,
+    "measured_cents": 4.7,
+    "detune_cents": -4.7,
+    "validation_required": false
+  },
+  "Bandola_MI4.wav": {
+    "frequency_hz": 329.666,
+    "measured_cents": 0.2,
+    "detune_cents": -0.2,
+    "validation_required": false
+  },
+  "Bandola_MI5.wav": {
+    "frequency_hz": 661.811,
+    "measured_cents": 6.7,
+    "detune_cents": -6.7,
+    "validation_required": false
+  },
+  "Bandola_MI6.wav": {
+    "frequency_hz": 1314.985,
+    "measured_cents": -4.6,
+    "detune_cents": 4.6,
+    "validation_required": false
+  },
+  "Bandola_RE#4.wav": {
+    "frequency_hz": 314.147,
+    "measured_cents": 16.7,
+    "detune_cents": -16.7,
+    "validation_required": false
+  },
+  "Bandola_RE#5.wav": {
+    "frequency_hz": 623.192,
+    "measured_cents": 2.6,
+    "detune_cents": -2.6,
+    "validation_required": false
+  },
+  "Bandola_RE#6.wav": {
+    "frequency_hz": 1244.724,
+    "measured_cents": 0.3,
+    "detune_cents": -0.3,
+    "validation_required": false
+  },
+  "Bandola_RE4.wav": {
+    "frequency_hz": 296.89,
+    "measured_cents": 18.9,
+    "detune_cents": -18.9,
+    "validation_required": false
+  },
+  "Bandola_RE5.wav": {
+    "frequency_hz": 586.845,
+    "measured_cents": -1.4,
+    "detune_cents": 1.4,
+    "validation_required": false
+  },
+  "Bandola_RE6.wav": {
+    "frequency_hz": 1174.273,
+    "measured_cents": -0.6,
+    "detune_cents": 0.6,
+    "validation_required": false
+  },
+  "Bandola_SI3.wav": {
+    "frequency_hz": 247.76,
+    "measured_cents": 5.7,
+    "detune_cents": -5.7,
+    "validation_required": false
+  },
+  "Bandola_SI4.wav": {
+    "frequency_hz": 494.578,
+    "measured_cents": 2.4,
+    "detune_cents": -2.4,
+    "validation_required": false
+  },
+  "Bandola_SI5.wav": {
+    "frequency_hz": 988.528,
+    "measured_cents": 1.3,
+    "detune_cents": -1.3,
+    "validation_required": false
+  },
+  "Bandola_SOL#3.wav": {
+    "frequency_hz": 209.276,
+    "measured_cents": 13.5,
+    "detune_cents": -13.5,
+    "validation_required": false
+  },
+  "Bandola_SOL#4.wav": {
+    "frequency_hz": 418.467,
+    "measured_cents": 13.1,
+    "detune_cents": -13.1,
+    "validation_required": false
+  },
+  "Bandola_SOL#5.wav": {
+    "frequency_hz": 831.825,
+    "measured_cents": 2.5,
+    "detune_cents": -2.5,
+    "validation_required": false
+  },
+  "Bandola_SOL3.wav": {
+    "frequency_hz": 196.52,
+    "measured_cents": 4.6,
+    "detune_cents": -4.6,
+    "validation_required": false
+  },
+  "Bandola_SOL4.wav": {
+    "frequency_hz": 394.56,
+    "measured_cents": 11.3,
+    "detune_cents": -11.3,
+    "validation_required": false
+  },
+  "Bandola_SOL5.wav": {
+    "frequency_hz": 784.653,
+    "measured_cents": 1.5,
+    "detune_cents": -1.5,
+    "validation_required": false
+  },
+  "Bandola_SOL6.wav": {
+    "frequency_hz": 1564.509,
+    "measured_cents": -3.8,
+    "detune_cents": 3.8,
+    "validation_required": false
+  },
+  "Guitarra_DO#3.wav": {
+    "frequency_hz": 138.701,
+    "measured_cents": 1.4,
+    "detune_cents": -1.4,
+    "validation_required": false
+  },
+  "Guitarra_DO#4.wav": {
+    "frequency_hz": 279.746,
+    "measured_cents": 15.9,
+    "detune_cents": -15.9,
+    "validation_required": false
+  },
+  "Guitarra_DO#5.wav": {
+    "frequency_hz": 556.479,
+    "measured_cents": 6.6,
+    "detune_cents": -6.6,
+    "validation_required": false
+  },
+  "Guitarra_DO3.wav": {
+    "frequency_hz": 131.207,
+    "measured_cents": 5.2,
+    "detune_cents": -5.2,
+    "validation_required": false
+  },
+  "Guitarra_DO4.wav": {
+    "frequency_hz": 264.37,
+    "measured_cents": 18.1,
+    "detune_cents": -18.1,
+    "validation_required": false
+  },
+  "Guitarra_DO5.wav": {
+    "frequency_hz": 526.148,
+    "measured_cents": 9.6,
+    "detune_cents": -9.6,
+    "validation_required": false
+  },
+  "Guitarra_FA#2.wav": {
+    "frequency_hz": 92.827,
+    "measured_cents": 6.1,
+    "detune_cents": -6.1,
+    "validation_required": false
+  },
+  "Guitarra_FA#3.wav": {
+    "frequency_hz": 185.157,
+    "measured_cents": 1.5,
+    "detune_cents": -1.5,
+    "validation_required": false
+  },
+  "Guitarra_FA#4.wav": {
+    "frequency_hz": 371.444,
+    "measured_cents": 6.8,
+    "detune_cents": -6.8,
+    "validation_required": false
+  },
+  "Guitarra_FA2.wav": {
+    "frequency_hz": 87.501,
+    "measured_cents": 3.8,
+    "detune_cents": -3.8,
+    "validation_required": false
+  },
+  "Guitarra_FA3.wav": {
+    "frequency_hz": 174.964,
+    "measured_cents": 3.5,
+    "detune_cents": -3.5,
+    "validation_required": false
+  },
+  "Guitarra_FA4.wav": {
+    "frequency_hz": 351.166,
+    "measured_cents": 9.6,
+    "detune_cents": -9.6,
+    "validation_required": false
+  },
+  "Guitarra_LA#2.wav": {
+    "frequency_hz": 116.519,
+    "measured_cents": -0.3,
+    "detune_cents": 0.3,
+    "validation_required": false
+  },
+  "Guitarra_LA#3.wav": {
+    "frequency_hz": 234.528,
+    "measured_cents": 10.7,
+    "detune_cents": -10.7,
+    "validation_required": false
+  },
+  "Guitarra_LA#4.wav": {
+    "frequency_hz": 468.344,
+    "measured_cents": 8.1,
+    "detune_cents": -8.1,
+    "validation_required": false
+  },
+  "Guitarra_LA2.wav": {
+    "frequency_hz": 109.703,
+    "measured_cents": -4.7,
+    "detune_cents": 4.7,
+    "validation_required": false
+  },
+  "Guitarra_LA3.wav": {
+    "frequency_hz": 221.052,
+    "measured_cents": 8.3,
+    "detune_cents": -8.3,
+    "validation_required": false
+  },
+  "Guitarra_LA4.wav": {
+    "frequency_hz": 441.294,
+    "measured_cents": 5.1,
+    "detune_cents": -5.1,
+    "validation_required": false
+  },
+  "Guitarra_MI2.wav": {
+    "frequency_hz": 82.62,
+    "measured_cents": 4.5,
+    "detune_cents": -4.5,
+    "validation_required": false
+  },
+  "Guitarra_MI3.wav": {
+    "frequency_hz": 165.375,
+    "measured_cents": 5.9,
+    "detune_cents": -5.9,
+    "validation_required": false
+  },
+  "Guitarra_MI4.wav": {
+    "frequency_hz": 329.769,
+    "measured_cents": 0.7,
+    "detune_cents": -0.7,
+    "validation_required": false
+  },
+  "Guitarra_MI5.wav": {
+    "frequency_hz": 661.724,
+    "measured_cents": 6.5,
+    "detune_cents": -6.5,
+    "validation_required": false
+  },
+  "Guitarra_RE#3.wav": {
+    "frequency_hz": 155.953,
+    "measured_cents": 4.3,
+    "detune_cents": -4.3,
+    "validation_required": false
+  },
+  "Guitarra_RE#4.wav": {
+    "frequency_hz": 313.643,
+    "measured_cents": 13.9,
+    "detune_cents": -13.9,
+    "validation_required": false
+  },
+  "Guitarra_RE#5.wav": {
+    "frequency_hz": 627.128,
+    "measured_cents": 13.5,
+    "detune_cents": -13.5,
+    "validation_required": false
+  },
+  "Guitarra_RE3.wav": {
+    "frequency_hz": 146.8,
+    "measured_cents": -0.4,
+    "detune_cents": 0.4,
+    "validation_required": false
+  },
+  "Guitarra_RE4.wav": {
+    "frequency_hz": 296.784,
+    "measured_cents": 18.3,
+    "detune_cents": -18.3,
+    "validation_required": false
+  },
+  "Guitarra_RE5.wav": {
+    "frequency_hz": 592.765,
+    "measured_cents": 15.9,
+    "detune_cents": -15.9,
+    "validation_required": false
+  },
+  "Guitarra_SI2.wav": {
+    "frequency_hz": 123.768,
+    "measured_cents": 4.2,
+    "detune_cents": -4.2,
+    "validation_required": false
+  },
+  "Guitarra_SI3.wav": {
+    "frequency_hz": 248.823,
+    "measured_cents": 13.1,
+    "detune_cents": -13.1,
+    "validation_required": false
+  },
+  "Guitarra_SI4.wav": {
+    "frequency_hz": 497.12,
+    "measured_cents": 11.3,
+    "detune_cents": -11.3,
+    "validation_required": false
+  },
+  "Guitarra_SOL#2.wav": {
+    "frequency_hz": 104.1,
+    "measured_cents": 4.6,
+    "detune_cents": -4.6,
+    "validation_required": false
+  },
+  "Guitarra_SOL#3.wav": {
+    "frequency_hz": 208.042,
+    "measured_cents": 3.2,
+    "detune_cents": -3.2,
+    "validation_required": false
+  },
+  "Guitarra_SOL#4.wav": {
+    "frequency_hz": 416.633,
+    "measured_cents": 5.5,
+    "detune_cents": -5.5,
+    "validation_required": false
+  },
+  "Guitarra_SOL2.wav": {
+    "frequency_hz": 98.273,
+    "measured_cents": 4.8,
+    "detune_cents": -4.8,
+    "validation_required": false
+  },
+  "Guitarra_SOL3.wav": {
+    "frequency_hz": 195.862,
+    "measured_cents": -1.2,
+    "detune_cents": 1.2,
+    "validation_required": false
+  },
+  "Guitarra_SOL4.wav": {
+    "frequency_hz": 393.685,
+    "measured_cents": 7.4,
+    "detune_cents": -7.4,
+    "validation_required": false
+  },
+  "Requinto_DO#3.wav": {
+    "frequency_hz": 278.771,
+    "measured_cents": 9.9,
+    "detune_cents": -9.9,
+    "validation_required": false
+  },
+  "Requinto_DO#4.wav": {
+    "frequency_hz": 556.817,
+    "measured_cents": 7.6,
+    "detune_cents": -7.6,
+    "validation_required": false
+  },
+  "Requinto_DO#5.wav": {
+    "frequency_hz": 1104.037,
+    "measured_cents": -7.3,
+    "detune_cents": 7.3,
+    "validation_required": false
+  },
+  "Requinto_DO3.wav": {
+    "frequency_hz": 261.167,
+    "measured_cents": -3.0,
+    "detune_cents": 3.0,
+    "validation_required": false
+  },
+  "Requinto_DO4.wav": {
+    "frequency_hz": 525.666,
+    "measured_cents": 8.0,
+    "detune_cents": -8.0,
+    "validation_required": false
+  },
+  "Requinto_DO5.wav": {
+    "frequency_hz": 1045.834,
+    "measured_cents": -1.1,
+    "detune_cents": 1.1,
+    "validation_required": false
+  },
+  "Requinto_FA#3.wav": {
+    "frequency_hz": 375.31,
+    "measured_cents": 24.7,
+    "detune_cents": -24.7,
+    "validation_required": false
+  },
+  "Requinto_FA#4.wav": {
+    "frequency_hz": 740.893,
+    "measured_cents": 2.1,
+    "detune_cents": -2.1,
+    "validation_required": false
+  },
+  "Requinto_FA3.wav": {
+    "frequency_hz": 353.316,
+    "measured_cents": 20.1,
+    "detune_cents": 0.0,
+    "validation_required": true
+  },
+  "Requinto_FA4.wav": {
+    "frequency_hz": 701.862,
+    "measured_cents": 8.4,
+    "detune_cents": -8.4,
+    "validation_required": false
+  },
+  "Requinto_LA#3.wav": {
+    "frequency_hz": 469.406,
+    "measured_cents": 12.0,
+    "detune_cents": -12.0,
+    "validation_required": false
+  },
+  "Requinto_LA#4.wav": {
+    "frequency_hz": 932.079,
+    "measured_cents": -0.5,
+    "detune_cents": 0.5,
+    "validation_required": false
+  },
+  "Requinto_LA3.wav": {
+    "frequency_hz": 442.161,
+    "measured_cents": 8.5,
+    "detune_cents": -8.5,
+    "validation_required": false
+  },
+  "Requinto_LA4.wav": {
+    "frequency_hz": 880.679,
+    "measured_cents": 1.3,
+    "detune_cents": -1.3,
+    "validation_required": false
+  },
+  "Requinto_MI3.wav": {
+    "frequency_hz": 353.316,
+    "measured_cents": 120.1,
+    "detune_cents": 0.0,
+    "validation_required": true
+  },
+  "Requinto_MI4.wav": {
+    "frequency_hz": 660.826,
+    "measured_cents": 4.1,
+    "detune_cents": -4.1,
+    "validation_required": false
+  },
+  "Requinto_RE#3.wav": {
+    "frequency_hz": 334.125,
+    "measured_cents": 123.5,
+    "detune_cents": -123.5,
+    "validation_required": false
+  },
+  "Requinto_RE#4.wav": {
+    "frequency_hz": 625.192,
+    "measured_cents": 8.2,
+    "detune_cents": -8.2,
+    "validation_required": false
+  },
+  "Requinto_RE3.wav": {
+    "frequency_hz": 315.579,
+    "measured_cents": 124.6,
+    "detune_cents": -124.6,
+    "validation_required": false
+  },
+  "Requinto_RE4.wav": {
+    "frequency_hz": 590.778,
+    "measured_cents": 10.1,
+    "detune_cents": -10.1,
+    "validation_required": false
+  },
+  "Requinto_RE5.wav": {
+    "frequency_hz": 1165.731,
+    "measured_cents": -13.2,
+    "detune_cents": 13.2,
+    "validation_required": false
+  },
+  "Requinto_SI3.wav": {
+    "frequency_hz": 496.623,
+    "measured_cents": 9.6,
+    "detune_cents": -9.6,
+    "validation_required": false
+  },
+  "Requinto_SI4.wav": {
+    "frequency_hz": 992.39,
+    "measured_cents": 8.1,
+    "detune_cents": -8.1,
+    "validation_required": false
+  },
+  "Requinto_SOL#3.wav": {
+    "frequency_hz": 418.183,
+    "measured_cents": 12.0,
+    "detune_cents": -12.0,
+    "validation_required": false
+  },
+  "Requinto_SOL#4.wav": {
+    "frequency_hz": 831.039,
+    "measured_cents": 0.9,
+    "detune_cents": -0.9,
+    "validation_required": false
+  },
+  "Requinto_SOL3.wav": {
+    "frequency_hz": 395.773,
+    "measured_cents": 16.6,
+    "detune_cents": -16.6,
+    "validation_required": false
+  },
+  "Requinto_SOL4.wav": {
+    "frequency_hz": 786.048,
+    "measured_cents": 4.5,
+    "detune_cents": -4.5,
+    "validation_required": false
+  },
+  "Tiple_DO#3.wav": {
+    "frequency_hz": 139.962,
+    "measured_cents": 17.0,
+    "detune_cents": -17.0,
+    "validation_required": false
+  },
+  "Tiple_DO#4.wav": {
+    "frequency_hz": 278.813,
+    "measured_cents": 10.2,
+    "detune_cents": -10.2,
+    "validation_required": false
+  },
+  "Tiple_DO#5.wav": {
+    "frequency_hz": 555.149,
+    "measured_cents": 2.4,
+    "detune_cents": -2.4,
+    "validation_required": false
+  },
+  "Tiple_DO3.wav": {
+    "frequency_hz": 131.128,
+    "measured_cents": 4.2,
+    "detune_cents": -4.2,
+    "validation_required": false
+  },
+  "Tiple_DO4.wav": {
+    "frequency_hz": 263.083,
+    "measured_cents": 9.6,
+    "detune_cents": -9.6,
+    "validation_required": false
+  },
+  "Tiple_DO5.wav": {
+    "frequency_hz": 523.034,
+    "measured_cents": -0.7,
+    "detune_cents": 0.7,
+    "validation_required": false
+  },
+  "Tiple_FA#3.wav": {
+    "frequency_hz": 185.735,
+    "measured_cents": 6.9,
+    "detune_cents": -6.9,
+    "validation_required": false
+  },
+  "Tiple_FA#4.wav": {
+    "frequency_hz": 371.833,
+    "measured_cents": 8.6,
+    "detune_cents": -8.6,
+    "validation_required": false
+  },
+  "Tiple_FA3.wav": {
+    "frequency_hz": 174.3,
+    "measured_cents": -3.1,
+    "detune_cents": 3.1,
+    "validation_required": false
+  },
+  "Tiple_FA4.wav": {
+    "frequency_hz": 351.117,
+    "measured_cents": 9.3,
+    "detune_cents": -9.3,
+    "validation_required": false
+  },
+  "Tiple_LA#3.wav": {
+    "frequency_hz": 234.778,
+    "measured_cents": 12.6,
+    "detune_cents": -12.6,
+    "validation_required": false
+  },
+  "Tiple_LA#4.wav": {
+    "frequency_hz": 469.015,
+    "measured_cents": 10.6,
+    "detune_cents": -10.6,
+    "validation_required": false
+  },
+  "Tiple_LA3.wav": {
+    "frequency_hz": 220.024,
+    "measured_cents": 0.2,
+    "detune_cents": -0.2,
+    "validation_required": false
+  },
+  "Tiple_LA4.wav": {
+    "frequency_hz": 440.026,
+    "measured_cents": 0.1,
+    "detune_cents": -0.1,
+    "validation_required": false
+  },
+  "Tiple_MI3.wav": {
+    "frequency_hz": 167.007,
+    "measured_cents": 22.9,
+    "detune_cents": -22.9,
+    "validation_required": false
+  },
+  "Tiple_MI4.wav": {
+    "frequency_hz": 330.452,
+    "measured_cents": 4.3,
+    "detune_cents": -4.3,
+    "validation_required": false
+  },
+  "Tiple_MI5.wav": {
+    "frequency_hz": 661.547,
+    "measured_cents": 6.0,
+    "detune_cents": -6.0,
+    "validation_required": false
+  },
+  "Tiple_RE#3.wav": {
+    "frequency_hz": 156.785,
+    "measured_cents": 13.5,
+    "detune_cents": -13.5,
+    "validation_required": false
+  },
+  "Tiple_RE#4.wav": {
+    "frequency_hz": 314.427,
+    "measured_cents": 18.3,
+    "detune_cents": -18.3,
+    "validation_required": false
+  },
+  "Tiple_RE#5.wav": {
+    "frequency_hz": 624.964,
+    "measured_cents": 7.5,
+    "detune_cents": -7.5,
+    "validation_required": false
+  },
+  "Tiple_RE3.wav": {
+    "frequency_hz": 148.664,
+    "measured_cents": 21.5,
+    "detune_cents": -21.5,
+    "validation_required": false
+  },
+  "Tiple_RE4.wav": {
+    "frequency_hz": 294.017,
+    "measured_cents": 2.1,
+    "detune_cents": -2.1,
+    "validation_required": false
+  },
+  "Tiple_RE5.wav": {
+    "frequency_hz": 585.491,
+    "measured_cents": -5.4,
+    "detune_cents": 5.4,
+    "validation_required": false
+  },
+  "Tiple_SI3.wav": {
+    "frequency_hz": 248.785,
+    "measured_cents": 12.9,
+    "detune_cents": -12.9,
+    "validation_required": false
+  },
+  "Tiple_SI4.wav": {
+    "frequency_hz": 495.371,
+    "measured_cents": 5.2,
+    "detune_cents": -5.2,
+    "validation_required": false
+  },
+  "Tiple_SOL#3.wav": {
+    "frequency_hz": 208.58,
+    "measured_cents": 7.7,
+    "detune_cents": -7.7,
+    "validation_required": false
+  },
+  "Tiple_SOL#4.wav": {
+    "frequency_hz": 417.292,
+    "measured_cents": 8.3,
+    "detune_cents": -8.3,
+    "validation_required": false
+  },
+  "Tiple_SOL3.wav": {
+    "frequency_hz": 196.861,
+    "measured_cents": 7.6,
+    "detune_cents": -7.6,
+    "validation_required": false
+  },
+  "Tiple_SOL4.wav": {
+    "frequency_hz": 394.307,
+    "measured_cents": 10.2,
+    "detune_cents": -10.2,
+    "validation_required": false
+  }
+}

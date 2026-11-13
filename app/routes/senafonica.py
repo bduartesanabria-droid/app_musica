@@ -5,6 +5,7 @@ import mimetypes
 import os
 from pathlib import Path
 from datetime import timedelta
+from functools import lru_cache
 from flask import Blueprint, abort, render_template, jsonify, request, send_file, url_for
 from flask_login import current_user, login_required
 from sqlalchemy.orm import joinedload
@@ -23,6 +24,11 @@ def _game_data(filename):
     data_path = Path(__file__).resolve().parents[1] / "static" / "data" / filename
     with data_path.open(encoding="utf-8") as data_file:
         return json.load(data_file)
+
+
+@lru_cache(maxsize=1)
+def _audio_pitch_corrections():
+    return _game_data("audio_pitch_corrections.json")
 
 
 def _interval_data(intervals):
@@ -862,7 +868,10 @@ def _build_audio_catalog():
             "note_name": a.note.display_name,
             "midi": a.note.midi_number,
             "octave": a.note.octave,
-            "frequency": a.note.frequency
+            "frequency": a.note.frequency,
+            "detune_cents": _audio_pitch_corrections().get(
+                a.original_filename, _audio_pitch_corrections().get(a.filename, {})
+            ).get("detune_cents", 0)
         })
 
     # Sort each instrument's samples by MIDI for efficient lookup
