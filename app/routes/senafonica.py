@@ -853,6 +853,7 @@ def _build_audio_catalog():
     ).filter_by(is_active=True).all()
 
     catalog = {}
+    pitch_corrections = _audio_pitch_corrections()
     for a in audios:
         if not a.instrument or not a.note:
             continue
@@ -869,9 +870,9 @@ def _build_audio_catalog():
             "midi": a.note.midi_number,
             "octave": a.note.octave,
             "frequency": a.note.frequency,
-            "detune_cents": _audio_pitch_corrections().get(
-                a.original_filename, _audio_pitch_corrections().get(a.filename, {})
-            ).get("detune_cents", 0)
+            "detune_cents": pitch_corrections.get(
+                a.original_filename, pitch_corrections.get(a.filename, {})
+            ).get("detune_cents", 0),
         })
 
     # Sort each instrument's samples by MIDI for efficient lookup
