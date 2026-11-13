@@ -1,5 +1,6 @@
 import json
 import re
+from pathlib import Path
 
 from app.extensions import db
 from app.models.audio import Audio
@@ -84,6 +85,9 @@ def test_score_renderer_is_vendored_and_exposes_vex_global():
     assert "VexFlow 4.2.5" in source[:300]
     # Build UMD: al cargarse con <script> expone el global `Vex`.
     assert "t.Vex=e()" in source
+    minified = open("app/static/vendor/vexflow-4.2.5.min.js", encoding="utf-8").read()
+    assert minified.startswith("/*!")
+    assert "VexFlow 4.2.5" in minified[:300]
 
     renderer = open("app/static/js/score_renderer.js", encoding="utf-8").read()
     assert "const SemimusScore" in renderer
@@ -117,6 +121,7 @@ def test_senafonica_page_loads_score_scripts_and_containers(client):
     assert 'x-ref="learnScore"' in html
     assert 'x-ref="answerScore"' in html
     assert 'x-ref="jamScore"' in html
+    assert Path("app/static/img/ninos_traje.webp").stat().st_size <= 200_000
 
     # Rangos acústicos por instrumento en el generador del juego.
     game = open("app/static/js/senafonica_game.js", encoding="utf-8").read()
