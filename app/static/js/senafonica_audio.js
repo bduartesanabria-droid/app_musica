@@ -27,6 +27,9 @@ class SenafonicaAudioEngine {
     this.activeMedia = new Set();
     this.isPlaying = false;
     this.playToken = 0;
+    this.preloadConcurrency = 4;
+    this.preloadQueue = [];
+    this.preloadActive = 0;
 
     // Teaching tempo: every note rings for 2 seconds with even spacing
     this.scaleNoteDuration = 2.0;
@@ -34,21 +37,35 @@ class SenafonicaAudioEngine {
     this.intervalNoteDuration = 2.0;
     this.intervalNoteGap = 0.5;
     this.releaseTime = 0.4;        // Gentle fade so the string resonance is not cut off
+    this.stopFadeTime = 0.02;      // 20 ms anti-click fade when stop() interrupts a note
 
     // MIDI Note name map
     this.NOTE_NAMES = ["DO", "DO#", "RE", "RE#", "MI", "FA", "FA#", "SOL", "SOL#", "LA", "LA#", "SI"];
   }
 
-  // Ensure AudioContext is initialized on user interaction
-  async initContext() {
+  // Create/resume the AudioContext synchronously inside a user gesture.
+  // Must be called from the click/keydown handler, before any await.
+  unlock() {
     if (!this.ctx) {
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
       this.ctx = new AudioCtx();
     }
-    if (this.ctx.state === "suspended") {
-      await this.ctx.resume();
+    if (this.ctx.state === "suspended" && typeof this.ctx.resume === "function") {
+      const resumed = this.ctx.resume();
+      if (resumed && typeof resumed.catch === "function") {
+        resumed.catch(() => {});
+      }
     }
     return this.ctx;
+  }
+
+  // Ensure AudioContext is initialized on user interaction
+  async initContext() {
+    const ctx = this.unlock();
+    if (ctx.state === "suspended") {
+      await ctx.resume();
+    }
+    return ctx;
   }
 
   // Preload an audio sample URL to AudioBuffer
@@ -82,19 +99,49 @@ class SenafonicaAudioEngine {
 
   async preloadNotes(instrument, midis) {
     const urls = [...new Set(midis.map(midi => this.getSampleUrl(instrument, midi)).filter(Boolean))];
-    await Promise.all(urls.map(url => this.preloadSample(url)));
+    await Promise.all(urls.map(url => this._queuePreload(url)));
+  }
+
+  // Global FIFO with a hard concurrency cap: the first question must not be
+  // buried under the background preload of the remaining questions.
+  _queuePreload(url) {
+    if (!url) return Promise.resolve(null);
+    if (this.sampleCache.has(url)) return Promise.resolve(this.sampleCache.get(url));
+    return new Promise(resolve => {
+      this.preloadQueue.push({ url, resolve });
+      this._drainPreloadQueue();
+    });
+  }
+
+  _drainPreloadQueue() {
+    while (this.preloadActive < this.preloadConcurrency && this.preloadQueue.length) {
+      const job = this.preloadQueue.shift();
+      this.preloadActive++;
+      Promise.resolve(this.preloadSample(job.url))
+        .then(buffer => job.resolve(buffer))
+        .catch(() => job.resolve(null))
+        .finally(() => {
+          this.preloadActive--;
+          this._drainPreloadQueue();
+        });
+    }
   }
 
   _findSampleOffset(buffer) {
     const frameSize = Math.max(1, Math.floor(buffer.sampleRate * 0.01));
-    const threshold = 10 ** (-45 / 20);
+    const absoluteThreshold = 10 ** (-45 / 20);
     const channels = Array.from(
       { length: buffer.numberOfChannels },
       (_, channel) => buffer.getChannelData(channel)
     );
     const frameCount = Math.ceil(buffer.length / frameSize);
+    const frameRms = new Float32Array(frameCount);
 
-    for (let frame = 0; frame < frameCount - 1; frame++) {
+    // First pass: RMS per 10 ms frame. The relative threshold ignores the
+    // noise floor that made the old absolute-only detector return offset 0
+    // for samples with a long silent lead-in (e.g. Guitarra SOL#4).
+    let maxRms = 0;
+    for (let frame = 0; frame < frameCount; frame++) {
       let energy = 0;
       let sampleCount = 0;
       for (const channel of channels) {
@@ -106,19 +153,13 @@ class SenafonicaAudioEngine {
         }
       }
       const rms = Math.sqrt(energy / Math.max(1, sampleCount));
-      if (rms < threshold) continue;
+      frameRms[frame] = rms;
+      if (rms > maxRms) maxRms = rms;
+    }
 
-      let nextEnergy = 0;
-      let nextSampleCount = 0;
-      for (const channel of channels) {
-        const start = (frame + 1) * frameSize;
-        const end = Math.min(start + frameSize, channel.length);
-        for (let index = start; index < end; index++) {
-          nextEnergy += channel[index] * channel[index];
-          nextSampleCount++;
-        }
-      }
-      if (Math.sqrt(nextEnergy / Math.max(1, nextSampleCount)) >= threshold) {
+    const threshold = Math.max(absoluteThreshold, maxRms * 0.1);
+    for (let frame = 0; frame < frameCount - 1; frame++) {
+      if (frameRms[frame] >= threshold && frameRms[frame + 1] >= threshold) {
         return Math.max(0, frame * frameSize / buffer.sampleRate - 0.02);
       }
     }
@@ -149,16 +190,47 @@ class SenafonicaAudioEngine {
     return `${note}${octave}`;
   }
 
-  // Stop all actively playing sounds
+  // Stop all actively playing sounds with a short anti-click fade.
   stop() {
     this.playToken++;
     this.isPlaying = false;
+    const ctx = this.ctx;
+    const now = ctx ? ctx.currentTime : 0;
+    const fade = this.stopFadeTime;
     const nodes = this.activeNodes;
     this.activeNodes = [];
+
+    // One ramp per shared gain node (synthesized notes share a master gain).
+    const fadeGains = new Set();
+    for (const node of nodes) {
+      if (node && node._fadeGain) fadeGains.add(node._fadeGain);
+    }
+    for (const gainNode of fadeGains) {
+      try {
+        const gain = gainNode.gain;
+        if (gain.cancelScheduledValues) gain.cancelScheduledValues(now);
+        if (gain.setValueAtTime) gain.setValueAtTime(Math.max(0.0001, Number(gain.value) || 0.0001), now);
+        if (gain.linearRampToValueAtTime) gain.linearRampToValueAtTime(0.0001, now + fade);
+      } catch (e) {
+        // Ignored
+      }
+    }
+
     for (const node of nodes) {
       try {
-        if (node.stop) node.stop();
-        if (node.disconnect) node.disconnect();
+        if (node._fadeGain) {
+          if (node.stop) node.stop(now + fade);
+          node.onended = () => {
+            try {
+              if (node.disconnect) node.disconnect();
+            } catch (e) {
+              // Ignored
+            }
+          };
+        } else {
+          if (node.stop) node.stop();
+          if (node.disconnect) node.disconnect();
+        }
       } catch (e) {
         // Ignored
       }
@@ -302,6 +374,16 @@ class SenafonicaAudioEngine {
     source.start(startTime, Math.min(sampleOffset, Math.max(0, buffer.duration - 0.01)));
     source.stop(stopTime);
 
+    source._fadeGain = gainNode;
+    source.onended = () => {
+      try {
+        source.disconnect();
+        gainNode.disconnect();
+      } catch (e) {
+        // Ignored
+      }
+      this.activeNodes = this.activeNodes.filter(node => node !== source);
+    };
     this.activeNodes.push(source);
     return stopTime;
   }
@@ -365,6 +447,7 @@ class SenafonicaAudioEngine {
 
         osc.start(startTime);
         osc.stop(startTime + duration + 0.05);
+        osc._fadeGain = masterGain;
         this.activeNodes.push(osc);
       });
     } else if (inst.includes("requinto")) {
@@ -383,6 +466,7 @@ class SenafonicaAudioEngine {
 
       osc.start(startTime);
       osc.stop(startTime + duration + 0.05);
+      osc._fadeGain = masterGain;
       this.activeNodes.push(osc);
     } else if (inst.includes("bandola")) {
       // Bandola: 6 orders of steel strings, percussive plectrum stroke
@@ -402,6 +486,7 @@ class SenafonicaAudioEngine {
 
         osc.start(startTime);
         osc.stop(startTime + duration + 0.05);
+        osc._fadeGain = masterGain;
         this.activeNodes.push(osc);
       });
     } else {
@@ -419,6 +504,7 @@ class SenafonicaAudioEngine {
 
       osc.start(startTime);
       osc.stop(startTime + duration + 0.05);
+      osc._fadeGain = masterGain;
       this.activeNodes.push(osc);
     }
 
@@ -442,6 +528,7 @@ class SenafonicaAudioEngine {
     gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.012);
     noise.connect(gain);
     noise.start(startTime);
+    noise._fadeGain = gain;
     this.activeNodes.push(noise);
     return gain;
   }
@@ -456,11 +543,22 @@ class SenafonicaAudioEngine {
    * @param {string} direction - 'ascendente', 'descendente', 'intercalada'
    * @param {function} onNoteCallback - (noteIndex, midi, noteName)
    */
-  async playInterval(instrument, rootMidi, semitones, direction = "ascendente", onNoteCallback = null, allowSynthesis = true) {
+  _scheduleUiCallback(token, delaySeconds, callback) {
+    if (typeof callback !== 'function') return;
+    setTimeout(() => {
+      if (token === this.playToken) callback();
+    }, Math.max(0, delaySeconds) * 1000);
+  }
+
+  _waitFor(seconds) {
+    return new Promise(resolve => setTimeout(resolve, Math.max(0, seconds) * 1000));
+  }
+
+  async playInterval(instrument, rootMidi, semitones, direction = "ascendente", onNoteCallback = null, allowSynthesis = true, tempoMultiplier = 1.0) {
     this.stop();
     const token = this.playToken;
     this.isPlaying = true;
-    await this.initContext();
+    const ctx = await this.initContext();
 
     let note1Midi, note2Midi;
     const effectiveDir = direction.toLowerCase();
@@ -479,21 +577,28 @@ class SenafonicaAudioEngine {
       note2Midi = rootMidi + semitones;
     }
 
-    const dur = this.intervalNoteDuration;
-    const gap = this.intervalNoteGap;
+    const tempo = Math.max(0.25, Number(tempoMultiplier) || 1);
+    const dur = this.intervalNoteDuration / tempo;
+    const gap = this.intervalNoteGap / tempo;
 
-    // Note 1
-    if (onNoteCallback) onNoteCallback(0, note1Midi, this.midiToName(note1Midi));
-    await this.playNote(instrument, note1Midi, 0, dur, 0.95, allowSynthesis);
-
-    await new Promise(res => setTimeout(res, (dur + gap) * 1000));
+    // Decode before scheduling: the Web Audio clock below must not wait on I/O.
+    await this.preloadNotes(instrument, [note1Midi, note2Midi]);
     if (token !== this.playToken) return;
 
-    // Note 2
-    if (onNoteCallback) onNoteCallback(1, note2Midi, this.midiToName(note2Midi));
-    await this.playNote(instrument, note2Midi, 0, dur, 0.95, allowSynthesis);
+    const startAt = ctx.currentTime + 0.05;
+    const secondAt = startAt + dur + gap;
+    if (onNoteCallback) onNoteCallback(0, note1Midi, this.midiToName(note1Midi));
 
-    await new Promise(res => setTimeout(res, (dur + gap) * 1000));
+    // Both notes are scheduled on the audio clock (lookahead), not with
+    // setTimeout. The timers below only drive the visual note indicator.
+    const first = this.playNote(instrument, note1Midi, startAt, dur, 0.95, allowSynthesis);
+    const second = this.playNote(instrument, note2Midi, secondAt, dur, 0.95, allowSynthesis);
+    this._scheduleUiCallback(token, secondAt - ctx.currentTime, () => {
+      if (onNoteCallback) onNoteCallback(1, note2Midi, this.midiToName(note2Midi));
+    });
+
+    await Promise.all([first, second]);
+    await this._waitFor(secondAt + dur - ctx.currentTime + 0.05);
     if (token === this.playToken) {
       this.isPlaying = false;
       if (onNoteCallback) onNoteCallback(-1, null, null);
@@ -515,7 +620,7 @@ class SenafonicaAudioEngine {
     this.stop();
     const token = this.playToken;
     this.isPlaying = true;
-    await this.initContext();
+    const ctx = await this.initContext();
 
     // Compute all MIDI notes in the scale
     const notes = [rootMidi];
@@ -525,18 +630,25 @@ class SenafonicaAudioEngine {
       notes.push(current);
     }
 
-    const noteDuration = this.scaleNoteDuration / tempoMultiplier;
-    const gap = this.scaleNoteGap / tempoMultiplier;
+    const tempo = Math.max(0.25, Number(tempoMultiplier) || 1);
+    const noteDuration = this.scaleNoteDuration / tempo;
+    const gap = this.scaleNoteGap / tempo;
+    const stepDuration = noteDuration + gap;
 
-    for (let i = 0; i < notes.length; i++) {
-      if (token !== this.playToken) return;
-      const midi = notes[i];
-      if (onNoteCallback) onNoteCallback(i, midi, this.midiToName(midi), notes.length);
+    await this.preloadNotes(instrument, notes);
+    if (token !== this.playToken) return;
 
-      await this.playNote(instrument, midi, 0, noteDuration, 0.95);
-      // Wait exactly for the next note without gap
-      await new Promise(res => setTimeout(res, (noteDuration + gap) * 1000));
-    }
+    const startAt = ctx.currentTime + 0.05;
+    const scheduled = notes.map((midi, i) => {
+      const at = startAt + i * stepDuration;
+      this._scheduleUiCallback(token, at - ctx.currentTime, () => {
+        if (onNoteCallback) onNoteCallback(i, midi, this.midiToName(midi), notes.length);
+      });
+      return this.playNote(instrument, midi, at, noteDuration, 0.95);
+    });
+
+    await Promise.all(scheduled);
+    await this._waitFor(startAt + notes.length * stepDuration - ctx.currentTime);
 
     if (token === this.playToken) {
       this.isPlaying = false;
@@ -578,9 +690,10 @@ class SenafonicaAudioEngine {
 
   // Success arpeggio (harmonic celebration)
   async playSuccessSound() {
-    await this.initContext();
+    this.unlock();
     const notes = [60, 64, 67, 72, 76]; // C4, E4, G4, C5, E5
-    const now = this.ctx.currentTime;
+    await this.preloadNotes("Tiple", notes);
+    const now = this.ctx.currentTime + 0.02;
     notes.forEach((midi, i) => {
       this.playNote("Tiple", midi, now + i * 0.08, 0.45, 0.85);
     });
@@ -588,8 +701,9 @@ class SenafonicaAudioEngine {
 
   // Dissonant sound on wrong answer
   async playErrorSound() {
-    await this.initContext();
-    const now = this.ctx.currentTime;
+    this.unlock();
+    await this.preloadNotes("Guitarra", [45, 46]);
+    const now = this.ctx.currentTime + 0.02;
     // Dissonant low chord
     this.playNote("Guitarra", 45, now, 0.35, 0.8);
     this.playNote("Guitarra", 46, now, 0.35, 0.7);
@@ -597,17 +711,19 @@ class SenafonicaAudioEngine {
 
   // Life lost heart pluck
   async playLifeLostSound() {
-    await this.initContext();
-    const now = this.ctx.currentTime;
+    this.unlock();
+    await this.preloadNotes("Requinto", [63, 59]);
+    const now = this.ctx.currentTime + 0.02;
     this.playNote("Requinto", 63, now, 0.25, 0.7);
     this.playNote("Requinto", 59, now + 0.12, 0.4, 0.8);
   }
 
   // Life restored / bonus chime
   async playLifeRestoredSound() {
-    await this.initContext();
+    this.unlock();
     const notes = [67, 71, 74, 79]; // G4, B4, D5, G5
-    const now = this.ctx.currentTime;
+    await this.preloadNotes("Bandola", notes);
+    const now = this.ctx.currentTime + 0.02;
     notes.forEach((midi, i) => {
       this.playNote("Bandola", midi, now + i * 0.09, 0.5, 0.85);
     });
@@ -615,10 +731,11 @@ class SenafonicaAudioEngine {
 
   // Level completed fanfare
   async playLevelCompleteSound() {
-    await this.initContext();
+    this.unlock();
     const notes = [60, 64, 67, 72, 72, 76];
     const delays = [0, 0.1, 0.2, 0.32, 0.45, 0.6];
-    const now = this.ctx.currentTime;
+    await this.preloadNotes("Tiple", notes);
+    const now = this.ctx.currentTime + 0.02;
     notes.forEach((midi, i) => {
       this.playNote("Tiple", midi, now + delays[i], 0.6, 0.9);
     });

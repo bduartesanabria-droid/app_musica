@@ -1141,13 +1141,15 @@ def update_game_achievement():
         db.session.flush()
 
     unlocked = []
+    # C2: solo las respuestas de Bandola modifican la racha de Bandola; otro
+    # instrumento ni suma ni reinicia. C1/C3: la racha se topa en 10 tanto
+    # para usuarios autenticados como invitados (el invitado se limita en el
+    # cliente, que nunca envía esta petición).
     if data.get("instrument") == "Bandola":
-        gamification.bandola_correct_streak = (
-            (gamification.bandola_correct_streak or 0) + 1
-            if data["correct"]
-            else 0
-        )
-        if gamification.bandola_correct_streak == 10:
+        previous_streak = gamification.bandola_correct_streak or 0
+        current_streak = min(10, previous_streak + 1) if data["correct"] else 0
+        gamification.bandola_correct_streak = current_streak
+        if current_streak == 10 and previous_streak < 10:
             _game_badge(
                 gamification,
                 "Oído de Oro",
@@ -1155,8 +1157,6 @@ def update_game_achievement():
                 "🥇",
             )
             unlocked.append("Oído de Oro")
-    else:
-        gamification.bandola_correct_streak = 0
 
     scale_id = data.get("tonic_scale_id")
     if data["correct"] and scale_id is not None:

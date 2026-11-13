@@ -606,19 +606,19 @@
             <span class="text-[11px] font-bold text-slate-400 mr-1">Dinámica:</span>
             <button type="button"
                     @click="changeDirection('ascendente')"
-                    :class="intervalDirection === 'ascendente' ? 'bg-sena text-white' : 'bg-slate-800 text-slate-400'"
+                    :class="currentDirection() === 'ascendente' ? 'bg-sena text-white' : 'bg-slate-800 text-slate-400'"
                     class="px-2.5 py-1 rounded-xl text-xs font-bold transition-all">
               Ascendente ↑
             </button>
             <button type="button"
                     @click="changeDirection('descendente')"
-                    :class="intervalDirection === 'descendente' ? 'bg-sena text-white' : 'bg-slate-800 text-slate-400'"
+                    :class="currentDirection() === 'descendente' ? 'bg-sena text-white' : 'bg-slate-800 text-slate-400'"
                     class="px-2.5 py-1 rounded-xl text-xs font-bold transition-all">
               Descendente ↓
             </button>
             <button type="button"
                     @click="changeDirection('intercalada')"
-                    :class="intervalDirection === 'intercalada' ? 'bg-sena text-white' : 'bg-slate-800 text-slate-400'"
+                    :class="currentDirection() === 'intercalada' ? 'bg-sena text-white' : 'bg-slate-800 text-slate-400'"
                     class="px-2.5 py-1 rounded-xl text-xs font-bold transition-all">
               Aleatoria ⇄
             </button>

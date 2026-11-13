@@ -97,4 +97,67 @@ for (const m of modules.filter(x => x.group === 'scale')) {
   assert.ok(M.spellScale(67, m.scale.steps, m.scale.focus), `${m.name} debe escribirse desde Sol`);
 }
 
+// 10. Claves estables de escala: el nombre pedagógico encuentra la escala real.
+assert.strictEqual(M.scaleKey('Mayor (Jónico)'), 'mayor');
+assert.strictEqual(M.scaleKey('Menor Natural (Eólico)'), 'menor-natural');
+assert.strictEqual(M.scaleKey('Menor Armónica'), 'menor-armonica');
+assert.strictEqual(M.scaleKey('Menor Melódica'), 'menor-melodica');
+assert.strictEqual(M.scaleKey('Modo Dórico'), 'dorico');
+assert.strictEqual(M.scaleKey('Dorica'), 'dorico');
+assert.strictEqual(M.scaleKey('Modo Mixolidio'), 'mixolidio');
+assert.strictEqual(M.scaleKey('Mixolidia'), 'mixolidio');
+
+const dbScales = [
+  { name: 'Mayor' },
+  { name: 'Menor natural' },
+  { name: 'Menor armonica' },
+  { name: 'Menor melodica' },
+  { name: 'Pentatonica mayor' },
+  { name: 'Pentatonica menor' },
+  { name: 'Dorica' },
+  { name: 'Mixolidia' },
+];
+assert.strictEqual(M.findScaleByKey(dbScales, 'Mayor (Jónico)').name, 'Mayor');
+assert.strictEqual(M.findScaleByKey(dbScales, 'Menor Natural (Eólico)').name, 'Menor natural');
+assert.strictEqual(M.findScaleByKey(dbScales, 'Menor Armónica').name, 'Menor armonica');
+assert.strictEqual(M.findScaleByKey(dbScales, 'Menor Melódica').name, 'Menor melodica');
+assert.strictEqual(M.findScaleByKey(dbScales, 'Modo Dórico').name, 'Dorica');
+assert.strictEqual(M.findScaleByKey(dbScales, 'Modo Mixolidio').name, 'Mixolidia');
+// Los 9 módulos de escala tienen una escala reproducible: los cinco que no
+// existen en la base se resuelven con los pasos del propio módulo.
+for (const module of modules.filter(m => m.group === 'scale')) {
+  const fromDb = M.findScaleByKey(dbScales, module.name);
+  const steps = fromDb
+    ? (fromDb.intervals_pattern || '2,2,1,2,2,2,1').split(',').map(Number)
+    : module.scale.steps;
+  assert.ok(steps.length >= 7, `${module.name} debe tener una escala reproducible`);
+}
+
+// 11. Dirección: la estación manda hasta que el alumno cambia el selector.
+assert.strictEqual(M.resolveDirection(false, 'intercalada', 'descendente'), 'descendente');
+assert.strictEqual(M.resolveDirection(true, 'intercalada', 'descendente'), 'intercalada');
+assert.strictEqual(M.resolveDirection(false, null, null), 'ascendente');
+
+// 12. Compuestos 14–21: cada opción (incluidos distractores) tiene sus semitonos.
+const intervals = require(path.join(root, 'app', 'static', 'data', 'intervals.json'));
+for (const module of modules.filter(m => m.group === 'compound')) {
+  const pool = M.challengePool(modules, module.id);
+  for (const id of pool) {
+    const option = modules.find(m => m.id === id);
+    const semitones = M.intervalSemitones(modules, intervals, option.name, module.semitones);
+    assert.strictEqual(semitones, option.semitones, `${module.name} / ${option.name}`);
+  }
+}
+assert.strictEqual(M.intervalSemitones(modules, intervals, '2da Mayor', 0), 2);
+assert.strictEqual(M.intervalSemitones(modules, intervals, 'Trecena Mayor', 0), 21);
+
+// 13. Requinto: los compuestos 16–21 tienen raíces propias usando el catálogo
+// real (etiquetas una octava abajo, pendientes de A1).
+const requinto = Array.from({ length: 27 }, (_, i) => 48 + i);
+for (const semitones of [15, 16, 17, 19, 20, 21]) {
+  const roots = M.validRootMidis(requinto, [60, 88], semitones, { allowCatalogFallback: true });
+  assert.ok(roots.length > 0, `Requinto debe tener raíces para ${semitones} semitonos`);
+  for (const root of roots) assert.ok(requinto.includes(root + semitones));
+}
+
 console.log('module_engine_check: OK');

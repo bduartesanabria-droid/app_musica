@@ -22,7 +22,7 @@
           "level": 2,
           "phase": "challenge",
           "label": "Fase .2 · Reto acumulado",
-          "prompt": "¿Cuál nota fue más grave/aguda?"
+          "prompt": "¿La segunda nota es más aguda o más grave que la primera?"
         }
       ]
     },

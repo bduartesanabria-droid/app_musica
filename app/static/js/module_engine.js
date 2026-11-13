@@ -119,6 +119,78 @@
     '5 tonos', '5 tonos y medio', '6 tonos',
   ];
 
+  // Claves estables de escala: no dependen de tildes, mayúsculas ni del
+  // paréntesis pedagógico ("Mayor (Jónico)" → "mayor"). Las bases de datos
+  // históricas usan variantes como "Dorica" o "Mixolidia"; se normalizan aquí.
+  const SCALE_ALIASES = {
+    dorica: 'dorico',
+    mixolidia: 'mixolidio',
+    frigia: 'frigio',
+    lidia: 'lidio',
+    locria: 'locrio',
+    jonico: 'mayor',
+    eolico: 'menor-natural',
+  };
+
+  function scaleKey(name) {
+    const normalized = String(name || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/\([^)]*\)/g, ' ')
+      .replace(/\bmodo\b/g, ' ')
+      .replace(/[^a-z0-9]+/g, ' ')
+      .trim()
+      .replace(/\s+/g, '-');
+    return SCALE_ALIASES[normalized] || normalized;
+  }
+
+  /** Busca una escala por clave estable, nunca por el nombre literal. */
+  function findScaleByKey(scales, name) {
+    const key = scaleKey(name);
+    if (!key) return null;
+    return (scales || []).find(scale => scaleKey(scale.name) === key) || null;
+  }
+
+  /**
+   * Dirección efectiva: la estación manda salvo que el alumno haya usado el
+   * selector de dinámica en esta sesión.
+   */
+  function resolveDirection(override, selected, stationDirection) {
+    return override ? (selected || 'ascendente') : (stationDirection || 'ascendente');
+  }
+
+  /**
+   * Semitonos de una opción de respuesta. Los módulos compuestos (14–21) no
+   * están en intervals.json, así que se resuelven por el catálogo de módulos.
+   */
+  function intervalSemitones(modules, intervals, name, fallback = 0) {
+    const module = (modules || []).find(item => item.type === 'interval' && item.name === name);
+    if (module && Number.isFinite(Number(module.semitones))) return Number(module.semitones);
+    const interval = (intervals || []).find(item => item.name === name);
+    if (interval && Number.isFinite(Number(interval.semitones))) return Number(interval.semitones);
+    return Number(fallback) || 0;
+  }
+
+  /**
+   * Raíces con las dos notas disponibles en el catálogo. Si el rango
+   * documentado no deja ninguna (caso del Requinto en los compuestos), se usa
+   * el rango real del catálogo. A1 corregirá las etiquetas una octava.
+   */
+  function validRootMidis(catalogMidis, range, semitones, options = {}) {
+    const notes = new Set((catalogMidis || []).map(Number).filter(Number.isInteger));
+    if (!range || !notes.size) return [];
+    const distance = Number(semitones) || 0;
+    const inRange = [...notes]
+      .filter(midi => midi >= range[0] && midi + distance <= range[1] && notes.has(midi + distance))
+      .sort((a, b) => a - b);
+    if (inRange.length || !options.allowCatalogFallback) return inRange;
+    const max = Math.max(...notes);
+    return [...notes]
+      .filter(midi => midi + distance <= max && notes.has(midi + distance))
+      .sort((a, b) => a - b);
+  }
+
   /** Distancia en tonos y trastes para semitonos (trastes = semitonos). Compuestos: total en tonos. */
   function distanceLabel(semitones) {
     const n = Number(semitones);
@@ -186,6 +258,11 @@
     challengeOptions,
     challengeTargets,
     distanceLabel,
+    scaleKey,
+    findScaleByKey,
+    resolveDirection,
+    intervalSemitones,
+    validRootMidis,
     spellScale,
     shuffle,
   };
