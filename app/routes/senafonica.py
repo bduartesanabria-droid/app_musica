@@ -2,7 +2,6 @@ import json
 import hashlib
 import io
 import mimetypes
-import os
 from pathlib import Path
 from datetime import timedelta
 from functools import lru_cache

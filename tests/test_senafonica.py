@@ -361,6 +361,38 @@ def test_senafonica_catalog_streams_active_audio_from_database(client, app):
     assert response.data == b"database-audio"
 
 
+def test_game_audio_prefers_opus_and_exposes_mp3_fallback(client, app, tmp_path):
+    wav_path = tmp_path / "Tiple_DO4.wav"
+    wav_path.write_bytes(b"wav source")
+    wav_path.with_suffix(".ogg").write_bytes(b"opus sidecar")
+    wav_path.with_suffix(".mp3").write_bytes(b"mp3 sidecar")
+    with app.app_context():
+        instrument = Instrument(name="Tiple", is_active=True)
+        note = Note(name="DO", octave=4, midi_number=60, frequency=261.63)
+        db.session.add_all([instrument, note])
+        db.session.flush()
+        audio = Audio(
+            filename="Tiple_DO4.wav",
+            original_filename="Tiple_DO4.wav",
+            file_path=str(wav_path),
+            instrument_id=instrument.id,
+            note_id=note.id,
+            is_active=True,
+        )
+        db.session.add(audio)
+        db.session.commit()
+
+    sample = client.get("/api/senafonica/data").get_json()["catalog"]["Tiple"][0]
+    stream_url = sample["stream_url"]
+    opus = client.get(stream_url)
+    mp3 = client.get(f"{stream_url}&format=mp3")
+
+    assert opus.data == b"opus sidecar"
+    assert opus.mimetype == "audio/ogg"
+    assert mp3.data == b"mp3 sidecar"
+    assert mp3.mimetype == "audio/mpeg"
+
+
 def test_senafonica_audio_endpoint_hides_inactive_samples(client, app):
     with app.app_context():
         instrument = Instrument(name="Requinto", is_active=True)
