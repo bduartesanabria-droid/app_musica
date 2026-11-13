@@ -30,6 +30,7 @@ class SenafonicaAudioEngine {
     this.preloadConcurrency = 4;
     this.preloadQueue = [];
     this.preloadActive = 0;
+    this.contextWoken = false;
 
     // Teaching tempo: every note rings for 2 seconds with even spacing
     this.scaleNoteDuration = 2.0;
@@ -49,6 +50,19 @@ class SenafonicaAudioEngine {
     if (!this.ctx) {
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
       this.ctx = new AudioCtx();
+    }
+    // A zero-length Web Audio source started in the gesture is a reliable
+    // iOS/Android autoplay-policy unlock, including the first calibration tap.
+    if (!this.contextWoken) {
+      try {
+        const silentSource = this.ctx.createBufferSource();
+        silentSource.buffer = this.ctx.createBuffer(1, 1, this.ctx.sampleRate);
+        silentSource.connect(this.ctx.destination);
+        silentSource.start(0);
+        this.contextWoken = true;
+      } catch (error) {
+        // resume() below is still attempted if a browser rejects the silent node.
+      }
     }
     if (this.ctx.state === "suspended" && typeof this.ctx.resume === "function") {
       const resumed = this.ctx.resume();
