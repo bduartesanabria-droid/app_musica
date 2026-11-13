@@ -23,4 +23,4 @@
   <footer class="session-stats"><span><b x-text="correct"></b> correctas</span><i></i><span><b x-text="accuracy() + '%'">0%</b> precisión</span><i></i><span><b x-text="wrong"></b> por revisar</span></footer>
 </div>
 {% endblock %}
-{% block scripts %}<script src="{{ url_for('static', filename='vendor/vexflow-4.2.5.js') }}"></script><script src="{{ url_for('static', filename='js/score_renderer.js') }}"></script><script src="{{ url_for('static', filename='js/training.js') }}"></script>{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='vendor/vexflow-4.2.5.min.js') }}"></script><script src="{{ url_for('static', filename='js/score_renderer.js') }}"></script><script src="{{ url_for('static', filename='js/training.js') }}"></script>{% endblock %}

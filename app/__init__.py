@@ -177,6 +177,7 @@ def create_app(env=None):
             and "Range" not in request.headers
             and int(response.headers.get("Content-Length", "0") or 0) >= 512
         ):
+            response.vary.add("Accept-Encoding")
             accepted = request.headers.get("Accept-Encoding", "").lower()
             try:
                 response.direct_passthrough = False
@@ -194,7 +195,6 @@ def create_app(env=None):
                 if body is not None:
                     response.set_data(body)
                     response.set_etag(hashlib.sha256(body).hexdigest())
-                    response.vary.add("Accept-Encoding")
                     response.make_conditional(request)
             except (ImportError, RuntimeError, OSError):
                 app.logger.exception("No se pudo comprimir la respuesta de texto.")

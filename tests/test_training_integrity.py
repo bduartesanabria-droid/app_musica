@@ -330,7 +330,7 @@ def test_session_page_embeds_score_notation_payload(app, login_client):
     assert "notation_display" in html
     assert "spanish_name" in html
     assert "scientific_name" in html
-    assert "/static/vendor/vexflow-4.2.5.js" in html
+    assert "/static/vendor/vexflow-4.2.5.min.js" in html
     assert "/static/js/score_renderer.js" in html
     # Pantalla ciega: la distancia en semitonos solo se revela al responder.
     assert "semitonos" not in html.casefold()
