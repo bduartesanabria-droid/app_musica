@@ -14,6 +14,7 @@ from ..models.instrument import Instrument, Note
 from ..services.audio_bulk import import_files
 from ..services.audio_naming import find_note
 from ..services.audio_validation import convert_wma, transcode_audio, validate_audio_data
+from ..utils.audio_storage import preferred_audio_path
 
 audio_bp = Blueprint("audio", __name__)
 
@@ -153,12 +154,14 @@ def stream(filename):
 
     # Audio uploads are already persisted in the volume. Avoid loading the
     # deferred PostgreSQL BLOB on the hot playback path.
-    if audio and audio.file_path and os.path.isfile(audio.file_path):
+    audio_path = preferred_audio_path(audio.file_path, request.args.get("format")) if audio else None
+    if audio_path:
+        extension = audio_path.suffix.lstrip(".").lower()
         return send_file(
-            audio.file_path,
+            audio_path,
             mimetype=mimetypes.get(extension, "application/octet-stream"),
             download_name=audio.original_filename,
-            max_age=3600,
+            conditional=True,
         )
 
     # Compatibility fallback for records whose volume file is unavailable.

@@ -50,6 +50,7 @@ def test_compiled_frontend_assets_are_served(client):
         "/static/vendor/alpine-3.14.9.min.js",
         "/static/vendor/chart-4.4.9.umd.js",
         "/static/vendor/vexflow-4.2.5.js",
+        "/static/vendor/vexflow-4.2.5.min.js",
         "/static/js/score_renderer.js",
     ):
         assert client.get(path).status_code == 200
@@ -89,7 +90,7 @@ def test_senafonica_page_loads_score_scripts_and_containers(client):
     assert response.status_code == 200
     html = response.get_data(as_text=True)
 
-    assert "/static/vendor/vexflow-4.2.5.js" in html
+    assert "/static/vendor/vexflow-4.2.5.min.js" in html
     assert "/static/js/score_renderer.js" in html
     assert 'x-ref="learnScore"' in html
     assert 'x-ref="answerScore"' in html

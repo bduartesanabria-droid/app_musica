@@ -354,7 +354,7 @@ def test_senafonica_catalog_streams_active_audio_from_database(client, app):
     catalog = client.get("/api/senafonica/data").get_json()["catalog"]
     sample = catalog["Tiple"][0]
     assert sample["id"] == audio_id
-    assert sample["stream_url"] == f"/api/senafonica/audio/{audio_id}"
+    assert sample["stream_url"].startswith(f"/api/senafonica/audio/{audio_id}?")
 
     response = client.get(sample["stream_url"])
     assert response.status_code == 200

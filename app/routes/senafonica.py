@@ -14,6 +14,7 @@ from ..models.audio import Audio
 from ..models.gamification import Badge, UserBadge, UserGamification
 from ..models.progress import Progress
 from ..utils.timezone import bogota_date
+from ..utils.audio_storage import audio_file_version, preferred_audio_path
 
 senafonica_bp = Blueprint("senafonica", __name__)
 
@@ -850,12 +851,14 @@ def _build_audio_catalog():
         if not a.instrument or not a.note:
             continue
         inst_name = a.instrument.name
+        audio_path = preferred_audio_path(a.file_path)
+        version = audio_file_version(audio_path) if audio_path else str(a.id)
         if inst_name not in catalog:
             catalog[inst_name] = []
         catalog[inst_name].append({
             "id": a.id,
             "filename": a.filename,
-            "stream_url": url_for("senafonica.stream_audio_sample", audio_id=a.id),
+            "stream_url": url_for("senafonica.stream_audio_sample", audio_id=a.id, v=version),
             "note_name": a.note.display_name,
             "midi": a.note.midi_number,
             "octave": a.note.octave,
@@ -879,10 +882,14 @@ def stream_audio_sample(audio_id):
     if not audio or not audio.instrument or not audio.note:
         abort(404)
 
-    content_type = mimetypes.guess_type(audio.original_filename)[0] or "application/octet-stream"
-    if audio.file_path and os.path.isfile(audio.file_path):
+    audio_path = preferred_audio_path(audio.file_path, request.args.get("format"))
+    content_type = (
+        mimetypes.guess_type(audio_path.name)[0]
+        if audio_path else mimetypes.guess_type(audio.original_filename)[0]
+    ) or "application/octet-stream"
+    if audio_path:
         return send_file(
-            audio.file_path,
+            audio_path,
             mimetype=content_type,
             download_name=audio.original_filename,
             conditional=True,

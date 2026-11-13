@@ -1,3 +1,5 @@
+import gzip
+import hashlib
 import os
 import secrets
 
@@ -85,6 +87,17 @@ def create_app(env=None):
     app.register_blueprint(api_bp,      url_prefix="/api")
     app.register_blueprint(senafonica_bp, url_prefix="")
 
+    @app.url_defaults
+    def version_static_assets(endpoint, values):
+        if endpoint != "static" or "v" in values or not values.get("filename"):
+            return
+        asset_path = os.path.join(app.static_folder, values["filename"])
+        try:
+            stat = os.stat(asset_path)
+        except OSError:
+            return
+        values["v"] = f"{stat.st_size:x}-{stat.st_mtime_ns:x}"
+
     # Context processor: inyecta gamification en todos los templates
     @app.context_processor
     def inject_gamification():
@@ -132,6 +145,56 @@ def create_app(env=None):
         )
         if request.is_secure:
             response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+
+        versioned_asset = request.args.get("v") and (
+            request.path.startswith("/static/")
+            or request.path.startswith("/api/senafonica/audio/")
+            or request.path.startswith("/audio/stream/")
+        )
+        if versioned_asset and response.status_code == 200:
+            response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+
+        if response.mimetype == "text/html":
+            response.headers.setdefault("Cache-Control", "no-cache")
+            if response.status_code == 200 and request.method != "HEAD":
+                try:
+                    response.direct_passthrough = False
+                    response.set_etag(hashlib.sha256(response.get_data()).hexdigest())
+                except (RuntimeError, OSError):
+                    pass
+
+        text_response = (
+            response.mimetype.startswith("text/")
+            or response.mimetype in {"application/javascript", "application/json", "image/svg+xml"}
+        )
+        if (
+            text_response
+            and response.status_code == 200
+            and request.method != "HEAD"
+            and "Content-Encoding" not in response.headers
+            and "Range" not in request.headers
+            and int(response.headers.get("Content-Length", "0") or 0) >= 512
+        ):
+            accepted = request.headers.get("Accept-Encoding", "").lower()
+            try:
+                response.direct_passthrough = False
+                body = response.get_data()
+                if "br" in accepted:
+                    import brotli
+
+                    body = brotli.compress(body, quality=5)
+                    response.headers["Content-Encoding"] = "br"
+                elif "gzip" in accepted:
+                    body = gzip.compress(body, compresslevel=6, mtime=0)
+                    response.headers["Content-Encoding"] = "gzip"
+                else:
+                    body = None
+                if body is not None:
+                    response.set_data(body)
+                    response.set_etag(hashlib.sha256(body).hexdigest())
+                    response.vary.add("Accept-Encoding")
+            except (ImportError, RuntimeError, OSError):
+                app.logger.exception("No se pudo comprimir la respuesta de texto.")
         return response
 
     with app.app_context():

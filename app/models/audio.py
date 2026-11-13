@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 from urllib.parse import quote
 from sqlalchemy.orm import deferred
 from ..extensions import db
+from ..utils.audio_storage import audio_file_version, preferred_audio_path
 
 
 class Audio(db.Model):
@@ -37,7 +38,9 @@ class Audio(db.Model):
 
     @property
     def stream_url(self):
-        return f"/audio/stream/{quote(self.filename)}"
+        path = preferred_audio_path(self.file_path)
+        version = audio_file_version(path) if path else str(self.id)
+        return f"/audio/stream/{quote(self.filename)}?v={version}"
 
     @property
     def file_size_kb(self):

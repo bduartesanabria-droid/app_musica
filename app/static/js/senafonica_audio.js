@@ -91,10 +91,29 @@ class SenafonicaAudioEngine {
     const promise = (async () => {
       try {
         await this.initContext();
-        const response = await fetch(url);
-        if (!response.ok) return null;
-        const arrayBuffer = await response.arrayBuffer();
-        const audioBuffer = await this.ctx.decodeAudioData(arrayBuffer);
+        const candidates = [url];
+        try {
+          const fallbackUrl = new URL(url, window.location.href);
+          if (fallbackUrl.searchParams.get("format") !== "mp3") {
+            fallbackUrl.searchParams.set("format", "mp3");
+            candidates.push(fallbackUrl.href);
+          }
+        } catch (error) {
+          // A relative or unusual URL still gets its normal decode attempt.
+        }
+        let audioBuffer = null;
+        let lastError = null;
+        for (const candidate of candidates) {
+          try {
+            const response = await fetch(candidate);
+            if (!response.ok) throw new Error(`Audio request failed (${response.status})`);
+            audioBuffer = await this.ctx.decodeAudioData(await response.arrayBuffer());
+            break;
+          } catch (error) {
+            lastError = error;
+          }
+        }
+        if (!audioBuffer) throw lastError || new Error("Audio decode failed");
         this.sampleCache.set(url, audioBuffer);
         this.sampleOffsets.set(url, this._findSampleOffset(audioBuffer));
         return audioBuffer;
