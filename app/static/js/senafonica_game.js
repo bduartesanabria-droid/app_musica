@@ -440,7 +440,7 @@ function senafonicaGame(initData) {
           : station.id === 2
             ? ['Notas naturales', 'Escala mayor', 'Escala menor natural', 'Escala pentatónica mayor']
           : station.type === 'final_boss' && correct === 'Acorde mayor'
-            ? ['Acorde mayor', 'Acorde menor', 'Quinta justa', 'Tercera mayor']
+            ? ['Acorde mayor', 'Acorde menor', '5ta Justa', '3ra Mayor']
             : (station.intervals || []).concat(this.intervals.map(interval => interval.name));
         return {
           label: index === 0 ? 'Muestra principal' : 'Muestra alternativa',
@@ -1528,8 +1528,7 @@ function senafonicaGame(initData) {
         container,
         this.jamInstrument,
         midis,
-        `${intervalObj ? intervalObj.id : 'intervalo'}_${direction}`,
-        { diagram: false }
+        `${intervalObj ? intervalObj.id : 'intervalo'}_${direction}`
       );
     },
 

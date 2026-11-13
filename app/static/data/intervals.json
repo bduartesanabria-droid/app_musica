@@ -9,7 +9,7 @@
   },
   {
     "id": "2m",
-    "name": "Segunda menor",
+    "name": "2da Menor",
     "semitones": 1,
     "tonos": "medio tono",
     "trastes": 1,
@@ -17,7 +17,7 @@
   },
   {
     "id": "2M",
-    "name": "Segunda mayor",
+    "name": "2da Mayor",
     "semitones": 2,
     "tonos": "1 tono completo",
     "trastes": 2,
@@ -25,7 +25,7 @@
   },
   {
     "id": "3m",
-    "name": "Tercera menor",
+    "name": "3ra Menor",
     "semitones": 3,
     "tonos": "tono y medio",
     "trastes": 3,
@@ -33,7 +33,7 @@
   },
   {
     "id": "3M",
-    "name": "Tercera mayor",
+    "name": "3ra Mayor",
     "semitones": 4,
     "tonos": "2 tonos",
     "trastes": 4,
@@ -41,7 +41,7 @@
   },
   {
     "id": "4J",
-    "name": "Cuarta justa",
+    "name": "4ta Justa",
     "semitones": 5,
     "tonos": "2 tonos y medio",
     "trastes": 5,
@@ -49,7 +49,7 @@
   },
   {
     "id": "4A",
-    "name": "Cuarta aumentada",
+    "name": "Tritono",
     "semitones": 6,
     "tonos": "3 tonos completos",
     "trastes": 6,
@@ -57,7 +57,7 @@
   },
   {
     "id": "5J",
-    "name": "Quinta justa",
+    "name": "5ta Justa",
     "semitones": 7,
     "tonos": "3 tonos y medio",
     "trastes": 7,
@@ -65,7 +65,7 @@
   },
   {
     "id": "6m",
-    "name": "Sexta menor",
+    "name": "6ta Menor",
     "semitones": 8,
     "tonos": "4 tonos",
     "trastes": 8,
@@ -73,7 +73,7 @@
   },
   {
     "id": "6M",
-    "name": "Sexta mayor",
+    "name": "6ta Mayor",
     "semitones": 9,
     "tonos": "4 tonos y medio",
     "trastes": 9,
@@ -81,7 +81,7 @@
   },
   {
     "id": "7m",
-    "name": "Séptima menor",
+    "name": "7ma Menor",
     "semitones": 10,
     "tonos": "5 tonos",
     "trastes": 10,
@@ -89,7 +89,7 @@
   },
   {
     "id": "7M",
-    "name": "Séptima mayor",
+    "name": "7ma Mayor",
     "semitones": 11,
     "tonos": "5 tonos y medio",
     "trastes": 11,
@@ -97,7 +97,7 @@
   },
   {
     "id": "8J",
-    "name": "Octava justa",
+    "name": "Octava Justa",
     "semitones": 12,
     "tonos": "6 tonos",
     "trastes": 12,

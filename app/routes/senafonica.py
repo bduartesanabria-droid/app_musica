@@ -143,7 +143,7 @@ THEORY_QUESTIONS = [
     {
         "id": 5,
         "question": "¿Qué intervalo divide exactamente la octava en dos partes iguales (6 semitonos)?",
-        "options": ["Cuarta justa", "Quinta justa", "Tritono (4ª aumentada / 5ª disminuida)", "Séptima menor"],
+        "options": ["4ta Justa", "5ta Justa", "Tritono (4ª aumentada / 5ª disminuida)", "7ma Menor"],
         "correct": "Tritono (4ª aumentada / 5ª disminuida)",
         "explanation": "El tritono abarca 3 tonos completos (6 semitonos), partiendo los 12 semitonos de la octava exactamente por la mitad.",
         "category": "intervalos"
@@ -193,8 +193,8 @@ THEORY_QUESTIONS = [
     {
         "id": 10,
         "question": "¿Qué intervalo forman las notas DO y FA?",
-        "options": ["3ª mayor", "4ª justa", "5ª justa", "Tritono"],
-        "correct": "4ª justa",
+        "options": ["3ra Mayor", "4ta Justa", "5ta Justa", "Tritono"],
+        "correct": "4ta Justa",
         "explanation": "Entre DO y FA hay una distancia de 5 semitonos, formando una cuarta justa.",
         "category": "intervalos"
     },
@@ -217,8 +217,8 @@ THEORY_QUESTIONS = [
     {
         "id": 13,
         "question": "¿Qué intervalo se produce al duplicar la frecuencia fundamental de una nota?",
-        "options": ["Quinta justa", "Octava justa", "Unísono", "Décima"],
-        "correct": "Octava justa",
+        "options": ["5ta Justa", "Octava Justa", "Unísono", "Décima"],
+        "correct": "Octava Justa",
         "explanation": "Duplicar la frecuencia (ej. 220 Hz a 440 Hz) produce exactamente una octava justa (12 semitonos).",
         "category": "intervalos"
     },
@@ -374,7 +374,7 @@ VELEZ_STATIONS_CONFIG = [
         "reward_item": "Sombrero Aguadeño Veleño",
         "type": "pitch",
         "instrument": "Tiple",
-        "intervals": ["Segunda mayor"],
+        "intervals": ["2da Mayor"],
         "directions": ["ascendente"],
         "required_stars": 0,
         "questions_count": 4,
@@ -403,7 +403,7 @@ VELEZ_STATIONS_CONFIG = [
         "reward_item": "Skin Tiple de Madera Noble",
         "type": "interval",
         "instrument": "Tiple",
-        "intervals": ["Unísono", "Segunda mayor", "Segunda menor"],
+        "intervals": ["Unísono", "2da Mayor", "2da Menor"],
         "directions": ["ascendente"],
         "required_stars": 1,
         "questions_count": 5,
@@ -417,7 +417,7 @@ VELEZ_STATIONS_CONFIG = [
             "demo_notes": [60, 62, 64, 65, 67, 69, 71],
             "demo_label": "Escucha: DO→RE→MI→FA→SOL→LA→SI — las siete notas naturales.",
             "mnemonic": "🎵 Recuerda: entre MI y FA no hay sostenido (son vecinos directos). ¡Solo un pasito!",
-            "interval_name": "Segunda mayor / menor",
+            "interval_name": "2da Mayor / Menor",
             "semitones": 2
         }
     },
@@ -432,7 +432,7 @@ VELEZ_STATIONS_CONFIG = [
         "reward_item": "Ruana Boyacense de Gala",
         "type": "interval",
         "instrument": "Tiple",
-        "intervals": ["Cuarta justa", "Cuarta aumentada"],
+        "intervals": ["4ta Justa", "Tritono"],
         "directions": ["ascendente", "descendente"],
         "required_stars": 2,
         "questions_count": 5,
@@ -447,7 +447,7 @@ VELEZ_STATIONS_CONFIG = [
             "demo_notes_b": [60, 66],
             "demo_label": "Escucha: DO→FA (4ª Justa, 5 semitonos) y DO→FA# (4ª Aumentada, 6 semitonos).",
             "mnemonic": "🎵 Asocia la Cuarta Justa con el inicio de 'Cumpleaños feliz'; la 4ª Aumentada es el 'diablo' que parte la octava en dos.",
-            "interval_name": "Cuarta justa",
+            "interval_name": "4ta Justa",
             "semitones": 5
         }
     },
@@ -462,7 +462,7 @@ VELEZ_STATIONS_CONFIG = [
         "reward_item": "Púa de Oro Comunal",
         "type": "interval",
         "instrument": "Requinto",
-        "intervals": ["Quinta justa"],
+        "intervals": ["5ta Justa"],
         "directions": ["ascendente", "descendente"],
         "required_stars": 3,
         "questions_count": 6,
@@ -476,7 +476,7 @@ VELEZ_STATIONS_CONFIG = [
             "demo_notes": [60, 67],
             "demo_label": "Escucha: DO→SOL, la Quinta Justa. 7 semitonos de distancia.",
             "mnemonic": "🎵 La Quinta Justa aparece al inicio de 'Twinkle Twinkle Little Star': un salto abierto y poderoso.",
-            "interval_name": "Quinta justa",
+            "interval_name": "5ta Justa",
             "semitones": 7
         }
     },
@@ -491,7 +491,7 @@ VELEZ_STATIONS_CONFIG = [
         "reward_item": "Sombrero Vueltiao Folclórico",
         "type": "interval",
         "instrument": "Tiple",
-        "intervals": ["Cuarta justa", "Quinta justa"],
+        "intervals": ["4ta Justa", "5ta Justa"],
         "directions": ["ascendente", "descendente"],
         "required_stars": 4,
         "questions_count": 6,
@@ -506,7 +506,7 @@ VELEZ_STATIONS_CONFIG = [
             "demo_notes_b": [60, 67],
             "demo_label": "Escucha DO→FA (4ª) y DO→SOL (5ª): solo dos semitonos las separan.",
             "mnemonic": "🎵 La cuarta es más cerrada; la quinta es más abierta. Compara sus saltos.",
-            "interval_name": "Cuarta justa",
+            "interval_name": "4ta Justa",
             "semitones": 5
         }
     },
@@ -521,7 +521,7 @@ VELEZ_STATIONS_CONFIG = [
         "reward_item": "Bandola Dorada Mono Núñez",
         "type": "interval",
         "instrument": "Tiple",
-        "intervals": ["Tercera mayor", "Tercera menor"],
+        "intervals": ["3ra Mayor", "3ra Menor"],
         "directions": ["ascendente", "descendente"],
         "required_stars": 5,
         "questions_count": 6,
@@ -536,7 +536,7 @@ VELEZ_STATIONS_CONFIG = [
             "demo_notes_b": [60, 63],
             "demo_label": "Escucha DO→MI (3ª Mayor) y DO→MIb (3ª Menor), y compara sus colores.",
             "mnemonic": "🎵 La tercera mayor es más luminosa; la menor, más íntima.",
-            "interval_name": "Tercera mayor",
+            "interval_name": "3ra Mayor",
             "semitones": 4
         }
     },
@@ -611,7 +611,7 @@ VELEZ_STATIONS_CONFIG = [
         "reward_item": "Medalla Oído de Oro",
         "type": "interval",
         "instrument": "Bandola",
-        "intervals": ["Sexta menor", "Sexta mayor"],
+        "intervals": ["6ta Menor", "6ta Mayor"],
         "directions": ["ascendente", "descendente"],
         "required_stars": 8,
         "questions_count": 6,
@@ -626,7 +626,7 @@ VELEZ_STATIONS_CONFIG = [
             "demo_notes_b": [60, 68],
             "demo_label": "Escucha: DO→LA (6ª Mayor) vs. DO→LAb (6ª Menor). El salto del virtuoso.",
             "mnemonic": "🎵 6ª Mayor = DO→LA (9 semitonos). 'My Bonnie Lies Over The Ocean' empieza con una 6ª Mayor.",
-            "interval_name": "Sexta mayor",
+            "interval_name": "6ta Mayor",
             "semitones": 9
         }
     },
@@ -641,7 +641,7 @@ VELEZ_STATIONS_CONFIG = [
         "reward_item": "Skin Bandola Dorada Mono Núñez",
         "type": "interval",
         "instrument": "Bandola",
-        "intervals": ["Séptima menor", "Séptima mayor"],
+        "intervals": ["7ma Menor", "7ma Mayor"],
         "directions": ["ascendente", "descendente", "intercalada"],
         "required_stars": 9,
         "questions_count": 7,
@@ -656,7 +656,7 @@ VELEZ_STATIONS_CONFIG = [
             "demo_notes_b": [60, 71],
             "demo_label": "Escucha: DO→SIb (7ª menor, tensa) y DO→SI (7ª mayor, muy disonante).",
             "mnemonic": "🎵 La 7ª Menor está en 'Somewhere' de West Side Story. ¡Siente la tensión que pide resolverse!",
-            "interval_name": "Séptima menor",
+            "interval_name": "7ma Menor",
             "semitones": 10
         }
     },
@@ -670,7 +670,7 @@ VELEZ_STATIONS_CONFIG = [
         "cultural_fact": "Albania se esconde entre cafetales y cañaduzales donde las melodías veleñas recorren registros graves y agudos.",
         "reward_item": "Sombrero Vueltiao 21 Vueltas",
         "type": "interval",
-        "intervals": ["Octava justa"],
+        "intervals": ["Octava Justa"],
         "instrument": "Bandola",
         "directions": ["ascendente", "descendente"],
         "required_stars": 10,
@@ -681,11 +681,11 @@ VELEZ_STATIONS_CONFIG = [
         "gradient": "from-purple-800/30 via-violet-950/20 to-slate-950",
         "learn_content": {
             "title": "La Octava Justa",
-            "body": "La octava separa dos notas con el mismo nombre y duplica su frecuencia. DO3 y DO4 suenan distintos en altura, pero comparten la misma identidad musical.",
-            "demo_notes": [48, 60],
-            "demo_label": "Escucha DO3→DO4: la misma nota una octava más arriba.",
+            "body": "La octava separa dos notas con el mismo nombre y duplica su frecuencia. Fa#3 y Fa#4 suenan distintos en altura, pero comparten la misma identidad musical.",
+            "demo_notes": [54, 66],
+            "demo_label": "Escucha Fa#3→Fa#4: la misma nota una octava más arriba.",
             "mnemonic": "Una octava son 12 semitonos: al subirla, llegas de nuevo a la misma nota.",
-            "interval_name": "Octava justa",
+            "interval_name": "Octava Justa",
             "semitones": 12
         }
     },
@@ -762,7 +762,7 @@ VELEZ_STATIONS_CONFIG = [
         "reward_item": "Medalla Oído de Oro + Todos los Accesorios",
         "type": "interval",
         "instrument": "Tiple",
-        "intervals": ["Unísono", "Segunda menor", "Segunda mayor", "Tercera menor", "Tercera mayor", "Cuarta justa", "Cuarta aumentada", "Quinta justa", "Sexta menor", "Sexta mayor", "Séptima menor", "Séptima mayor", "Octava justa"],
+        "intervals": ["Unísono", "2da Menor", "2da Mayor", "3ra Menor", "3ra Mayor", "4ta Justa", "Tritono", "5ta Justa", "6ta Menor", "6ta Mayor", "7ma Menor", "7ma Mayor", "Octava Justa"],
         "directions": ["ascendente", "descendente", "intercalada"],
         "required_stars": 13,
         "questions_count": 8,
@@ -776,7 +776,7 @@ VELEZ_STATIONS_CONFIG = [
             "demo_notes": [60, 62],
             "demo_label": "Usa el Modo Libre (JAM) para repasar cualquier intervalo antes de continuar.",
             "mnemonic": "🎵 Recuerda los ganchos: 4ªJ=Cumpleaños, 5ªJ=Star Wars, 6ªM=My Bonnie, 7ªm=Somewhere.",
-            "interval_name": "Segunda mayor",
+            "interval_name": "2da Mayor",
             "semitones": 2
         }
     },
@@ -791,7 +791,7 @@ VELEZ_STATIONS_CONFIG = [
         "reward_item": "Medalla Máxima 'Tiplista Mayor' + Corona del Maestro",
         "type": "final_boss",
         "instrument": "Todos",
-        "intervals": ["Unísono", "Segunda menor", "Segunda mayor", "Tercera menor", "Tercera mayor", "Cuarta justa", "Cuarta aumentada", "Quinta justa", "Sexta menor", "Sexta mayor", "Séptima menor", "Séptima mayor", "Octava justa"],
+        "intervals": ["Unísono", "2da Menor", "2da Mayor", "3ra Menor", "3ra Mayor", "4ta Justa", "Tritono", "5ta Justa", "6ta Menor", "6ta Mayor", "7ma Menor", "7ma Mayor", "Octava Justa"],
         "directions": ["ascendente", "descendente", "intercalada"],
         "required_stars": 14,
         "questions_count": 10,
@@ -805,7 +805,7 @@ VELEZ_STATIONS_CONFIG = [
             "demo_notes": [60, 64, 67, 72],
             "demo_label": "Escucha el acorde final: DO-MI-SOL-DO (acorde mayor perfecto). ¡Estás listo!",
             "mnemonic": "🎵 Confía en tu oído. Cada nota que escuches lleva el alma de la Provincia de Vélez.",
-            "interval_name": "Quinta justa",
+            "interval_name": "5ta Justa",
             "semitones": 7
         }
     }

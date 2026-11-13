@@ -77,18 +77,21 @@ def test_senafonica_api_data(client):
     assert levels[0]["subtitle"].startswith("Agudo vs.")
     assert levels[0]["type"] == "pitch"
     assert levels[1]["learn_content"]["demo_notes"] == [60, 62, 64, 65, 67, 69, 71]
-    assert levels[2]["learn_content"]["interval_name"] == "Cuarta justa"
-    assert levels[3]["learn_content"]["interval_name"] == "Quinta justa"
-    assert levels[4]["intervals"] == ["Cuarta justa", "Quinta justa"]
-    assert levels[5]["learn_content"]["interval_name"] == "Tercera mayor"
-    assert levels[1]["intervals"] == ["Unísono", "Segunda mayor", "Segunda menor"]
-    assert levels[2]["intervals"] == ["Cuarta justa", "Cuarta aumentada"]
-    assert levels[10]["intervals"] == ["Octava justa"]
-    assert levels[10]["learn_content"]["interval_name"] == "Octava justa"
+    assert levels[2]["learn_content"]["interval_name"] == "4ta Justa"
+    assert levels[3]["learn_content"]["interval_name"] == "5ta Justa"
+    assert levels[4]["intervals"] == ["4ta Justa", "5ta Justa"]
+    assert levels[5]["learn_content"]["interval_name"] == "3ra Mayor"
+    assert levels[1]["intervals"] == ["Unísono", "2da Mayor", "2da Menor"]
+    assert levels[2]["intervals"] == ["4ta Justa", "Tritono"]
+    assert levels[10]["intervals"] == ["Octava Justa"]
+    assert levels[10]["learn_content"]["interval_name"] == "Octava Justa"
+    # La demo de la estación 11 (bandola) cabe en su rango Fa#3–Sol6.
+    assert levels[10]["learn_content"]["demo_notes"] == [54, 66]
+    assert "Fa#3" in levels[10]["learn_content"]["demo_label"]
     assert levels[13]["intervals"] == [
-        "Unísono", "Segunda menor", "Segunda mayor", "Tercera menor", "Tercera mayor",
-        "Cuarta justa", "Cuarta aumentada", "Quinta justa", "Sexta menor", "Sexta mayor",
-        "Séptima menor", "Séptima mayor", "Octava justa",
+        "Unísono", "2da Menor", "2da Mayor", "3ra Menor", "3ra Mayor",
+        "4ta Justa", "Tritono", "5ta Justa", "6ta Menor", "6ta Mayor",
+        "7ma Menor", "7ma Mayor", "Octava Justa",
     ]
     assert levels[14]["intervals"] == levels[13]["intervals"]
     assert levels[11]["type"] == "melody"
@@ -105,10 +108,29 @@ def test_senafonica_api_includes_interval_feedback_metadata(client, app):
 
     intervals = client.get("/api/senafonica/data").get_json()["intervals"]
     second_major = next(item for item in intervals if item["id"] == "2M")
+    # El nombre canónico es el del vocabulario del documento pedagógico.
+    assert second_major["name"] == "2da Mayor"
     assert second_major["tonos"] == "1 tono completo"
     assert second_major["trastes"] == 2
     assert second_major["texto_instrumento"] == ""
     assert all(item["texto_instrumento"] == "" for item in intervals)
+
+
+def test_interval_vocabulary_matches_the_pedagogical_document(client, app):
+    with open(
+        f"{app.root_path}/static/data/intervals.json", encoding="utf-8"
+    ) as handle:
+        intervals = json.load(handle)
+    assert [item["name"] for item in intervals] == [
+        "Unísono", "2da Menor", "2da Mayor", "3ra Menor", "3ra Mayor",
+        "4ta Justa", "Tritono", "5ta Justa", "6ta Menor", "6ta Mayor",
+        "7ma Menor", "7ma Mayor", "Octava Justa",
+    ]
+    canonical = {item["name"] for item in intervals}
+    stations = client.get("/api/senafonica/data").get_json()["stations"]
+    for station in stations:
+        for name in station.get("intervals") or []:
+            assert name in canonical, (station["id"], name)
 
 
 def test_public_age_calculates_birthday_boundary():

@@ -55,10 +55,12 @@ def test_training_score_renders_only_after_answering():
     assert "this.answered && this.answerReady" in body
 
 
-def test_modo_libre_hides_the_diagram():
+def test_modo_libre_shows_the_diagram():
     game = GAME.read_text(encoding="utf-8")
     body = _method_body(game, "_renderJamScore() {", "replayAnsweredAudio()")
-    assert "{ diagram: false }" in body
+    # Modo Libre: pentagrama y diapasón visibles (sin la opción que oculta el diapasón).
+    assert "diagram: false" not in body
+    assert "SemimusScore.renderNotes(" in body
 
 
 def test_training_session_html_has_no_diagram_before_answer(app, login_client):

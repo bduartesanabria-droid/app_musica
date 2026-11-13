@@ -90,7 +90,8 @@ const guitar = panel('Guitarra', [52], false);
 assert.ok(guitar.svgs.length >= 1, 'la guitarra siempre muestra el diapasón');
 assert.ok(!guitar.all.some(n => n.textContent === 'SIN VALIDAR'));
 
-// 11. El Modo Libre puede ocultar el diapasón (diagram: false).
+// 11. El renderizador permite ocultar el diapasón con diagram: false (el Modo
+//     Libre ya no lo usa: muestra pentagrama y diapasón).
 const jam = panel('Guitarra', [40, 47], false, { diagram: false });
 assert.strictEqual(jam.all.filter(n => n.className === 'semimus-fingering').length, 0);
 

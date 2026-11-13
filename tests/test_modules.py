@@ -101,6 +101,17 @@ def test_scales_carry_formula_and_score_focus():
     assert scales[2]["scale"]["focus"] == [5, 6]
 
 
+def test_simple_module_names_match_interval_vocabulary():
+    config = _config()
+    intervals = json.loads(
+        (ROOT / "app" / "static" / "data" / "intervals.json").read_text(encoding="utf-8")
+    )
+    by_id = {item["id"]: item["name"] for item in intervals}
+    for module in config["modules"]:
+        if module["group"] == "simple":
+            assert module["name"] == by_id[module["intervalId"]], module["id"]
+
+
 def test_engine_documents_the_unlock_rule():
     source = ENGINE.read_text(encoding="utf-8")
     assert "La Fase .2 se desbloquea al completar la Fase .1." in source
