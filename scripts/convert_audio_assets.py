@@ -94,7 +94,7 @@ def convert_directory(source_dir, ffmpeg):
 
     savings = (1 - total_ogg / total_wav) * 100
     print(
-        f"Total: WAV {total_wav} B → OGG/Opus {total_ogg} B "
+        f"Total: WAV {total_wav} B -> OGG/Opus {total_ogg} B "
         f"({savings:.1f}% ahorro); respaldo MP3 {total_mp3} B. "
         "Los WAV originales se conservaron."
     )
