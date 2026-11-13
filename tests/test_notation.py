@@ -42,7 +42,9 @@ def test_game_ranges_match_the_document_and_check_the_top_note():
     assert "Bandola: [54, 91]" in source
     assert "Guitarra: [40, 76]" in source
     # La raíz y la nota superior del intervalo deben caber en el rango.
-    assert "midi + semitones <= range[1]" in source
+    # La comprobación de la nota superior está centralizada en el motor de
+    # módulos; para el Requinto existe un fallback pendiente de A1.
+    assert "SemimusModules.validRootMidis(catalogMidis, range, semitones" in source
 
 
 def test_notation_payload_is_the_document_structure():
